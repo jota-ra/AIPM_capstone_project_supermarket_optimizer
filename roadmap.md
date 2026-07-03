@@ -9,7 +9,7 @@ The MVP proves one hypothesis: that passive behavioral reconstruction from recei
 
 ## FEATURE LIST
 
-**01 Receipt Upload + Parsing**: Photo or file upload → Claude Vision extracts item list → USDA API matches nutrients
+**01 Receipt Upload + Parsing**: Photo or file upload → product extraction → Open Food Facts API matches nutrients
 
 **02 3-Question Profile Onboarding**: Goal, age range, activity level — completes in under 90 seconds
 
