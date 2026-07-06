@@ -1,64 +1,54 @@
 from fastapi import APIRouter, UploadFile, File
 from uuid import uuid4
-from datetime import datetime
 
-from backend.app.core.config import settings
-from supabase import create_client
+from backend.app.services.storage import upload_receipt_bytes
+from backend.app.services.receipt_parser import scan_receipt_bytes
+from backend.app.db.supabase import (
+    create_receipt_row,
+    update_receipt_with_parse,
+)
+
+from backend.app.db.receipt_items_repo import insert_receipt_items
 
 router = APIRouter()
 
-supabase = create_client(
-    settings.SUPABASE_URL,
-    settings.SUPABASE_KEY
-)
 
 @router.post("/receipts")
 async def upload_receipt(file: UploadFile = File(...)):
     receipt_id = str(uuid4())
 
-    # 1. READ FILE
+    # Read uploaded file once
     file_bytes = await file.read()
 
-    storage_path = f"{receipt_id}_{file.filename}"
-
-    # 2. UPLOAD TO STORAGE
-    supabase.storage.from_("receipts").upload(
-        path=storage_path,
-        file=file_bytes,
-        file_options={"content-type": file.content_type}
+    # Upload to Supabase Storage
+    storage_path = upload_receipt_bytes(
+        file_bytes=file_bytes,
+        filename=file.filename,
+        content_type=file.content_type,
     )
 
-    # 3. INSERT DB ROW
-    result = supabase.table("receipts").insert({
-        "id": receipt_id,
-        "user_id": None,
-        "file_name": file.filename,
-        "file_type": file.content_type,
-        "storage_path": storage_path,
-        "raw_text": None,
-        "status": "uploaded",
-        "upload_time": datetime.utcnow().isoformat()
-    }).execute()
+    # Create DB row
+    create_receipt_row(
+        receipt_id,
+        file.filename,
+        file.content_type,
+        storage_path,
+    )
+
+    # Parse receipt with Gemini
+    parsed = scan_receipt_bytes(
+        file_bytes=file_bytes,
+        filename=file.filename,
+    )
+
+    # Update DB with parser output
+    update_receipt_with_parse(receipt_id, parsed)
+
+     # 6. NORMALIZATION STEP (THIS WAS MISSING)
+    insert_receipt_items(receipt_id, parsed)
 
     return {
         "receipt_id": receipt_id,
         "storage_path": storage_path,
-        "db_result": result.data
-    }
-
-@router.get("/receipts/{receipt_id}/file")
-def get_receipt_file(receipt_id: str):
-    receipt = supabase.table("receipts") \
-        .select("*") \
-        .eq("id", receipt_id) \
-        .single() \
-        .execute().data
-
-    url = supabase.storage.from_("receipts").get_public_url(
-        receipt["storage_path"]
-    )
-
-    return {
-        "receipt_id": receipt_id,
-        "file_url": url
+        "parsed": parsed,
     }
