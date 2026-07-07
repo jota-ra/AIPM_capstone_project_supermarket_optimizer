@@ -1,0 +1,17 @@
+{
+  "store": "unknown",
+  "scan_quality": "good",
+  "items": [
+    {
+      "name": "Bulgur with Red Beet",
+      "original_text": "Bulgur Rote Beete",
+      "quantity": 1,
+      "unit": "",
+      "category": "Prepared Meals",
+      "uncertain": false
+    }
+  ],
+  "non_food_items_ignored": [],
+  "items_count": 1,
+  "error": null
+}

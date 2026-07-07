@@ -27,6 +27,7 @@ import os
 import time
 from pathlib import Path
 
+
 from google import genai
 from google.genai import types
 from google.genai.errors import ClientError
@@ -49,8 +50,8 @@ Rewe, Edeka, Aldi, Lidl, Penny, etc.
 YOUR RESPONSIBILITIES:
 1. Read the receipt image carefully
 2. Identify ALL food and grocery items
-3. Decode abbreviated product names
-   (e.g. "Bio Sp'gel 500g" -> "Bio Spinach 500g")
+3. Decode abbreviated product names in german
+   (e.g. "Bio Sp'gel 500g" -> "Bio Spargel 500g")
 4. Ignore non-food items (cleaning products, toiletries)
 5. Estimate quantity if not shown (default: 1)
 6. Categorize each item by food group
@@ -68,7 +69,7 @@ STRICT RULES:
 RECEIPT_SCHEMA = {
     "type": "OBJECT",
     "properties": {
-        "store": {"type": "STRING", "enum": ["Rewe", "Edeka", "Aldi", "Lidl", "Penny", "unknown"]},
+        "store": {"type": "STRING", "enum": ["Rewe", "Edeka", "Aldi", "Netto", "Norma", "Lidl", "Penny", "Kaufland", "unknown"]},
         "scan_quality": {"type": "STRING", "enum": ["good", "medium", "poor"]},
         "items": {
             "type": "ARRAY",
