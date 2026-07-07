@@ -51,3 +51,21 @@ def update_receipt_item(item_id, fields: dict):
         .eq("id", item_id)
         .execute()
     )
+
+
+def create_profile_row(profile_id: str, fields: dict):
+    return supabase.table("profiles").insert({
+        "id": profile_id,
+        **fields,
+    }).execute()
+
+
+def get_profile(profile_id: str):
+    result = (
+        supabase.table("profiles")
+        .select("*")
+        .eq("id", profile_id)
+        .limit(1)
+        .execute()
+    )
+    return result.data[0] if result.data else None

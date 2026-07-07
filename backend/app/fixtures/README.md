@@ -9,6 +9,11 @@ Test data for the receipt pipeline (Task 1.5) and the Day-1 contracts in
 - `parsed_items.json` — the `ParsedReceiptItem[]` contract: the item shape the
   parser produces and Epic 2's matcher consumes. Validates against
   `ParsedReceipt.items` in `models/receipt.py`.
+- `profile.json` — the `Profile` contract (sprint plan Day-1 contract):
+  goal, age_range, activity_level, dietary_pattern, exclusions[]. Produced by
+  `POST /profile` (Epic 3) and consumed by the exclusion filter (Task 3.3)
+  and, eventually, the Epic 5 recommender. Validates against
+  `ProfileCreate` in `models/profile.py`.
 
 TODO (team): add real photo samples `receipts/clean_receipt.jpg` and
 `receipts/messy_receipt.jpg` for the image path — those can't be generated
