@@ -44,6 +44,12 @@ def get_receipt_items(receipt_id):
     return result.data
 
 
+def get_all_receipt_items():
+    """Every receipt item across all receipts (for aggregated analysis)."""
+    result = supabase.table("receipt_items").select("*").execute()
+    return result.data
+
+
 def update_receipt_item(item_id, fields: dict):
     return (
         supabase.table("receipt_items")
