@@ -1,0 +1,58 @@
+[
+  {
+    "name": "Vollmilch",
+    "original_text": "Vollmilch 3,5% 1L",
+    "quantity": 1,
+    "unit": "L",
+    "category": "Milchprodukte",
+    "uncertain": false
+  },
+  {
+    "name": "Vollkornbrot",
+    "original_text": "Vollkornbrot 500g",
+    "quantity": 500,
+    "unit": "g",
+    "category": "Backwaren",
+    "uncertain": false
+  },
+  {
+    "name": "Bananen",
+    "original_text": "Bananen 1,0 kg",
+    "quantity": 1,
+    "unit": "kg",
+    "category": "Obst",
+    "uncertain": false
+  },
+  {
+    "name": "Bio Eier",
+    "original_text": "Bio Eier 10 Stk",
+    "quantity": 10,
+    "unit": "Stk",
+    "category": "Eier",
+    "uncertain": false
+  },
+  {
+    "name": "Gouda",
+    "original_text": "Gouda jung 200g",
+    "quantity": 200,
+    "unit": "g",
+    "category": "Milchprodukte",
+    "uncertain": false
+  },
+  {
+    "name": "Haferflocken",
+    "original_text": "Haferflocken 500g",
+    "quantity": 500,
+    "unit": "g",
+    "category": "Getreide",
+    "uncertain": false
+  },
+  {
+    "name": "Naturjoghurt",
+    "original_text": "Naturjoghurt 500g",
+    "quantity": 500,
+    "unit": "g",
+    "category": "Milchprodukte",
+    "uncertain": false
+  }
+]

@@ -1,0 +1,114 @@
+[
+  {
+    "parsed_item_name": "Vollmilch",
+    "matched_name": "Vollmilch",
+    "off_id": "4045317058067",
+    "fallback_category": null,
+    "match_type": "exact",
+    "confidence": 1.0,
+    "data_source": "OpenFoodFacts",
+    "nutrition": {
+      "protein_g": 3.3,
+      "fiber_g": null,
+      "sugar_g": 4.8,
+      "calories_kcal": 67.0,
+      "processed_score": 1.0
+    }
+  },
+  {
+    "parsed_item_name": "Vollkornbrot",
+    "matched_name": "Vollkornbrot",
+    "off_id": "3029330004233",
+    "fallback_category": null,
+    "match_type": "exact",
+    "confidence": 1.0,
+    "data_source": "OpenFoodFacts",
+    "nutrition": {
+      "protein_g": 6.8,
+      "fiber_g": 10.0,
+      "sugar_g": 4.9,
+      "calories_kcal": 211.2,
+      "processed_score": 3.0
+    }
+  },
+  {
+    "parsed_item_name": "Bananen",
+    "matched_name": "Bananenchips",
+    "off_id": "4008258274019",
+    "fallback_category": null,
+    "match_type": "fuzzy",
+    "confidence": 0.85,
+    "data_source": "OpenFoodFacts",
+    "nutrition": {
+      "protein_g": 1.9,
+      "fiber_g": null,
+      "sugar_g": 14.0,
+      "calories_kcal": 528.0,
+      "processed_score": 4.0
+    }
+  },
+  {
+    "parsed_item_name": "Bio Eier",
+    "matched_name": "Eier",
+    "off_id": "4061458234696",
+    "fallback_category": null,
+    "match_type": "fuzzy",
+    "confidence": 0.85,
+    "data_source": "OpenFoodFacts",
+    "nutrition": {
+      "protein_g": 13.0,
+      "fiber_g": null,
+      "sugar_g": 0.5,
+      "calories_kcal": 153.0,
+      "processed_score": 1.0
+    }
+  },
+  {
+    "parsed_item_name": "Gouda",
+    "matched_name": "Queso Gouda",
+    "off_id": "8713734033825",
+    "fallback_category": null,
+    "match_type": "fuzzy",
+    "confidence": 0.85,
+    "data_source": "OpenFoodFacts",
+    "nutrition": {
+      "protein_g": 23.4,
+      "fiber_g": 0.0,
+      "sugar_g": 0.0,
+      "calories_kcal": 345.0,
+      "processed_score": null
+    }
+  },
+  {
+    "parsed_item_name": "Haferflocken",
+    "matched_name": "Haferflocken",
+    "off_id": "20003166",
+    "fallback_category": null,
+    "match_type": "exact",
+    "confidence": 1.0,
+    "data_source": "OpenFoodFacts",
+    "nutrition": {
+      "protein_g": 13.5,
+      "fiber_g": 10.0,
+      "sugar_g": 0.7,
+      "calories_kcal": 372.0,
+      "processed_score": 1.0
+    }
+  },
+  {
+    "parsed_item_name": "Naturjoghurt",
+    "matched_name": "Joghurt mild 3,5 % Fett",
+    "off_id": "4061458028820",
+    "fallback_category": null,
+    "match_type": "fuzzy",
+    "confidence": 0.85,
+    "data_source": "OpenFoodFacts",
+    "nutrition": {
+      "protein_g": 4.3,
+      "fiber_g": null,
+      "sugar_g": 4.8,
+      "calories_kcal": 70.0,
+      "processed_score": 1.0
+    }
+  }
+]

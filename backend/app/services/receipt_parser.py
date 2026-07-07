@@ -5,13 +5,20 @@ from pathlib import Path
 from google import genai
 from google.genai import types
 from google.genai.errors import ClientError
+import os
+from dotenv import load_dotenv
 
 # ─────────────────────────────────────────────────────────────
 # CLIENT
 # ─────────────────────────────────────────────────────────────
 
-client = genai.Client()
+load_dotenv()
+
+client = genai.Client(
+    api_key=os.environ["GEMINI_API_KEY"]
+)
 MODEL = "gemini-2.5-flash"
+
 
 # ─────────────────────────────────────────────────────────────
 # SYSTEM PROMPT (FIXED: enforce German output)
@@ -85,28 +92,17 @@ MEDIA_TYPE_MAP = {
 }
 
 # ─────────────────────────────────────────────────────────────
-# CORE FUNCTION
+# CORE FUNCTIONS
 # ─────────────────────────────────────────────────────────────
 
-def scan_receipt_bytes(
-    file_bytes: bytes,
-    filename: str,
-    max_retries: int = 3,
-) -> dict:
+def _extract_items(contents, max_retries: int = 3) -> dict:
     """
-    Parses a receipt image from bytes and returns structured JSON.
+    Sends prepared `contents` to Gemini and returns structured JSON.
+
+    Shared by both the image path (scan_receipt_bytes) and the text
+    fallback path (scan_receipt_text) so retry/backoff and error
+    handling stay identical across inputs.
     """
-
-    suffix = Path(filename).suffix.lower()
-    media_type = MEDIA_TYPE_MAP.get(suffix, "image/jpeg")
-
-    contents = [
-        types.Part.from_bytes(
-            data=file_bytes,
-            mime_type=media_type,
-        ),
-        "Extract all grocery items from this German supermarket receipt.",
-    ]
 
     config = types.GenerateContentConfig(
         system_instruction=SYSTEM_PROMPT,
@@ -136,3 +132,48 @@ def scan_receipt_bytes(
             return {"error": "Invalid JSON returned by Gemini"}
 
     return {"error": "Maximum retries exceeded"}
+
+
+def scan_receipt_bytes(
+    file_bytes: bytes,
+    filename: str,
+    max_retries: int = 3,
+) -> dict:
+    """
+    Parses a receipt image from bytes and returns structured JSON.
+    """
+
+    suffix = Path(filename).suffix.lower()
+    media_type = MEDIA_TYPE_MAP.get(suffix, "image/jpeg")
+
+    contents = [
+        types.Part.from_bytes(
+            data=file_bytes,
+            mime_type=media_type,
+        ),
+        "Extract all grocery items from this German supermarket receipt.",
+    ]
+
+    return _extract_items(contents, max_retries=max_retries)
+
+
+def scan_receipt_text(
+    raw_text: str,
+    max_retries: int = 3,
+) -> dict:
+    """
+    Parses pasted receipt text and returns the same structured JSON as
+    scan_receipt_bytes.
+
+    This is the fallback path (Story 1.2): OCR on receipt photos is
+    unreliable, so users can paste raw receipt text instead and still
+    reach analysis through the exact same schema.
+    """
+
+    contents = [
+        "Extract all grocery items from this German supermarket receipt.\n\n"
+        "RECEIPT TEXT:\n"
+        f"{raw_text}",
+    ]
+
+    return _extract_items(contents, max_retries=max_retries)
