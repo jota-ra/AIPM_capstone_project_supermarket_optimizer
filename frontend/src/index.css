@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens ported from lovable_prototypes/src-grocery-shadow-ai
+ * (styles.css) — the "Grocery Shadow" quiet/editorial look: canvas/ink
+ * colors, Instrument Sans, generous rounding. Kept only what NutriWise's
+ * hand-rolled screens actually use (no shadcn/Radix component tokens).
+ */
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-ink: var(--ink);
+  --color-surface: var(--surface);
+  --color-ink-soft: var(--ink-soft);
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --canvas: oklch(0.985 0 0);
+  --ink: oklch(0.18 0.005 270);
+  --ink-soft: oklch(0.45 0.005 270);
+  --surface: oklch(1 0 0);
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+}
