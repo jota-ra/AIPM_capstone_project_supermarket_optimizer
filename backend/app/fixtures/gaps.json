@@ -1,0 +1,10 @@
+[
+  {
+    "dimension": "fiber",
+    "status": "low",
+    "current_value": 11.9,
+    "reference_value": 14.0,
+    "message": "Your basket is low in fiber (~12 g per 1000 kcal vs a ~14 g guideline). More whole grains, legumes, fruit or vegetables would help.",
+    "confidence": "high"
+  }
+]

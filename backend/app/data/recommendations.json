@@ -1,0 +1,94 @@
+{
+  "fiber:low": [
+    {
+      "item": "Rote Linsen",
+      "action_type": "add",
+      "tags": ["protein", "vegetable", "legume"],
+      "rationale": "Legumes like lentils are one of the most fiber-dense foods per calorie and drop easily into soups or salads."
+    },
+    {
+      "item": "Kichererbsen",
+      "action_type": "add",
+      "tags": ["protein", "vegetable", "legume"],
+      "rationale": "Chickpeas add fiber and plant protein in one ingredient."
+    },
+    {
+      "item": "Vollkornhaferflocken",
+      "action_type": "add",
+      "tags": ["grain", "whole_grain"],
+      "rationale": "Whole oats are a simple, versatile source of fiber for breakfast."
+    },
+    {
+      "item": "Vollkornbrot",
+      "action_type": "replace",
+      "tags": ["grain", "whole_grain"],
+      "rationale": "Swapping refined bread for whole-grain bread raises fiber without changing your routine."
+    }
+  ],
+  "protein:low": [
+    {
+      "item": "Griechischer Joghurt",
+      "action_type": "add",
+      "tags": ["dairy", "protein"],
+      "rationale": "Greek yogurt is a concentrated, versatile source of protein."
+    },
+    {
+      "item": "Tofu",
+      "action_type": "add",
+      "tags": ["protein", "vegetable"],
+      "rationale": "Tofu is a plant-based protein that works in almost any savory dish."
+    },
+    {
+      "item": "Rote Linsen",
+      "action_type": "add",
+      "tags": ["protein", "vegetable", "legume"],
+      "rationale": "Lentils combine plant protein with fiber."
+    },
+    {
+      "item": "Eier",
+      "action_type": "add",
+      "tags": ["eggs", "protein"],
+      "rationale": "Eggs are an affordable, complete source of protein."
+    }
+  ],
+  "sugar:high": [
+    {
+      "item": "Ungesüßter Tee oder Wasser",
+      "action_type": "replace",
+      "tags": ["drink"],
+      "rationale": "Swapping sugary drinks for unsweetened tea or water is the single biggest lever on added sugar."
+    },
+    {
+      "item": "Naturjoghurt",
+      "action_type": "replace",
+      "tags": ["dairy"],
+      "rationale": "Plain yogurt has a fraction of the sugar of flavored yogurt."
+    },
+    {
+      "item": "Ungesalzene Nüsse",
+      "action_type": "replace",
+      "tags": ["nuts", "snack"],
+      "rationale": "Nuts make a lower-sugar snack swap for sweets."
+    }
+  ],
+  "processed:high": [
+    {
+      "item": "Frisches Gemüse",
+      "action_type": "replace",
+      "tags": ["vegetable"],
+      "rationale": "Swapping a ready meal for fresh vegetables lowers your basket's average processing level."
+    },
+    {
+      "item": "Vollkornreis oder Vollkornnudeln",
+      "action_type": "replace",
+      "tags": ["grain", "whole_grain"],
+      "rationale": "Whole-grain staples are less processed than their refined equivalents."
+    },
+    {
+      "item": "Ungesalzene Nüsse",
+      "action_type": "reduce",
+      "tags": ["nuts", "snack"],
+      "rationale": "A whole-food snack in place of packaged snacks reduces overall processing."
+    }
+  ]
+}

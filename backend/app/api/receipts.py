@@ -18,6 +18,9 @@ from backend.app.db.supabase import (
 from backend.app.db.receipt_items_repo import insert_receipt_items
 from backend.app.models.receipt import ParsedReceipt, ReceiptItemUpdate
 from backend.app.services.nutrition_mapping import map_items
+from backend.app.services.confidence import confidence_for_product
+from backend.app.services.source_labels import source_label
+from backend.app.nutrition_model import DISCLAIMER
 
 router = APIRouter()
 
@@ -146,6 +149,11 @@ def map_receipt_nutrition(receipt_id: str):
 
     Read-through enrichment: it does not mutate the receipt, it returns
     the `MatchedProduct[]` + `MatchQuality` artifact for downstream use.
+
+    Each product also carries a plain `confidence_level` and
+    `source_label` (Epic 6, Stories 6.2/6.3) so the reliability and
+    provenance of every nutrition value is visible, not just the raw
+    internal match score.
     """
 
     receipt = get_receipt(receipt_id)
@@ -160,4 +168,18 @@ def map_receipt_nutrition(receipt_id: str):
         )
 
     result = map_items(items)
-    return {"receipt_id": receipt_id, **result.model_dump()}
+    enriched_products = [
+        {
+            **product.model_dump(),
+            "confidence_level": confidence_for_product(product).value,
+            "source_label": source_label(product),
+        }
+        for product in result.matched_products
+    ]
+
+    return {
+        "receipt_id": receipt_id,
+        "matched_products": enriched_products,
+        "match_quality": result.match_quality.model_dump(),
+        "disclaimer": DISCLAIMER,
+    }

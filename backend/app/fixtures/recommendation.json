@@ -1,0 +1,21 @@
+{
+  "status": "recommended",
+  "action_type": "add",
+  "item": "Rote Linsen",
+  "targets_gap": "fiber",
+  "gap_status": "low",
+  "message": "Add: Rote Linsen",
+  "reasoning": [
+    "Your basket is low in fiber (~12 g per 1000 kcal vs a ~14 g guideline). More whole grains, legumes, fruit or vegetables would help.",
+    "Legumes like lentils are one of the most fiber-dense foods per calorie and drop easily into soups or salads."
+  ],
+  "confidence": "high",
+  "evaluated_candidates": [
+    {
+      "item": "Rote Linsen",
+      "targets_gap": "fiber",
+      "allowed": true,
+      "reason": null
+    }
+  ]
+}
