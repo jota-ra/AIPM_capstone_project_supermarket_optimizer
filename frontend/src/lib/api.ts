@@ -129,6 +129,20 @@ export function createProfile(profile: ProfileCreate): Promise<Profile> {
   }).then((res) => handle<Profile>(res));
 }
 
+export function getProfile(profileId: string): Promise<Profile> {
+  return fetch(`${API_BASE}/profile/${profileId}`, { headers: sessionHeaders() }).then((res) =>
+    handle<Profile>(res),
+  );
+}
+
+export function updateProfile(profileId: string, updates: Partial<ProfileCreate>): Promise<Profile> {
+  return fetch(`${API_BASE}/profile/${profileId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...sessionHeaders() },
+    body: JSON.stringify(updates),
+  }).then((res) => handle<Profile>(res));
+}
+
 export function deleteProfile(profileId: string): Promise<{ profile_id: string; deleted: boolean }> {
   // Bug fix: same missing session header as deleteReceipt above.
   return fetch(`${API_BASE}/profile/${profileId}`, {
@@ -139,8 +153,9 @@ export function deleteProfile(profileId: string): Promise<{ profile_id: string; 
 
 // --- Epic 4: Nutrition snapshot ------------------------------------------
 
-export function getNutritionSnapshot(): Promise<NutritionSnapshot> {
-  return fetch(`${API_BASE}/nutrition/snapshot`, { headers: sessionHeaders() }).then((res) =>
+export function getNutritionSnapshot(profileId?: string): Promise<NutritionSnapshot> {
+  const query = profileId ? `?profile_id=${encodeURIComponent(profileId)}` : "";
+  return fetch(`${API_BASE}/nutrition/snapshot${query}`, { headers: sessionHeaders() }).then((res) =>
     handle<NutritionSnapshot>(res),
   );
 }

@@ -22,9 +22,9 @@ from backend.app.models.profile import (
     ProfileCreate,
     Profile,
     Goal,
-    AgeRange,
     ActivityLevel,
     DietaryPattern,
+    Digestion,
 )
 from backend.app.models.snapshot import Gap, ConfidenceLevel
 from backend.app.models.next_cart import (
@@ -71,15 +71,60 @@ def default_profile() -> ProfileCreate:
     """
 
     return ProfileCreate(
-        goal=Goal.EAT_HEALTHIER,
-        age_range=AgeRange.R25_34,
-        activity_level=ActivityLevel.MODERATE,
-        dietary_pattern=DietaryPattern.OMNIVORE,
+        goal=Goal.EAT_BALANCED,
+        activity_level=ActivityLevel.MODERATELY_ACTIVE,
+        dietary_pattern=DietaryPattern.NO_SPECIFIC_DIET,
     )
 
 
 def _candidates_for(gap: Gap) -> List[dict]:
     return RECOMMENDATIONS.get(f"{gap.dimension}:{gap.status.value}", [])
+
+
+# Chat onboarding Q6/Q7 (symptoms, digestion) -> which already-tracked
+# gap dimension to prioritize. Deliberately limited to dimensions this
+# app actually measures (fiber, protein, processed) — the Q6 table's
+# iron/B12/magnesium/omega-3/vitamin-D/biotin links aren't wired here
+# because nothing in this app's data model measures those; fabricating
+# a gap for them would violate this file's own anti-hallucination rule.
+# See models/profile.py's ProfileCreate docstring.
+_SYMPTOM_PRIORITY_BOOST = {
+    "muscle_weakness": {"protein"},
+    "hair_nails": {"protein"},
+    "often_cold": {"protein"},
+}
+_DIGESTION_PRIORITY_BOOST = {
+    Digestion.BLOATED: {"fiber"},
+    Digestion.SLOW: {"fiber"},
+    Digestion.SENSITIVE: {"processed"},
+}
+
+
+def _boosted_dimensions(profile: ProfileLike) -> set:
+    boosted = set()
+    for symptom in getattr(profile, "symptoms", None) or []:
+        boosted |= _SYMPTOM_PRIORITY_BOOST.get(symptom, set())
+    digestion = getattr(profile, "digestion", None)
+    if digestion is not None:
+        boosted |= _DIGESTION_PRIORITY_BOOST.get(digestion, set())
+    return boosted
+
+
+def _prioritize_gaps(gaps: List[Gap], profile: ProfileLike) -> List[Gap]:
+    """
+    Move gaps matching a Q6/Q7 signal ahead of the rest, otherwise
+    keeping Epic 4's severity-based order (stable sort). A boosted gap
+    still has to actually exist — this reorders, it never invents one.
+    """
+
+    boosted = _boosted_dimensions(profile)
+    if not boosted:
+        return gaps
+    ranked = sorted(
+        enumerate(gaps),
+        key=lambda pair: (0 if pair[1].dimension in boosted else 1, pair[0]),
+    )
+    return [gap for _, gap in ranked]
 
 
 def recommend_next_cart(
@@ -108,8 +153,9 @@ def recommend_next_cart(
         )
 
     evaluated: List[EvaluatedCandidate] = []
+    gaps = _prioritize_gaps(gaps, profile)
 
-    for gap in gaps:  # already ranked worst-first by the gap detector
+    for gap in gaps:  # ranked worst-first by the gap detector, then Q6/Q7-boosted
         for candidate in _candidates_for(gap):
             check = check_candidate(
                 profile,

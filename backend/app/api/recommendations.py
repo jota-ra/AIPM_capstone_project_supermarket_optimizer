@@ -32,13 +32,6 @@ def next_cart(profile_id: Optional[str] = None, session_id: str = Depends(get_se
     of time.
     """
 
-    snapshot = build_snapshot_from_db(session_id)
-    if snapshot.items_analyzed == 0:
-        raise HTTPException(
-            status_code=409,
-            detail="No receipt items found to analyse. Upload a receipt first.",
-        )
-
     profile = None
     if profile_id is not None:
         row = get_profile(profile_id)
@@ -47,6 +40,16 @@ def next_cart(profile_id: Optional[str] = None, session_id: str = Depends(get_se
         profile = Profile.model_validate(row)
     else:
         profile = default_profile()
+
+    # Profile loaded first (not after, as before) so its gaps and the
+    # recommendation below use the same personalized protein reference —
+    # see nutrition_personalization.py — instead of two different ones.
+    snapshot = build_snapshot_from_db(session_id, user_profile=profile)
+    if snapshot.items_analyzed == 0:
+        raise HTTPException(
+            status_code=409,
+            detail="No receipt items found to analyse. Upload a receipt first.",
+        )
 
     recommendation = recommend_next_cart(
         gaps=snapshot.gaps,

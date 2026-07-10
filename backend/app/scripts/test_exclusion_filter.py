@@ -33,9 +33,9 @@ CASES = [
     (
         "vegan profile blocks dairy (roadmap's Greek yogurt example)",
         ProfileCreate(
-            goal="eat_healthier",
-            age_range="25-34",
-            activity_level="moderate",
+            goal="eat_balanced",
+            age_range="25-35",
+            activity_level="moderately_active",
             dietary_pattern="vegan",
         ),
         ExclusionCandidate(name="Greek yogurt", tags=["dairy"]),
@@ -43,9 +43,9 @@ CASES = [
     (
         "vegetarian profile allows dairy",
         ProfileCreate(
-            goal="eat_healthier",
-            age_range="25-34",
-            activity_level="moderate",
+            goal="eat_balanced",
+            age_range="25-35",
+            activity_level="moderately_active",
             dietary_pattern="vegetarian",
         ),
         ExclusionCandidate(name="Greek yogurt", tags=["dairy"]),
@@ -53,9 +53,9 @@ CASES = [
     (
         "free-text exclusion blocks by name match",
         ProfileCreate(
-            goal="eat_healthier",
-            age_range="25-34",
-            activity_level="moderate",
+            goal="eat_balanced",
+            age_range="25-35",
+            activity_level="moderately_active",
             dietary_pattern="omnivore",
             exclusions=["peanuts"],
         ),
@@ -64,9 +64,9 @@ CASES = [
     (
         "omnivore profile, no conflicts -> allowed",
         ProfileCreate(
-            goal="gain_muscle",
-            age_range="18-24",
-            activity_level="active",
+            goal="build_muscle",
+            age_range="under_25",
+            activity_level="very_active",
             dietary_pattern="omnivore",
         ),
         ExclusionCandidate(name="Lentils", tags=["protein", "vegetable"]),

@@ -1,28 +1,26 @@
 import { Card, PrimaryButton, SectionLabel } from "@/components/AppShell";
+import { useLanguage } from "@/lib/i18n";
 
 export function ConsentBanner({ onAccept }: { onAccept: () => void }) {
+  const { t } = useLanguage();
   return (
     <section className="space-y-8 px-6 pb-16">
       <header className="space-y-2">
-        <SectionLabel>Before you start</SectionLabel>
+        <SectionLabel>{t("consent.badge")}</SectionLabel>
         <h1 className="text-balance text-4xl font-medium leading-none tracking-tight">
-          Not medical advice.
+          {t("consent.title")}
         </h1>
-        <p className="max-w-[56ch] text-pretty text-base text-ink/60">
-          NutriWise estimates your nutrition from what you buy, not what you
-          actually eat. It isn't a diagnosis, a meal plan, or medical advice —
-          always consult a professional for that.
-        </p>
+        <p className="max-w-[56ch] text-pretty text-base text-ink/60">{t("consent.body")}</p>
       </header>
 
       <Card className="space-y-5">
         <ul className="space-y-2 text-sm text-ink/70">
-          <li>· Every result is estimated from your shopping habits, not actual intake.</li>
-          <li>· Your receipt and profile answers are processed only to generate this recommendation.</li>
-          <li>· You can permanently delete your receipt and profile at any time via "Delete my data" in the footer.</li>
-          <li>· Nothing is shared with third parties.</li>
+          <li>· {t("consent.bullet1")}</li>
+          <li>· {t("consent.bullet2")}</li>
+          <li>· {t("consent.bullet3")}</li>
+          <li>· {t("consent.bullet4")}</li>
         </ul>
-        <PrimaryButton onClick={onAccept}>I understand, continue</PrimaryButton>
+        <PrimaryButton onClick={onAccept}>{t("consent.accept")}</PrimaryButton>
       </Card>
     </section>
   );

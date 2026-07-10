@@ -62,10 +62,10 @@ def classify_fiber(value: Optional[float]) -> str:
     return "low" if value < FIBER_REF_PER_1000KCAL else "ok"
 
 
-def classify_protein(value: Optional[float]) -> str:
+def classify_protein(value: Optional[float], protein_ref: Optional[float] = None) -> str:
     if value is None:
         return "info"
-    return "low" if value < PROTEIN_REF_PER_1000KCAL else "ok"
+    return "low" if value < (protein_ref or PROTEIN_REF_PER_1000KCAL) else "ok"
 
 
 def classify_sugar(value: Optional[float]) -> str:
@@ -86,8 +86,19 @@ def _ratio(value: Optional[float], reference: float) -> Optional[float]:
     return round(value / reference, 2)
 
 
-def build_dimension_snapshots(profile: NutritionProfile) -> List[DimensionSnapshot]:
-    """Assemble the display rows for the snapshot (Story 4.1)."""
+def build_dimension_snapshots(
+    profile: NutritionProfile, protein_ref: Optional[float] = None
+) -> List[DimensionSnapshot]:
+    """
+    Assemble the display rows for the snapshot (Story 4.1).
+
+    `protein_ref` overrides PROTEIN_REF_PER_1000KCAL when the caller has
+    a personalized value (see services/nutrition_personalization.py) —
+    the displayed reference then matches whatever gap_detector.py
+    actually used, instead of silently showing the generic guideline.
+    """
+
+    effective_protein_ref = protein_ref or PROTEIN_REF_PER_1000KCAL
 
     return [
         DimensionSnapshot(
@@ -103,9 +114,9 @@ def build_dimension_snapshots(profile: NutritionProfile) -> List[DimensionSnapsh
             dimension="protein",
             value=profile.protein_per_1000kcal,
             unit="g per 1000 kcal",
-            reference=PROTEIN_REF_PER_1000KCAL,
-            ratio=_ratio(profile.protein_per_1000kcal, PROTEIN_REF_PER_1000KCAL),
-            status=classify_protein(profile.protein_per_1000kcal),
+            reference=effective_protein_ref,
+            ratio=_ratio(profile.protein_per_1000kcal, effective_protein_ref),
+            status=classify_protein(profile.protein_per_1000kcal, effective_protein_ref),
             what_this_means=WHAT_THIS_MEANS["protein"],
         ),
         DimensionSnapshot(
