@@ -17,23 +17,23 @@ from backend.app.models.profile import ProfileCreate
 
 EXAMPLES = [
     {
-        "goal": "eat_healthier",
-        "age_range": "25-34",
-        "activity_level": "moderate",
+        "goal": "eat_balanced",
+        "age_range": "25-35",
+        "activity_level": "moderately_active",
         "dietary_pattern": "omnivore",
     },
     {
-        "goal": "lose_weight",
-        "age_range": "35-44",
-        "activity_level": "light",
+        "goal": "lose_weight_gradually",
+        "age_range": "36-45",
+        "activity_level": "light_activity",
         "dietary_pattern": "vegan",
         "exclusions": ["peanuts", "gluten"],
     },
 ]
 
 INVALID_EXAMPLE = {
-    "goal": "eat_healthier",
-    "age_range": "25-34",
+    "goal": "eat_balanced",
+    "age_range": "25-35",
     "activity_level": "extremely_active",  # not a real ActivityLevel value
     "dietary_pattern": "omnivore",
 }

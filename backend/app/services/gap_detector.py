@@ -6,7 +6,7 @@ standard references and returns at most the top 3 gaps, ranked by how far
 each one deviates from its reference, in plain non-medical language.
 """
 
-from typing import List
+from typing import List, Optional
 
 from backend.app.models.snapshot import (
     NutritionProfile,
@@ -22,9 +22,18 @@ MAX_GAPS = 3
 def detect_gaps(
     profile: NutritionProfile,
     confidence: ConfidenceLevel,
+    protein_ref: Optional[float] = None,
 ) -> List[Gap]:
-    """Return up to MAX_GAPS gaps, worst deviation first."""
+    """
+    Return up to MAX_GAPS gaps, worst deviation first.
 
+    `protein_ref` overrides PROTEIN_REF_PER_1000KCAL when the caller has
+    a personalized value from weight/height/gender/activity (see
+    services/nutrition_personalization.py) — omit it (or pass None) to
+    use the fixed density guideline, unchanged from before.
+    """
+
+    effective_protein_ref = protein_ref or nm.PROTEIN_REF_PER_1000KCAL
     candidates = []  # (severity, Gap)
 
     fiber = profile.fiber_per_1000kcal
@@ -44,13 +53,13 @@ def detect_gaps(
         )))
 
     protein = profile.protein_per_1000kcal
-    if protein is not None and protein < nm.PROTEIN_REF_PER_1000KCAL:
-        severity = (nm.PROTEIN_REF_PER_1000KCAL - protein) / nm.PROTEIN_REF_PER_1000KCAL
+    if protein is not None and protein < effective_protein_ref:
+        severity = (effective_protein_ref - protein) / effective_protein_ref
         candidates.append((severity, Gap(
             dimension="protein",
             status=GapStatus.LOW,
             current_value=protein,
-            reference_value=nm.PROTEIN_REF_PER_1000KCAL,
+            reference_value=effective_protein_ref,
             message=(
                 f"Protein is on the low side (~{protein:.0f} g per 1000 kcal). "
                 "Beans, dairy, eggs, fish or lean meat would round it out."

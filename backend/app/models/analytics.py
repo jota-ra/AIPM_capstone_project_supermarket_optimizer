@@ -26,12 +26,36 @@ class DimensionDelta(BaseModel):
     after: Optional[float] = None
     change: Optional[float] = None
     direction: str  # "up" | "down" | "flat" | "unknown"
+    # NutriWise Agent - modified: added for Progress Tracking (addendum), so
+    # a delta can say whether it moved the *healthy* way for this dimension,
+    # not just which direction it moved. None when direction is "unknown".
+    is_improvement: Optional[bool] = None
 
 
 class NutritionDelta(BaseModel):
     """Full Task 8.7 output: per-dimension change between two nutrition profiles."""
 
     deltas: List[DimensionDelta]
+
+
+class ProgressReport(BaseModel):
+    """
+    Progress Tracking output (addendum): how this session's most recent
+    receipt compares to the receipt(s) before it, in plain language.
+
+    Built on top of NutritionDelta rather than duplicating it — every
+    dimension here comes from the same compute_nutrition_delta used by
+    Task 8.7, just with is_improvement filled in and a trend/message
+    layered on top.
+    """
+
+    has_history: bool
+    receipts_compared: int
+    deltas: List[DimensionDelta] = Field(default_factory=list)
+    trend: str  # "improving" | "stable" | "declining" | "insufficient_data"
+    addressed_gap_improved: Optional[bool] = None
+    message: str
+    disclaimer: str
 
 
 class AdoptionScore(BaseModel):

@@ -18,11 +18,12 @@ from backend.app.models.snapshot import Gap
 ProfileLike = Union[Profile, ProfileCreate]
 
 GOAL_PHRASES = {
-    Goal.LOSE_WEIGHT: "you're focused on losing weight",
-    Goal.GAIN_MUSCLE: "you're focused on building muscle",
-    Goal.EAT_HEALTHIER: "you want to eat healthier",
-    Goal.MORE_ENERGY: "you're aiming for more energy",
-    Goal.MAINTAIN_WEIGHT: "you want to maintain your current weight",
+    Goal.BUILD_MUSCLE: "you're focused on building muscle and strength",
+    Goal.MORE_ENERGY: "you're aiming for more energy and less fatigue",
+    Goal.LOSE_WEIGHT_GRADUALLY: "you're working on losing weight gradually",
+    Goal.EAT_BALANCED: "you want to eat more balanced and healthy",
+    Goal.BETTER_FOCUS: "you're aiming for better focus and mental clarity",
+    Goal.BETTER_SLEEP: "you're working on better sleep and recovery",
 }
 
 _GAP_VERB = {"low": "low in", "high": "high in"}
@@ -48,7 +49,7 @@ def generate_explanation(gap: Gap, candidate: dict, profile: ProfileLike) -> str
         candidate["rationale"],
     ]
 
-    if profile.dietary_pattern != DietaryPattern.OMNIVORE:
+    if profile.dietary_pattern != DietaryPattern.NO_SPECIFIC_DIET:
         sentences.append(
             f"This fits your {profile.dietary_pattern.value} diet — nothing "
             "here conflicts with it."

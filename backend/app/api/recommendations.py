@@ -8,6 +8,7 @@ from backend.app.analytics.events import log_event
 from backend.app.db.supabase import get_profile, create_recommendation_row
 from backend.app.models.profile import Profile
 from backend.app.services.nutrition_snapshot import build_snapshot_from_db
+from backend.app.services.progress_tracker import compute_session_progress
 from backend.app.services.recommender import recommend_next_cart, default_profile
 
 router = APIRouter()
@@ -31,13 +32,6 @@ def next_cart(profile_id: Optional[str] = None, session_id: str = Depends(get_se
     of time.
     """
 
-    snapshot = build_snapshot_from_db(session_id)
-    if snapshot.items_analyzed == 0:
-        raise HTTPException(
-            status_code=409,
-            detail="No receipt items found to analyse. Upload a receipt first.",
-        )
-
     profile = None
     if profile_id is not None:
         row = get_profile(profile_id)
@@ -47,11 +41,25 @@ def next_cart(profile_id: Optional[str] = None, session_id: str = Depends(get_se
     else:
         profile = default_profile()
 
+    # Profile loaded first (not after, as before) so its gaps and the
+    # recommendation below use the same personalized protein reference —
+    # see nutrition_personalization.py — instead of two different ones.
+    snapshot = build_snapshot_from_db(session_id, user_profile=profile)
+    if snapshot.items_analyzed == 0:
+        raise HTTPException(
+            status_code=409,
+            detail="No receipt items found to analyse. Upload a receipt first.",
+        )
+
     recommendation = recommend_next_cart(
         gaps=snapshot.gaps,
         profile=profile,
         confidence=snapshot.confidence,
     )
+    # NutriWise Agent - modified: added for Progress Tracking (addendum).
+    # has_history=False (not an error) when this session only has one
+    # receipt so far, so Next Cart still works before any history exists.
+    recommendation.progress = compute_session_progress(session_id)
 
     recommendation_id = str(uuid4())
     payload = recommendation.model_dump(mode="json")

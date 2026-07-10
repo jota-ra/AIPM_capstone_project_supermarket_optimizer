@@ -1,7 +1,7 @@
 {
-  "goal": "lose_weight",
-  "age_range": "25-34",
-  "activity_level": "moderate",
+  "goal": "lose_weight_gradually",
+  "age_range": "25-35",
+  "activity_level": "moderately_active",
   "dietary_pattern": "vegan",
   "exclusions": ["peanuts", "gluten"]
 }

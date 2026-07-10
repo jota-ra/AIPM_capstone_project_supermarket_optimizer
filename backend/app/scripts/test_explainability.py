@@ -82,7 +82,7 @@ def test_explanation_generator():
     assert "vegan" in explanation.lower()
 
     omnivore = ProfileCreate(
-        goal="gain_muscle", age_range="18-24", activity_level="active", dietary_pattern="omnivore",
+        goal="build_muscle", age_range="under_25", activity_level="very_active", dietary_pattern="omnivore",
     )
     lentils_candidate = next(
         c for c in RECOMMENDATIONS["fiber:low"] if c["item"] == "Rote Linsen"
@@ -100,7 +100,7 @@ def test_recommendation_carries_explanation_and_disclaimer():
         message="Your basket is low in fiber.", confidence="high",
     )]
     profile = ProfileCreate(
-        goal="eat_healthier", age_range="25-34", activity_level="moderate", dietary_pattern="vegan",
+        goal="eat_balanced", age_range="25-35", activity_level="moderately_active", dietary_pattern="vegan",
     )
     rec = recommend_next_cart(gap, profile, "high")
     print(json.dumps(rec.model_dump(), indent=2, ensure_ascii=False))

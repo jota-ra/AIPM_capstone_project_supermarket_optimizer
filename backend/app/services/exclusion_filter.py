@@ -2,11 +2,19 @@
 Dietary exclusion filter (Task 3.3 / Story 3.2).
 
 Checks a candidate food/product against a user's profile — dietary
-pattern (vegan, vegetarian, ...) plus free-text exclusions (allergens,
-dislikes) — and decides whether it may ever be recommended. Feeds
+pattern (vegan, vegetarian, ...), allergies, and free-text exclusions
+(dislikes) — and decides whether it may ever be recommended. Feeds
 Epic 5 (Next Cart) so a recommendation is never generated that conflicts
 with the user's diet; when a candidate is blocked, an alternate
 suggestion of the same purpose is offered where one is known.
+
+`allergies` and `exclusions` (dislikes) are checked separately even
+though they block the same way today: allergies are safety-relevant and
+must never be softened later (e.g. "recommend anyway, just flag it"),
+while dislikes are a softer preference that a future iteration may
+choose to override for a strong-enough gap. Keeping them as separate
+profile fields (see models/profile.py) means that later change doesn't
+require re-deriving "which of these strings was actually an allergy."
 """
 
 from typing import List, Optional
@@ -15,12 +23,23 @@ from pydantic import BaseModel, Field
 
 from backend.app.models.profile import DietaryPattern, Profile, ProfileCreate
 
-# Dietary pattern -> tags it excludes. OMNIVORE excludes nothing.
+# Dietary pattern -> tags it excludes.
+# NO_SPECIFIC_DIET and the soft styles (HIGH_PROTEIN, LOW_CARB_KETO,
+# LOW_FAT) exclude nothing — they're not hard rules, see DietaryPattern's
+# docstring in models/profile.py.
 DIETARY_PATTERN_EXCLUDED_TAGS = {
     DietaryPattern.VEGAN: {"meat", "fish", "dairy", "eggs", "honey", "animal_product"},
     DietaryPattern.VEGETARIAN: {"meat", "fish"},
     DietaryPattern.PESCATARIAN: {"meat"},
-    DietaryPattern.OMNIVORE: set(),
+    DietaryPattern.GLUTEN_FREE: {"gluten"},
+    # Approximation: candidates only carry a broad "dairy" tag, not a
+    # finer lactose-specific one, so lactose-free excludes all dairy
+    # even though some lactose-free dairy products exist.
+    DietaryPattern.LACTOSE_FREE: {"dairy"},
+    DietaryPattern.NO_SPECIFIC_DIET: set(),
+    DietaryPattern.HIGH_PROTEIN: set(),
+    DietaryPattern.LOW_CARB_KETO: set(),
+    DietaryPattern.LOW_FAT: set(),
 }
 
 # Blocked tag/keyword -> a same-purpose alternative to suggest instead.
@@ -49,8 +68,32 @@ class ExclusionCandidate(BaseModel):
 class ExclusionResult(BaseModel):
     allowed: bool
     blocked_by: Optional[str] = None
+    # "diet" (dietary_pattern) | "allergy" | "dislike" (exclusions) — lets
+    # a caller/UI treat an allergy block differently from a dislike block.
+    blocked_by_type: Optional[str] = None
     reason: Optional[str] = None
     alternate_suggestion: Optional[str] = None
+
+
+def _match_free_text_list(
+    items: List[str], candidate_tags: set, name_l: str
+) -> Optional[str]:
+    """Return the first entry of `items` that matches the candidate's
+    tags or name, or None. Shared by allergies and exclusions since both
+    match the same way — only how the match is treated differs."""
+
+    for item in {i.strip().lower() for i in items if i.strip()}:
+        # Naive singular/plural handling ("peanuts" should still catch
+        # "peanut butter") without pulling in a stemming dependency.
+        stem = item[:-1] if item.endswith("s") and len(item) > 3 else item
+        if (
+            item in candidate_tags
+            or item in name_l
+            or stem in name_l
+            or any(stem in tag for tag in candidate_tags)
+        ):
+            return item
+    return None
 
 
 def check_candidate(
@@ -59,8 +102,10 @@ def check_candidate(
     """
     Decide whether `candidate` may be recommended to this profile.
 
-    Checks the dietary pattern's excluded tags first, then the profile's
-    free-text exclusions (matched against tags and the candidate name).
+    Checked in order: dietary pattern's excluded tags, then allergies,
+    then free-text exclusions (dislikes) — all against the candidate's
+    tags and name. Allergies are checked ahead of dislikes so the reason
+    surfaced for a double-match is always the safety-relevant one.
     """
 
     excluded_tags = DIETARY_PATTERN_EXCLUDED_TAGS.get(profile.dietary_pattern, set())
@@ -73,27 +118,30 @@ def check_candidate(
         return ExclusionResult(
             allowed=False,
             blocked_by=tag,
+            blocked_by_type="diet",
             reason=f"'{candidate.name}' conflicts with a {profile.dietary_pattern.value} diet ({tag}).",
             alternate_suggestion=ALTERNATE_SUGGESTIONS.get(tag),
         )
 
-    user_exclusions = {e.strip().lower() for e in (profile.exclusions or []) if e.strip()}
-    for exclusion in user_exclusions:
-        # Naive singular/plural handling ("peanuts" should still catch
-        # "peanut butter") without pulling in a stemming dependency.
-        stem = exclusion[:-1] if exclusion.endswith("s") and len(exclusion) > 3 else exclusion
-        if (
-            exclusion in candidate_tags
-            or exclusion in name_l
-            or stem in name_l
-            or any(stem in tag for tag in candidate_tags)
-        ):
-            return ExclusionResult(
-                allowed=False,
-                blocked_by=exclusion,
-                reason=f"'{candidate.name}' matches your excluded item '{exclusion}'.",
-                alternate_suggestion=ALTERNATE_SUGGESTIONS.get(exclusion),
-            )
+    allergy_hit = _match_free_text_list(profile.allergies or [], candidate_tags, name_l)
+    if allergy_hit is not None:
+        return ExclusionResult(
+            allowed=False,
+            blocked_by=allergy_hit,
+            blocked_by_type="allergy",
+            reason=f"'{candidate.name}' may contain '{allergy_hit}', which you've marked as an allergy.",
+            alternate_suggestion=ALTERNATE_SUGGESTIONS.get(allergy_hit),
+        )
+
+    exclusion_hit = _match_free_text_list(profile.exclusions or [], candidate_tags, name_l)
+    if exclusion_hit is not None:
+        return ExclusionResult(
+            allowed=False,
+            blocked_by=exclusion_hit,
+            blocked_by_type="dislike",
+            reason=f"'{candidate.name}' matches your excluded item '{exclusion_hit}'.",
+            alternate_suggestion=ALTERNATE_SUGGESTIONS.get(exclusion_hit),
+        )
 
     return ExclusionResult(allowed=True)
 

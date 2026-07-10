@@ -62,29 +62,65 @@ export interface ReceiptItemUpdate {
 // --- Epic 3: Profile -------------------------------------------------
 
 export type Goal =
-  | "lose_weight"
-  | "gain_muscle"
-  | "eat_healthier"
+  | "build_muscle"
   | "more_energy"
-  | "maintain_weight";
+  | "lose_weight_gradually"
+  | "eat_balanced"
+  | "better_focus"
+  | "better_sleep";
 
-export type AgeRange = "18-24" | "25-34" | "35-44" | "45-54" | "55-64" | "65+";
+// Self-reported bucket (chat Q5, optional) — no birthday collected.
+export type AgeRange = "under_25" | "25-35" | "36-45" | "46-55" | "55+";
 
 export type ActivityLevel =
-  | "sedentary"
-  | "light"
-  | "moderate"
-  | "active"
+  | "mostly_sitting"
+  | "light_activity"
+  | "moderately_active"
   | "very_active";
 
-export type DietaryPattern = "omnivore" | "vegetarian" | "vegan" | "pescatarian";
+export type DietaryPattern =
+  | "high_protein"
+  | "low_carb_keto"
+  | "low_fat"
+  | "vegan"
+  | "vegetarian"
+  | "pescatarian"
+  | "omnivore" // "no specific diet" (chat Q2)
+  | "gluten_free"
+  | "lactose_free";
+
+export type Language = "de" | "en";
+export type Digestion = "fine" | "bloated" | "slow" | "sensitive";
+export type VegFrequency = "every_meal" | "once_daily" | "few_times_week" | "rarely";
+export type Gender = "female" | "male" | "other";
 
 export interface ProfileCreate {
   goal: Goal;
-  age_range: AgeRange;
+  age_range?: AgeRange | null;
   activity_level: ActivityLevel;
   dietary_pattern: DietaryPattern;
+  // Soft dislikes — kept for backward compatibility, not asked by chat.
   exclusions: string[];
+
+  name?: string | null;
+
+  // Used only to personalize the protein reference (Mifflin-St Jeor
+  // BMR + activity TDEE) — see backend nutrition_personalization.py.
+  gender?: Gender | null;
+  weight_kg?: number | null;
+  height_cm?: number | null;
+
+  // Hard, safety-relevant — checked separately from `exclusions`.
+  allergies: string[];
+
+  // Optional Q6-Q8 — only nudge priority among already-tracked
+  // dimensions (fiber/protein/processed) server-side, see
+  // recommender.py; never surfaced as a fabricated nutrient gap.
+  symptoms: string[];
+  digestion?: Digestion | null;
+  veg_frequency?: VegFrequency | null;
+
+  language: Language;
 }
 
 export interface Profile extends ProfileCreate {
@@ -158,6 +194,29 @@ export interface Recipe {
   prep_minutes?: number | null;
 }
 
+// --- Progress Tracking (integration briefing addendum) -------------------
+
+export interface DimensionDelta {
+  dimension: string;
+  before: number | null;
+  after: number | null;
+  change: number | null;
+  direction: "up" | "down" | "flat" | "unknown";
+  is_improvement: boolean | null;
+}
+
+export type ProgressTrend = "improving" | "stable" | "declining" | "insufficient_data";
+
+export interface ProgressReport {
+  has_history: boolean;
+  receipts_compared: number;
+  deltas: DimensionDelta[];
+  trend: ProgressTrend;
+  addressed_gap_improved: boolean | null;
+  message: string;
+  disclaimer: string;
+}
+
 export interface NextCartRecommendation {
   recommendation_id: string;
   session_id: string;
@@ -171,6 +230,7 @@ export interface NextCartRecommendation {
   confidence: ConfidenceLevel;
   evaluated_candidates: EvaluatedCandidate[];
   recipes: Recipe[];
+  progress?: ProgressReport | null;
 }
 
 // --- Epic 8: Feedback ----------------------------------------------------

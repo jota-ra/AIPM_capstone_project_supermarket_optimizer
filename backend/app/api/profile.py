@@ -3,22 +3,36 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Depends
 
 from backend.app.services.session import get_session_id
-from backend.app.db.supabase import create_profile_row, get_profile, delete_profile
-from backend.app.models.profile import ProfileCreate
+from backend.app.db.supabase import (
+    create_profile_row,
+    get_profile,
+    delete_profile,
+    update_profile_row,
+)
+from backend.app.models.profile import ProfileCreate, ProfileUpdate
 
 router = APIRouter()
+
+
+def _profile_response(row: dict) -> dict:
+    """
+    Normalize a stored row (DB column is `id`) to the shape every other
+    profile endpoint uses (`profile_id`), so GET/PATCH match POST's
+    response and the frontend's `Profile` type (which has `profile_id`,
+    not `id`).
+    """
+
+    return {"profile_id": row["id"], **{k: v for k, v in row.items() if k != "id"}}
 
 
 @router.post("/profile")
 def create_profile(profile: ProfileCreate, session_id: str = Depends(get_session_id)):
     """
-    Create a lightweight user profile (Story 3.1).
+    Create a user profile (Story 3.1, extended for chat onboarding).
 
-    Only the 4 required fields (goal, age range, activity level, dietary
-    pattern) plus optional exclusions are accepted — schema validation
-    itself enforces the <=5 question budget. Dietary pattern and
-    exclusions (Story 3.2) are stored as-is for later use by the
-    exclusion filter (Task 3.3) and, eventually, the recommender (Epic 5).
+    Goal, eating style, allergies and exclusions (Story 3.2) are stored
+    as-is for later use by the exclusion filter (Task 3.3) and the
+    recommender (Epic 5).
 
     Tagged with `session_id` (Story 8.3) for consistency with receipts;
     nothing currently looks profiles up by session, but this keeps the
@@ -26,7 +40,7 @@ def create_profile(profile: ProfileCreate, session_id: str = Depends(get_session
     """
 
     profile_id = str(uuid4())
-    fields = profile.model_dump()
+    fields = profile.model_dump(mode="json")
     create_profile_row(profile_id, {**fields, "session_id": session_id})
 
     return {"profile_id": profile_id, "session_id": session_id, **fields}
@@ -39,7 +53,38 @@ def read_profile(profile_id: str):
     row = get_profile(profile_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Profile not found.")
-    return row
+    return _profile_response(row)
+
+
+@router.patch("/profile/{profile_id}")
+def edit_profile(
+    profile_id: str,
+    updates: ProfileUpdate,
+    session_id: str = Depends(get_session_id),
+):
+    """
+    Edit a stored profile in place (profile summary/edit screen) —
+    users can revisit and change any answer from the chat onboarding.
+
+    Only the fields present in the request body are touched
+    (`exclude_unset`), so editing one answer never clobbers the rest.
+    Same session-ownership rule as `erase_profile`.
+    """
+
+    row = get_profile(profile_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Profile not found.")
+
+    owner_session_id = row.get("session_id")
+    if owner_session_id is not None and owner_session_id != session_id:
+        raise HTTPException(status_code=403, detail="This profile belongs to a different session.")
+
+    fields = updates.model_dump(mode="json", exclude_unset=True)
+    if fields:
+        update_profile_row(profile_id, fields)
+        row = get_profile(profile_id)
+
+    return _profile_response(row)
 
 
 @router.delete("/profile/{profile_id}")

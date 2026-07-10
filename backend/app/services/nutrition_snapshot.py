@@ -15,16 +15,20 @@ Pipeline per source: items -> Epic 2 mapping -> profile (4.2) -> gaps
 
 import time
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
+from backend.app.models.profile import Profile, ProfileCreate
 from backend.app.models.snapshot import NutritionSnapshot
 from backend.app.models.nutrition import MatchedProduct
 from backend.app.services.nutrition_mapping import map_items
 from backend.app.services.nutrition_profile import build_profile
+from backend.app.services.nutrition_personalization import personalized_protein_ref_per_1000kcal
 from backend.app.services.gap_detector import detect_gaps
 from backend.app import nutrition_model as nm
 
 _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
+
+UserProfileLike = Union[Profile, ProfileCreate]
 
 # Bug fix: /nutrition/snapshot and /next-cart each independently called
 # build_snapshot_from_db for the same session, redoing the same 2 DB
@@ -33,8 +37,10 @@ _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 # cache collapses that pair (and rapid Refresh clicks) into one
 # computation without risking meaningfully stale data — nothing in this
 # app updates a session's receipts fast enough for 5 seconds to matter.
+# Keyed by (session_id, profile_id) since the personalized protein
+# reference (weight/height/gender) depends on which profile was passed.
 _SNAPSHOT_CACHE_TTL_SECONDS = 5.0
-_snapshot_cache: Dict[str, Tuple[float, NutritionSnapshot]] = {}
+_snapshot_cache: Dict[Tuple[str, Optional[str]], Tuple[float, NutritionSnapshot]] = {}
 
 
 def invalidate_snapshot_cache(session_id: str) -> None:
@@ -42,20 +48,30 @@ def invalidate_snapshot_cache(session_id: str) -> None:
     upload, item correction) so the next snapshot reflects it immediately
     instead of waiting out the cache TTL."""
 
-    _snapshot_cache.pop(session_id, None)
+    for key in [k for k in _snapshot_cache if k[0] == session_id]:
+        _snapshot_cache.pop(key, None)
 
 
 def assemble_snapshot(
     items: List[dict],
     matched: List[MatchedProduct],
     receipts_analyzed: int,
+    user_profile: Optional[UserProfileLike] = None,
 ) -> NutritionSnapshot:
-    """Offline core: build a snapshot from already-mapped products."""
+    """
+    Offline core: build a snapshot from already-mapped products.
+
+    `user_profile` is optional and only used to personalize the protein
+    reference (weight/height/gender/activity — see
+    services/nutrition_personalization.py); omit it for the existing
+    profile-agnostic behavior.
+    """
 
     profile = build_profile(items, matched)
     confidence = nm.confidence_level(profile)
-    gaps = detect_gaps(profile, confidence)
-    dimensions = nm.build_dimension_snapshots(profile)
+    protein_ref = personalized_protein_ref_per_1000kcal(user_profile)
+    gaps = detect_gaps(profile, confidence, protein_ref=protein_ref)
+    dimensions = nm.build_dimension_snapshots(profile, protein_ref=protein_ref)
 
     return NutritionSnapshot(
         receipts_analyzed=receipts_analyzed,
@@ -68,23 +84,35 @@ def assemble_snapshot(
     )
 
 
-def build_snapshot(items: List[dict], receipts_analyzed: int) -> NutritionSnapshot:
+def build_snapshot(
+    items: List[dict],
+    receipts_analyzed: int,
+    user_profile: Optional[UserProfileLike] = None,
+) -> NutritionSnapshot:
     """Map `items` via OpenFoodFacts, then assemble the snapshot."""
 
     matched = map_items(items).matched_products
-    return assemble_snapshot(items, matched, receipts_analyzed)
+    return assemble_snapshot(items, matched, receipts_analyzed, user_profile)
 
 
-def build_snapshot_from_db(session_id: str) -> NutritionSnapshot:
+def build_snapshot_from_db(
+    session_id: str,
+    user_profile: Optional[UserProfileLike] = None,
+) -> NutritionSnapshot:
     """
     Aggregate every receipt item from THIS session's receipts only
     (Story 8.3). Previously this aggregated every receipt in the whole
     database regardless of who uploaded it — fine with a single tester,
     silently wrong the moment a second person uses the app at the same
     time, since their baskets would blend into one shared snapshot.
+
+    `user_profile`, if given, personalizes the protein reference — pass
+    the same profile object the caller already loaded (e.g. for
+    /next-cart's exclusion filtering) rather than fetching it again here.
     """
 
-    cached = _snapshot_cache.get(session_id)
+    cache_key = (session_id, getattr(user_profile, "id", None))
+    cached = _snapshot_cache.get(cache_key)
     if cached is not None and (time.time() - cached[0]) < _SNAPSHOT_CACHE_TTL_SECONDS:
         return cached[1]
 
@@ -106,9 +134,9 @@ def build_snapshot_from_db(session_id: str) -> NutritionSnapshot:
     # snapshot and match_quality feeds the event, no redundant OFF calls.
     mapping = map_items(items)
     log_event("match_rate", mapping.match_quality.model_dump(), session_id)
-    snapshot = assemble_snapshot(items, mapping.matched_products, receipts)
+    snapshot = assemble_snapshot(items, mapping.matched_products, receipts, user_profile)
 
-    _snapshot_cache[session_id] = (time.time(), snapshot)
+    _snapshot_cache[cache_key] = (time.time(), snapshot)
     return snapshot
 
 

@@ -1,14 +1,18 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n";
 
-export type StepId = "upload" | "review" | "profile" | "results";
+export type StepId = "upload" | "review" | "onboarding" | "userProfile" | "results";
 
-// Flow order: Disclaimer (consent gate) -> Profile -> Upload -> Review -> Results.
-const NAV: { id: StepId; label: string }[] = [
-  { id: "profile", label: "Profile" },
-  { id: "upload", label: "Upload" },
-  { id: "review", label: "Review" },
-  { id: "results", label: "Results" },
+// Flow order: Disclaimer (consent gate) -> Onboarding -> Upload -> Review -> Results.
+// "User Profile" is a standalone settings-style page (edit what onboarding
+// collected), not part of that linear flow — reachable from the nav at any time.
+const NAV: { id: StepId; labelKey: string }[] = [
+  { id: "onboarding", labelKey: "nav.onboarding" },
+  { id: "userProfile", labelKey: "nav.userProfile" },
+  { id: "upload", labelKey: "nav.upload" },
+  { id: "review", labelKey: "nav.review" },
+  { id: "results", labelKey: "nav.results" },
 ];
 
 export function AppShell({
@@ -24,12 +28,13 @@ export function AppShell({
   canDeleteData?: boolean;
   children: ReactNode;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="min-h-screen bg-canvas font-sans text-ink antialiased selection:bg-ink/10">
       <nav className="mx-auto flex max-w-3xl items-center justify-between px-6 py-8">
         <button
           type="button"
-          onClick={() => onNavigate("profile")}
+          onClick={() => onNavigate("onboarding")}
           className="flex items-center gap-3"
         >
           <span className="size-5 rounded-full bg-ink" />
@@ -46,14 +51,14 @@ export function AppShell({
                 step === item.id ? "bg-ink text-canvas" : "text-ink/55 hover:text-ink",
               )}
             >
-              {item.label}
+              {t(item.labelKey)}
             </button>
           ))}
         </div>
       </nav>
       <main className="mx-auto max-w-3xl">{children}</main>
       <footer className="mx-auto max-w-3xl space-y-3 px-6 py-12 text-[11px] uppercase tracking-widest text-ink/35">
-        <p>NutriWise · estimated from your shopping habits, not actual intake</p>
+        <p>{t("footer.tagline")}</p>
         {onDeleteData ? (
           <button
             type="button"
@@ -61,7 +66,7 @@ export function AppShell({
             disabled={!canDeleteData}
             className="normal-case tracking-normal text-ink/50 underline decoration-ink/20 underline-offset-2 hover:text-ink disabled:cursor-not-allowed disabled:text-ink/25 disabled:no-underline"
           >
-            Delete my data
+            {t("footer.deleteData")}
           </button>
         ) : null}
       </footer>

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { SectionLabel, Card, PrimaryButton, inputCls } from "@/components/AppShell";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n";
 import { uploadReceiptFile, uploadReceiptText, ApiError } from "@/lib/api";
 import type { UploadReceiptResponse } from "@/types/api";
 
@@ -20,6 +21,7 @@ export function UploadStep({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<UploadReceiptResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useLanguage();
 
   async function handleFile(file: File) {
     setLoading(true);
@@ -28,7 +30,7 @@ export function UploadStep({
       const res = await uploadReceiptFile(file, profileId ?? undefined);
       setResult(res);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Upload failed.");
+      setError(e instanceof ApiError ? e.message : t("upload.uploadFailed"));
     } finally {
       setLoading(false);
     }
@@ -42,7 +44,7 @@ export function UploadStep({
       const res = await uploadReceiptText(pastedText, profileId ?? undefined);
       setResult(res);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Upload failed.");
+      setError(e instanceof ApiError ? e.message : t("upload.uploadFailed"));
     } finally {
       setLoading(false);
     }
@@ -51,14 +53,11 @@ export function UploadStep({
   return (
     <section className="space-y-8 px-6 pb-16">
       <header className="space-y-2">
-        <SectionLabel>Step 3 · Receipt</SectionLabel>
+        <SectionLabel>{t("upload.step")}</SectionLabel>
         <h1 className="text-balance text-4xl font-medium leading-none tracking-tight">
-          Bring in a receipt.
+          {t("upload.title")}
         </h1>
-        <p className="max-w-[56ch] text-pretty text-base text-ink/60">
-          Upload a photo of a grocery receipt, or paste its text if a photo
-          isn't handy — OCR can be unreliable, so pasting always works.
-        </p>
+        <p className="max-w-[56ch] text-pretty text-base text-ink/60">{t("upload.body")}</p>
       </header>
 
       <div className="flex gap-2 rounded-full bg-surface p-1 ring-1 ring-black/5 w-fit">
@@ -76,7 +75,7 @@ export function UploadStep({
               mode === m ? "bg-ink text-canvas" : "text-ink/55 hover:text-ink",
             )}
           >
-            {m === "image" ? "Upload photo" : "Paste text"}
+            {m === "image" ? t("upload.tabPhoto") : t("upload.tabText")}
           </button>
         ))}
       </div>
@@ -116,13 +115,13 @@ export function UploadStep({
             <span className="text-lg text-ink/60">↑</span>
           </div>
           <p className="text-sm font-medium tracking-tight">
-            {loading ? "Uploading…" : "Drop a receipt photo here or click to upload"}
+            {loading ? t("upload.dropUploading") : t("upload.dropTitle")}
           </p>
-          <p className="mt-1 text-xs text-ink/50">JPG, PNG or WEBP</p>
+          <p className="mt-1 text-xs text-ink/50">{t("upload.dropHint")}</p>
         </div>
       ) : (
         <Card className="space-y-4">
-          <SectionLabel>Paste receipt text</SectionLabel>
+          <SectionLabel>{t("upload.pasteLabel")}</SectionLabel>
           <textarea
             className={cn(inputCls, "min-h-40 resize-y font-mono text-xs")}
             placeholder={"REWE Markt GmbH\nVollmilch 3,5% 1L    1,29\nVollkornbrot 500g    1,99\n..."}
@@ -133,7 +132,7 @@ export function UploadStep({
             onClick={handleTextSubmit}
             disabled={loading || !pastedText.trim()}
           >
-            {loading ? "Analyzing…" : "Analyze pasted receipt"}
+            {loading ? t("upload.analyzing") : t("upload.analyzeButton")}
           </PrimaryButton>
         </Card>
       )}
@@ -150,7 +149,7 @@ export function UploadStep({
               }}
               className="rounded-full bg-red-100 px-3 py-1.5 text-xs font-medium tracking-tight text-red-800 hover:bg-red-200"
             >
-              Paste the receipt text instead →
+              {t("upload.pasteInstead")}
             </button>
           ) : null}
         </div>
@@ -160,9 +159,11 @@ export function UploadStep({
         <Card className="space-y-4">
           <div className="flex items-center justify-between">
             <SectionLabel>
-              Parsed · {result.parsed.store} ({result.parsed.scan_quality})
+              {result.parsed.store} ({result.parsed.scan_quality})
             </SectionLabel>
-            <span className="text-xs text-ink/40">{result.parsed.items_count} items</span>
+            <span className="text-xs text-ink/40">
+              {result.parsed.items_count} {t("upload.itemsSuffix")}
+            </span>
           </div>
           <ul className="grid gap-1.5 sm:grid-cols-2">
             {result.parsed.items.map((item, i) => (
@@ -170,14 +171,14 @@ export function UploadStep({
                 · {item.name}
                 {item.uncertain ? (
                   <span className="ml-1 text-[10px] uppercase tracking-widest text-ink/35">
-                    uncertain
+                    {t("upload.uncertainTag")}
                   </span>
                 ) : null}
               </li>
             ))}
           </ul>
           <PrimaryButton onClick={() => onUploaded(result.receipt_id)}>
-            Review items →
+            {t("upload.reviewButton")}
           </PrimaryButton>
         </Card>
       ) : null}

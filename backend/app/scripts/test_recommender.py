@@ -55,9 +55,9 @@ def _offline():
 
     # Comparison: same gaps, omnivore profile with no exclusions.
     omnivore = ProfileCreate(
-        goal="eat_healthier",
-        age_range="25-34",
-        activity_level="moderate",
+        goal="eat_balanced",
+        age_range="25-35",
+        activity_level="moderately_active",
         dietary_pattern="omnivore",
     )
     rec_omni = recommend_next_cart(gaps, omnivore, ConfidenceLevel.HIGH)

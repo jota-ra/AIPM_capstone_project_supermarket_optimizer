@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
+from backend.app.models.analytics import ProgressReport
 from backend.app.models.snapshot import ConfidenceLevel
 from backend.app.nutrition_model import DISCLAIMER
 
@@ -61,5 +62,8 @@ class NextCartRecommendation(BaseModel):
     evaluated_candidates: List[EvaluatedCandidate] = Field(default_factory=list)
     # Up to 3 recipes matched to `item` (MVP summary point 5, Should Have).
     recipes: List[Recipe] = Field(default_factory=list)
+    # NutriWise Agent - modified: added for Progress Tracking (addendum).
+    # None when the session doesn't have a prior receipt to compare against.
+    progress: Optional[ProgressReport] = None
     # Story 6.3: always present, never optional to include in a response.
     disclaimer: str = DISCLAIMER

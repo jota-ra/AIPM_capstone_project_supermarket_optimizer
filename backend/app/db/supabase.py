@@ -45,6 +45,28 @@ def _insert_tolerant(table: str, record: dict):
     return supabase.table(table).insert(remaining).execute()
 
 
+def _update_tolerant(table: str, record_id: str, fields: dict):
+    """Same missing-column safety net as `_insert_tolerant`, for updates
+    (profile editing) instead of inserts."""
+
+    remaining = dict(fields)
+    for _ in range(len(fields) or 1):
+        try:
+            return supabase.table(table).update(remaining).eq("id", record_id).execute()
+        except APIError as e:
+            if e.code != _MISSING_COLUMN_CODE:
+                raise
+            missing = next(
+                (key for key in remaining if f"'{key}' column" in (e.message or "")),
+                None,
+            )
+            if missing is None:
+                raise
+            print(f"[db] '{table}.{missing}' column missing (migration pending?) — updating without it")
+            remaining.pop(missing)
+    return supabase.table(table).update(remaining).eq("id", record_id).execute()
+
+
 def create_receipt_row(receipt_id, file_name, file_type, storage_path, session_id=None, user_id=None):
     return _insert_tolerant("receipts", {
         "id": receipt_id,
@@ -193,6 +215,12 @@ def get_profile(profile_id: str):
         .execute()
     )
     return result.data[0] if result.data else None
+
+
+def update_profile_row(profile_id: str, fields: dict):
+    """Partial update — only the keys present in `fields` are touched."""
+
+    return _update_tolerant("profiles", profile_id, fields)
 
 
 def delete_profile(profile_id: str):
