@@ -5,13 +5,15 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n";
 import {
   getPantry,
+  getNextCart,
   removePantryItem,
   updatePantryItemMetadata,
   uploadReceiptFile,
   uploadReceiptText,
+  consumePantryItem,
   ApiError,
 } from "@/lib/api";
-import type { PantryItem, UploadReceiptResponse } from "@/types/api";
+import type { PantryItem, UploadReceiptResponse, PantryMatch } from "@/types/api";
 
 // "Lager" — menu restructure: this used to be one combined page (stock
 // list + day-by-day consumption log). The day-log half moved out to its
@@ -136,7 +138,7 @@ function PantryRow({
           >
             {PANTRY_CATEGORIES.map((cat) => (
               <option key={cat} value={cat}>
-                {cat}
+                {t(`pantry.category.${cat}`)}
               </option>
             ))}
           </select>
@@ -392,6 +394,54 @@ function groupByCategory(items: PantryItem[]): { category: (typeof PANTRY_CATEGO
   })).filter((group) => group.items.length > 0);
 }
 
+// "Use what you already have" — moved here from Insights (ResultsStep.tsx):
+// it's a pick from your own stock, not a nutrition-analysis output, so it
+// belongs on the page that's actually about your stock. Fed by GET
+// /next-cart's `pantry_match` (same backend data as before, just
+// requested from here now).
+function PantryMatchCard({ match, onConsumed }: { match: PantryMatch; onConsumed: () => Promise<void> }) {
+  const { t } = useLanguage();
+  const [busy, setBusy] = useState(false);
+
+  async function handleConsume() {
+    setBusy(true);
+    try {
+      await consumePantryItem(match.item, 1);
+      await onConsumed();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card
+      className={cn(
+        "space-y-3",
+        match.urgent ? "bg-amber-50 ring-1 ring-amber-200" : "bg-emerald-50 ring-1 ring-emerald-200",
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <SectionLabel>{t("results.pantryMatch")}</SectionLabel>
+        {match.urgent ? (
+          <span className="text-[11px] uppercase tracking-widest text-amber-700">
+            {t("results.pantryMatchUrgent")}
+          </span>
+        ) : null}
+      </div>
+      <p className="text-lg font-medium tracking-tight">{match.item}</p>
+      <p className="text-sm text-ink/70">{match.message}</p>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={handleConsume}
+        className="rounded-full bg-ink px-4 py-2 text-xs font-medium tracking-tight text-canvas disabled:opacity-40"
+      >
+        {t("pantry.consumed")}
+      </button>
+    </Card>
+  );
+}
+
 export function PantryStep({
   profileId,
   onUploaded,
@@ -404,6 +454,7 @@ export function PantryStep({
   onNavigate?: (step: StepId) => void;
 }) {
   const [items, setItems] = useState<PantryItem[] | null>(null);
+  const [pantryMatch, setPantryMatch] = useState<PantryMatch | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { t } = useLanguage();
 
@@ -417,8 +468,20 @@ export function PantryStep({
     }
   }
 
+  async function loadPantryMatch() {
+    try {
+      const rec = await getNextCart(profileId ?? undefined);
+      setPantryMatch(rec.pantry_match);
+    } catch {
+      // 409 (no receipts analysed yet) is a normal, common state here —
+      // just means nothing to suggest from stock yet, not a page error.
+      setPantryMatch(null);
+    }
+  }
+
   useEffect(() => {
     loadPantry();
+    loadPantryMatch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -457,6 +520,16 @@ export function PantryStep({
         <div className="rounded-2xl bg-red-50 px-5 py-4 text-sm text-red-700 ring-1 ring-red-200">
           {error}
         </div>
+      ) : null}
+
+      {pantryMatch ? (
+        <PantryMatchCard
+          match={pantryMatch}
+          onConsumed={async () => {
+            await loadPantry();
+            await loadPantryMatch();
+          }}
+        />
       ) : null}
 
       <UploadSection

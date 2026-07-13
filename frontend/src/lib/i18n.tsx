@@ -60,6 +60,13 @@ const STRINGS: Record<string, { en: string; de: string }> = {
     de: "NutriWise · geschätzt aus deinem Einkaufsverhalten, nicht dem tatsächlichen Verzehr",
   },
   "footer.deleteData": { en: "Delete or reset my data", de: "Daten löschen oder zurücksetzen" },
+  "footer.deleteConfirm": {
+    en: "Delete the receipt and profile stored for this session? This can't be undone.",
+    de: "Kassenbon und Profil dieser Sitzung löschen? Das kann nicht rückgängig gemacht werden.",
+  },
+  "footer.deleteFailed": { en: "Could not delete your data.", de: "Daten konnten nicht gelöscht werden." },
+  "review.uploadFirst": { en: "Upload a receipt first.", de: "Lade zuerst einen Kassenbon hoch." },
+  "review.goToPantry": { en: "Go to pantry", de: "Zum Lager" },
   "footer.privacy": { en: "Privacy policy", de: "Datenschutz" },
   "footer.imprint": { en: "Imprint", de: "Impressum" },
   "footer.help": { en: "Help & FAQ", de: "Hilfe & FAQ" },
@@ -254,6 +261,8 @@ const STRINGS: Record<string, { en: string; de: string }> = {
   "results.topGaps": { en: "Top gaps", de: "Wichtigste Lücken" },
   "results.candidatesChecked": { en: "candidates checked", de: "Kandidaten geprüft" },
   "results.candidatesConsidered": { en: "candidates considered", de: "Kandidaten berücksichtigt" },
+  "results.nextCart": { en: "Next Cart", de: "Nächster Einkauf" },
+  "results.feedbackLabel": { en: "Feedback", de: "Feedback" },
   "results.whyNothing": { en: "Why nothing was suggested", de: "Warum nichts vorgeschlagen wurde" },
   "results.allowed": { en: "allowed", de: "erlaubt" },
   "results.blocked": { en: "blocked:", de: "blockiert:" },
@@ -378,6 +387,14 @@ const STRINGS: Record<string, { en: string; de: string }> = {
 
 export function t(key: string, lang: Lang): string {
   return STRINGS[key]?.[lang] ?? key;
+}
+
+// For the rare spot outside a component (native `confirm`/`alert`
+// dialogs in App.tsx, which fire from a plain event handler, not
+// render) that needs the current language without the `useLanguage`
+// hook — same localStorage read LanguageProvider itself uses below.
+export function getStoredLanguage(): Lang {
+  return (localStorage.getItem(LANGUAGE_KEY) as Lang | null) ?? "en";
 }
 
 interface LanguageContextValue {

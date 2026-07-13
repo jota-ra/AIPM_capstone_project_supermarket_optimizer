@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell, type StepId } from "@/components/AppShell";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { LandingStep } from "@/steps/LandingStep";
 import { AccountPickerStep } from "@/steps/AccountPickerStep";
 import { OnboardingUploadStep } from "@/steps/OnboardingUploadStep";
-import { NotificationsStep } from "@/steps/NotificationsStep";
+import {
+  NotificationsStep,
+  loadNotifications,
+  mergeNotificationReadState,
+  type Notification,
+} from "@/steps/NotificationsStep";
 import { ReviewStep } from "@/steps/ReviewStep";
 import { PantryStep } from "@/steps/PantryStep";
 import { DiaryStep } from "@/steps/DiaryStep";
@@ -12,7 +17,7 @@ import { ChatOnboardingStep } from "@/steps/ChatOnboardingStep";
 import { ProfileSummary } from "@/steps/ProfileSummary";
 import { ResultsStep } from "@/steps/ResultsStep";
 import { deleteReceipt, deleteProfile, clearSession, ApiError } from "@/lib/api";
-import { LanguageProvider, useLanguage } from "@/lib/i18n";
+import { LanguageProvider, useLanguage, t, getStoredLanguage } from "@/lib/i18n";
 
 const RECEIPT_KEY = "nutriwise.receiptId";
 const PROFILE_KEY = "nutriwise.profileId";
@@ -39,6 +44,35 @@ function App() {
   const [consented, setConsented] = useState<boolean>(
     () => localStorage.getItem(CONSENT_KEY) === "true",
   );
+  // Lifted here (not just local to NotificationsStep) so AppShell's bell
+  // dot reflects the same real unread state the Notifications page
+  // shows — see NotificationsStep.tsx's docstring on why a single
+  // source of truth matters for "mark all read" not getting silently
+  // undone by a later background refresh.
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState<string | null>(null);
+
+  // Refreshes whenever the user lands on one of the main app pages —
+  // cheap, already-cached-elsewhere reads (see loadNotifications), so
+  // re-fetching on every nav is acceptable rather than trying to guess
+  // exactly when something might have changed.
+  useEffect(() => {
+    if (!consented) return;
+    if (step === "landing" || step === "accountPicker" || step === "onboarding") return;
+
+    let cancelled = false;
+    setNotificationsLoading(true);
+    loadNotifications(profileId, getStoredLanguage()).then(({ items, error }) => {
+      if (cancelled) return;
+      setNotifications((prev) => mergeNotificationReadState(items, prev));
+      setNotificationsError(error);
+      setNotificationsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [step, profileId, consented]);
 
   function handleConsent() {
     localStorage.setItem(CONSENT_KEY, "true");
@@ -60,7 +94,14 @@ function App() {
 
   async function handleDeleteData() {
     if (!receiptId && !profileId) return;
-    if (!window.confirm("Delete the receipt and profile stored for this session? This can't be undone.")) {
+    // Not inside a component render, so useLanguage()'s context isn't
+    // reachable here — getStoredLanguage() reads the same localStorage
+    // value LanguageProvider itself initializes from (see lib/i18n.tsx),
+    // so this native confirm dialog still matches the user's chosen
+    // language instead of always showing English for the app's one
+    // truly irreversible action.
+    const lang = getStoredLanguage();
+    if (!window.confirm(t("footer.deleteConfirm", lang))) {
       return;
     }
 
@@ -74,7 +115,7 @@ function App() {
         }) : null,
       ]);
     } catch (e) {
-      window.alert(e instanceof ApiError ? e.message : "Could not delete your data.");
+      window.alert(e instanceof ApiError ? e.message : t("footer.deleteFailed", lang));
       return;
     }
 
@@ -99,7 +140,12 @@ function App() {
     setReceiptId(null);
     setProfileId(null);
     setProfileName(null);
+    setNotifications([]);
     setStep("landing");
+  }
+
+  function handleMarkAllNotificationsRead() {
+    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
   }
 
   if (step === "landing") {
@@ -144,12 +190,20 @@ function App() {
         onNavigate={setStep}
         onDeleteData={handleDeleteData}
         canDeleteData={Boolean(receiptId || profileId)}
+        hasUnreadNotifications={notifications.some((n) => n.unread)}
       >
         {!consented ? (
           <ConsentBanner onAccept={handleConsent} />
         ) : (
           <>
-            {step === "notifications" ? <NotificationsStep profileId={profileId} /> : null}
+            {step === "notifications" ? (
+              <NotificationsStep
+                notifications={notifications}
+                loading={notificationsLoading}
+                error={notificationsError}
+                onMarkAllRead={handleMarkAllNotificationsRead}
+              />
+            ) : null}
 
             {step === "onboarding" ? (
               <ChatOnboardingStep
@@ -183,7 +237,7 @@ function App() {
               receiptId ? (
                 <ReviewStep receiptId={receiptId} onContinue={() => setStep("pantry")} />
               ) : (
-                <EmptyState message="Upload a receipt first." onAction={() => setStep("pantry")} />
+                <EmptyState onAction={() => setStep("pantry")} />
               )
             ) : null}
 
@@ -207,16 +261,17 @@ function App() {
   );
 }
 
-function EmptyState({ message, onAction }: { message: string; onAction: () => void }) {
+function EmptyState({ onAction }: { onAction: () => void }) {
+  const { t } = useLanguage();
   return (
     <section className="space-y-4 px-6 pb-16">
-      <p className="text-sm text-ink/60">{message}</p>
+      <p className="text-sm text-ink/60">{t("review.uploadFirst")}</p>
       <button
         type="button"
         onClick={onAction}
         className="rounded-full bg-ink px-4 py-2 text-xs font-medium tracking-tight text-canvas"
       >
-        Go to upload
+        {t("review.goToPantry")}
       </button>
     </section>
   );

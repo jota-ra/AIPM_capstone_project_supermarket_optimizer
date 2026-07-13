@@ -1,19 +1,22 @@
-import { useEffect, useState } from "react";
 import { Card } from "@/components/AppShell";
 import { cn } from "@/lib/utils";
-import { useLanguage } from "@/lib/i18n";
+import { useLanguage, t, type Lang } from "@/lib/i18n";
 import { getPantry, getNextCart, listReceipts, ApiError } from "@/lib/api";
 
 // Reached via the bell icon in AppShell.tsx's nav. Built entirely from
 // signals the app already computes elsewhere — no new backend endpoint,
 // no invented data: a pantry-confirmation reminder (GET /pantry), the
 // coach's current message + weekly trend (GET /next-cart), and the most
-// recent receipt's status (GET /receipts). "Unread" is a light,
-// session-only concept (no persistence) — it resets on reload, since
-// there's nowhere to store it per-notification without a real backend
-// table for this, which is out of scope for a corporate-design pass.
+// recent receipt's status (GET /receipts).
+//
+// State lives in App.tsx, not here (see loadNotifications below, a pure
+// function App.tsx also calls to drive AppShell's bell-dot) — a single
+// source of truth so "mark all read" and the dot never disagree, and a
+// background refresh (e.g. on nav) can't silently un-read something the
+// user already dismissed: refreshes merge by each notification's stable
+// `id`, preserving read state for ids that already existed.
 
-type NotificationKind = "reminder" | "insight" | "receipt" | "progress";
+export type NotificationKind = "reminder" | "insight" | "receipt" | "progress";
 
 const KIND_ICON: Record<NotificationKind, string> = {
   reminder: "🧺",
@@ -22,7 +25,7 @@ const KIND_ICON: Record<NotificationKind, string> = {
   progress: "📈",
 };
 
-interface Notification {
+export interface Notification {
   id: string;
   kind: NotificationKind;
   title: string;
@@ -32,104 +35,113 @@ interface Notification {
 
 const REMINDER_THRESHOLD_DAYS = 3;
 
-export function NotificationsStep({ profileId }: { profileId: string | null }) {
-  const { t } = useLanguage();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// Plain async function, not a hook — called from App.tsx (outside any
+// LanguageProvider) as well as from wherever this page itself needs a
+// fresh copy, so it takes `lang` directly rather than depending on
+// useLanguage()'s context.
+export async function loadNotifications(
+  profileId: string | null,
+  lang: Lang,
+): Promise<{ items: Notification[]; error: string | null }> {
+  // allSettled: none of these three signals depends on the others
+  // succeeding — a brand-new session with no receipts yet still has a
+  // (empty) pantry response, just no next-cart/receipts to report.
+  const [pantryResult, nextCartResult, receiptsResult] = await Promise.allSettled([
+    getPantry(),
+    getNextCart(profileId ?? undefined),
+    listReceipts(),
+  ]);
 
-  useEffect(() => {
-    let cancelled = false;
+  const items: Notification[] = [];
 
-    async function load() {
-      setLoading(true);
-      setError(null);
-
-      // allSettled: none of these three signals depends on the others
-      // succeeding — a brand-new session with no receipts yet still has
-      // a (empty) pantry response, just no next-cart/receipts to report.
-      const [pantryResult, nextCartResult, receiptsResult] = await Promise.allSettled([
-        getPantry(),
-        getNextCart(profileId ?? undefined),
-        listReceipts(),
-      ]);
-
-      const built: Notification[] = [];
-
-      if (pantryResult.status === "fulfilled") {
-        const days = pantryResult.value.days_since_last_confirmation;
-        if (days !== null && days >= REMINDER_THRESHOLD_DAYS) {
-          built.push({
-            id: "reminder",
-            kind: "reminder",
-            title: t("notifications.reminderTitle"),
-            detail: t("notifications.reminderDetail").replace("{days}", String(days)),
-            unread: true,
-          });
-        }
-      }
-
-      if (nextCartResult.status === "fulfilled") {
-        const rec = nextCartResult.value;
-        if (rec.coach_message) {
-          built.push({
-            id: "insight",
-            kind: "insight",
-            title: t("notifications.insightTitle"),
-            detail: rec.coach_message,
-            unread: true,
-          });
-        }
-        if (rec.progress?.has_history && rec.progress.message) {
-          built.push({
-            id: "progress",
-            kind: "progress",
-            title: t("notifications.progressTitle"),
-            detail: rec.progress.message,
-            unread: false,
-          });
-        }
-      }
-
-      if (receiptsResult.status === "fulfilled" && receiptsResult.value.receipts.length > 0) {
-        // "newest first" (see api/receipts.py) — index 0 is the latest.
-        const latest = receiptsResult.value.receipts[0];
-        built.push({
-          id: `receipt-${latest.id}`,
-          kind: "receipt",
-          title: t("notifications.receiptTitle"),
-          detail:
-            latest.status === "processed"
-              ? t("notifications.receiptProcessed")
-              : t("notifications.receiptUploaded"),
-          unread: false,
-        });
-      }
-
-      if (!cancelled) {
-        setNotifications(built);
-        if (
-          pantryResult.status === "rejected" &&
-          nextCartResult.status === "rejected" &&
-          receiptsResult.status === "rejected"
-        ) {
-          setError(
-            nextCartResult.reason instanceof ApiError
-              ? nextCartResult.reason.message
-              : t("notifications.loadFailed"),
-          );
-        }
-        setLoading(false);
-      }
+  if (pantryResult.status === "fulfilled") {
+    const days = pantryResult.value.days_since_last_confirmation;
+    if (days !== null && days >= REMINDER_THRESHOLD_DAYS) {
+      items.push({
+        id: "reminder",
+        kind: "reminder",
+        title: t("notifications.reminderTitle", lang),
+        detail: t("notifications.reminderDetail", lang).replace("{days}", String(days)),
+        unread: true,
+      });
     }
+  }
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileId]);
+  if (nextCartResult.status === "fulfilled") {
+    const rec = nextCartResult.value;
+    if (rec.coach_message) {
+      items.push({
+        id: "insight",
+        kind: "insight",
+        title: t("notifications.insightTitle", lang),
+        detail: rec.coach_message,
+        unread: true,
+      });
+    }
+    if (rec.progress?.has_history && rec.progress.message) {
+      items.push({
+        id: "progress",
+        kind: "progress",
+        title: t("notifications.progressTitle", lang),
+        detail: rec.progress.message,
+        unread: false,
+      });
+    }
+  }
 
+  if (receiptsResult.status === "fulfilled" && receiptsResult.value.receipts.length > 0) {
+    // "newest first" (see api/receipts.py) — index 0 is the latest.
+    const latest = receiptsResult.value.receipts[0];
+    items.push({
+      id: `receipt-${latest.id}`,
+      kind: "receipt",
+      title: t("notifications.receiptTitle", lang),
+      detail:
+        latest.status === "processed"
+          ? t("notifications.receiptProcessed", lang)
+          : t("notifications.receiptUploaded", lang),
+      unread: false,
+    });
+  }
+
+  let error: string | null = null;
+  if (
+    pantryResult.status === "rejected" &&
+    nextCartResult.status === "rejected" &&
+    receiptsResult.status === "rejected"
+  ) {
+    error =
+      nextCartResult.reason instanceof ApiError
+        ? nextCartResult.reason.message
+        : t("notifications.loadFailed", lang);
+  }
+
+  return { items, error };
+}
+
+// Merges a fresh fetch with what was already on screen: an id that was
+// already marked read stays read, so a background refresh (App.tsx,
+// e.g. on nav) can't resurrect something the user just dismissed.
+export function mergeNotificationReadState(
+  fresh: Notification[],
+  previous: Notification[],
+): Notification[] {
+  const previouslyRead = new Set(previous.filter((n) => !n.unread).map((n) => n.id));
+  return fresh.map((n) => (previouslyRead.has(n.id) ? { ...n, unread: false } : n));
+}
+
+export function NotificationsStep({
+  notifications,
+  loading,
+  error,
+  onMarkAllRead,
+}: {
+  notifications: Notification[];
+  loading: boolean;
+  error: string | null;
+  onMarkAllRead: () => void;
+}) {
+  const { t } = useLanguage();
   const hasUnread = notifications.some((n) => n.unread);
 
   return (
@@ -144,7 +156,7 @@ export function NotificationsStep({ profileId }: { profileId: string | null }) {
         {hasUnread ? (
           <button
             type="button"
-            onClick={() => setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))}
+            onClick={onMarkAllRead}
             className="shrink-0 text-xs font-medium tracking-tight text-ink/50 hover:text-ink"
           >
             {t("notifications.markAllRead")}

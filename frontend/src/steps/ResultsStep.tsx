@@ -9,7 +9,6 @@ import {
   getProfile,
   getPantry,
   submitFeedback,
-  consumePantryItem,
   ApiError,
 } from "@/lib/api";
 import type {
@@ -21,7 +20,6 @@ import type {
   HealthScore,
   NextCartRecommendation,
   NutritionSnapshot,
-  PantryMatch,
   ProgressReport,
 } from "@/types/api";
 
@@ -246,56 +244,13 @@ function EasySwapsCard({ swaps }: { swaps: NextCartRecommendation["easy_swaps"] 
   );
 }
 
-function PantryMatchCard({ match, onConsumed }: { match: PantryMatch; onConsumed: () => Promise<void> }) {
-  const { t } = useLanguage();
-  const [busy, setBusy] = useState(false);
-
-  async function handleConsume() {
-    setBusy(true);
-    try {
-      await consumePantryItem(match.item, 1);
-      await onConsumed();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Card
-      className={cn(
-        "space-y-3",
-        match.urgent ? "bg-amber-50 ring-1 ring-amber-200" : "bg-emerald-50 ring-1 ring-emerald-200",
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <SectionLabel>{t("results.pantryMatch")}</SectionLabel>
-        {match.urgent ? (
-          <span className="text-[11px] uppercase tracking-widest text-amber-700">
-            {t("results.pantryMatchUrgent")}
-          </span>
-        ) : null}
-      </div>
-      <p className="text-lg font-medium tracking-tight">{match.item}</p>
-      <p className="text-sm text-ink/70">{match.message}</p>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={handleConsume}
-        className="rounded-full bg-ink px-4 py-2 text-xs font-medium tracking-tight text-canvas disabled:opacity-40"
-      >
-        {t("pantry.consumed")}
-      </button>
-    </Card>
-  );
-}
-
 function NextCartCard({ rec }: { rec: NextCartRecommendation }) {
   const { t } = useLanguage();
 
   if (rec.status === "no_gaps") {
     return (
       <Card className="space-y-2">
-        <SectionLabel>Next Cart</SectionLabel>
+        <SectionLabel>{t("results.nextCart")}</SectionLabel>
         <p className="text-lg font-medium tracking-tight">{rec.message}</p>
       </Card>
     );
@@ -304,7 +259,7 @@ function NextCartCard({ rec }: { rec: NextCartRecommendation }) {
   if (rec.status === "no_suitable_candidate") {
     return (
       <Card className="space-y-3">
-        <SectionLabel>Next Cart</SectionLabel>
+        <SectionLabel>{t("results.nextCart")}</SectionLabel>
         <p className="text-lg font-medium tracking-tight">{rec.message}</p>
         {rec.evaluated_candidates.length > 0 ? (
           <details className="text-xs text-ink/50">
@@ -327,7 +282,7 @@ function NextCartCard({ rec }: { rec: NextCartRecommendation }) {
   return (
     <Card className="space-y-4">
       <div className="flex items-center justify-between">
-        <SectionLabel>Next Cart · {rec.action_type}</SectionLabel>
+        <SectionLabel>{t("results.nextCart")} · {rec.action_type}</SectionLabel>
         <span className={`text-[11px] uppercase tracking-widest ${CONFIDENCE_TONE[rec.confidence]}`}>
           {confidenceText(rec.confidence, t)}
         </span>
@@ -512,7 +467,7 @@ function FeedbackWidget({ recommendationId }: { recommendationId: string }) {
   if (submitted) {
     return (
       <Card className="space-y-1">
-        <SectionLabel>Feedback</SectionLabel>
+        <SectionLabel>{t("results.feedbackLabel")}</SectionLabel>
         <p className="text-sm text-ink/70">{t("results.feedbackThanks")}</p>
       </Card>
     );
@@ -730,7 +685,7 @@ export function ResultsStep({
           </Card>
 
           <Card className="space-y-3 opacity-50">
-            <SectionLabel>Next Cart</SectionLabel>
+            <SectionLabel>{t("results.nextCart")}</SectionLabel>
             <p className="text-2xl font-medium tracking-tight text-ink/30">—</p>
             <p className="text-sm text-ink/50">{t("results.noDataPlaceholderNextCart")}</p>
           </Card>
@@ -762,18 +717,10 @@ export function ResultsStep({
 
       {snapshot ? <HealthScoreCard score={snapshot.health_score} /> : null}
 
-      {/*
-        Story 7.2: the recommendation is the primary outcome and goes
-        above the detailed nutrition breakdown, not after it. The pantry
-        match (if any) is shown alongside it, not instead of it — Option
-        A from docs/architektur_entscheidungen.md: two separate cards, so
-        an expiring item's urgency stays visible rather than hidden
-        behind a tab.
-      */}
-      {recommendation?.pantry_match ? (
-        <PantryMatchCard match={recommendation.pantry_match} onConsumed={load} />
-      ) : null}
-
+      {/* Menu restructure: the "use what you already have" pantry-match
+          pick moved to the Pantry ("My Pantry") page — it's about your
+          stock, not the nutrition analysis this page is for. See
+          PantryStep.tsx's own PantryMatchCard. */}
       {recommendation ? <NextCartCard rec={recommendation} /> : null}
 
       {recommendation?.status === "recommended" ? (

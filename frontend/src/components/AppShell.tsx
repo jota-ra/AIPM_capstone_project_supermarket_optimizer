@@ -55,12 +55,14 @@ export function AppShell({
   onNavigate,
   onDeleteData,
   canDeleteData,
+  hasUnreadNotifications,
   children,
 }: {
   step: StepId;
   onNavigate: (step: StepId) => void;
   onDeleteData?: () => void;
   canDeleteData?: boolean;
+  hasUnreadNotifications?: boolean;
   children: ReactNode;
 }) {
   const { t, language, setLanguage } = useLanguage();
@@ -133,10 +135,10 @@ export function AppShell({
                   "section" of the app you browse through, they're
                   account-level destinations (same convention as most
                   apps: a bell/avatar sits off to the side, not inside
-                  the primary nav). The unread dot is a static visual
-                  affordance, not wired to NotificationsStep.tsx's actual
-                  unread count — that would mean fetching pantry/next-cart
-                  data here too, which this shell deliberately doesn't do. */}
+                  the primary nav). The unread dot reflects App.tsx's
+                  real notification state (see NotificationsStep.tsx),
+                  not a hardcoded placeholder — it only shows when
+                  something's actually unread. */}
               <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
@@ -148,7 +150,9 @@ export function AppShell({
                   )}
                 >
                   <span aria-hidden>🔔</span>
-                  <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-red-500" />
+                  {hasUnreadNotifications ? (
+                    <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-red-500" />
+                  ) : null}
                 </button>
                 <button
                   type="button"

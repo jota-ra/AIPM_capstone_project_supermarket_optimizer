@@ -255,6 +255,7 @@ const CREATING_LABEL = bi(
   "All set — creating your profile, then let's upload your first receipt as a baseline…",
   "Alles klar — dein Profil wird erstellt, danach lädst du deinen ersten Kassenbon als Baseline hoch…",
 );
+const CREATE_PROFILE_FAILED = bi("Could not create profile.", "Profil konnte nicht erstellt werden.");
 const BADGE_LABEL = bi("PERSONALIZING YOUR PLAN", "DEIN PLAN WIRD PERSONALISIERT");
 const TITLE_LINE_1 = bi("Let's get to know", "Lass uns dich");
 const TITLE_LINE_2 = bi("you.", "kennenlernen.");
@@ -496,7 +497,17 @@ export function ChatOnboardingStep({
   const historyRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
-  const done = stepIndex >= STEPS.length;
+  // Bug fix: this used to be `stepIndex >= STEPS.length`, but stepIndex
+  // never actually reaches STEPS.length — the last question calls
+  // submit() directly instead of advancing (see goNext below), so this
+  // was permanently false and the "creating your profile…" bubble was
+  // dead code. A failed submit left the last question's buttons merely
+  // disabled-then-re-enabled with no visible "try again" moment. Tying
+  // `done` to `saving` instead means: while the request is in flight,
+  // show only the "creating…" bubble (no stale, about-to-be-wrong
+  // buttons); on failure, the question and its options reappear fully
+  // enabled, right next to the error message — an obvious, working retry.
+  const done = saving;
   const current = STEPS[stepIndex];
   // Language is set once on the landing page (or the header toggle, see
   // AppShell.tsx) — no per-question fallback needed anymore.
@@ -542,7 +553,7 @@ export function ChatOnboardingStep({
       const profile = await createProfile(toProfileCreate(finalAnswers, language));
       onProfileCreated(profile.profile_id, profile.name ?? null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not create profile.");
+      setError(err instanceof ApiError ? err.message : CREATE_PROFILE_FAILED[language]);
     } finally {
       setSaving(false);
     }
@@ -641,7 +652,7 @@ export function ChatOnboardingStep({
                 ) : (
                   <>
                     <ChatBubble from="user">{answerLabel(step, answers, language)}</ChatBubble>
-                    {!done && !saving ? (
+                    {!done ? (
                       <button
                         type="button"
                         onClick={() => setEditingKey(step.key)}
