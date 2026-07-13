@@ -44,17 +44,43 @@ const STRINGS: Record<string, { en: string; de: string }> = {
 
   // Nav / shell
   "nav.dashboard": { en: "Dashboard", de: "Dashboard" },
-  "nav.onboarding": { en: "Onboarding", de: "Onboarding" },
   "nav.userProfile": { en: "My Profile", de: "Nutzerprofil" },
   "nav.upload": { en: "Upload", de: "Hochladen" },
   "nav.review": { en: "Review", de: "Prüfen" },
   "nav.pantry": { en: "Pantry", de: "Lager" },
   "nav.results": { en: "Results", de: "Ergebnisse" },
+  "nav.notifications": { en: "Notifications", de: "Mitteilungen" },
   "footer.tagline": {
     en: "NutriWise · estimated from your shopping habits, not actual intake",
     de: "NutriWise · geschätzt aus deinem Einkaufsverhalten, nicht dem tatsächlichen Verzehr",
   },
-  "footer.deleteData": { en: "Delete my data", de: "Meine Daten löschen" },
+  "footer.deleteData": { en: "Delete or reset my data", de: "Daten löschen oder zurücksetzen" },
+  "footer.privacy": { en: "Privacy policy", de: "Datenschutz" },
+  "footer.imprint": { en: "Imprint", de: "Impressum" },
+  "footer.help": { en: "Help & FAQ", de: "Hilfe & FAQ" },
+  "footer.placeholderNotice": {
+    en: "Not built for this demo yet.",
+    de: "Für diese Demo noch nicht gebaut.",
+  },
+
+  // Notifications (dummy — NotificationsStep.tsx)
+  "notifications.title": { en: "Notifications", de: "Mitteilungen" },
+  "notifications.body": {
+    en: "Reminders and insights from your coach, all in one place.",
+    de: "Erinnerungen und Erkenntnisse deines Coaches, an einem Ort.",
+  },
+  "notifications.markAllRead": { en: "Mark all as read", de: "Alle als gelesen markieren" },
+  "notifications.empty": { en: "You're all caught up.", de: "Du bist auf dem neuesten Stand." },
+  "notifications.dummyBadge": {
+    en: "Dummy — static list, no live data yet",
+    de: "Dummy — statische Liste, noch keine echten Daten",
+  },
+
+  // Dashboard (dummy — DashboardStep.tsx)
+  "dashboard.dummyBadge": {
+    en: "Dummy — mockup layout, no live data yet",
+    de: "Dummy — Mockup-Layout, noch keine echten Daten",
+  },
 
   // Consent banner
   "consent.badge": { en: "Before you start", de: "Bevor es losgeht" },
@@ -72,8 +98,8 @@ const STRINGS: Record<string, { en: string; de: string }> = {
     de: "Dein Kassenbon und deine Profilangaben werden nur zur Erstellung dieser Empfehlung verarbeitet.",
   },
   "consent.bullet3": {
-    en: 'You can permanently delete your receipt and profile at any time via "Delete my data" in the footer.',
-    de: 'Du kannst deinen Kassenbon und dein Profil jederzeit über "Meine Daten löschen" im Footer dauerhaft löschen.',
+    en: 'You can permanently delete your receipt and profile at any time via "Delete or reset my data" in the footer.',
+    de: 'Du kannst deinen Kassenbon und dein Profil jederzeit über "Daten löschen oder zurücksetzen" im Footer dauerhaft löschen.',
   },
   "consent.bullet4": { en: "Nothing is shared with third parties.", de: "Es wird nichts an Dritte weitergegeben." },
   "consent.accept": { en: "I understand, continue", de: "Verstanden, weiter" },

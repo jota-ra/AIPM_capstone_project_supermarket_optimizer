@@ -6,6 +6,7 @@ import { AccountPickerStep } from "@/steps/AccountPickerStep";
 import { UploadStep } from "@/steps/UploadStep";
 import { OnboardingUploadStep } from "@/steps/OnboardingUploadStep";
 import { DashboardStep } from "@/steps/DashboardStep";
+import { NotificationsStep } from "@/steps/NotificationsStep";
 import { ReviewStep } from "@/steps/ReviewStep";
 import { PantryStep } from "@/steps/PantryStep";
 import { ChatOnboardingStep } from "@/steps/ChatOnboardingStep";
@@ -135,6 +136,8 @@ function App() {
             {step === "dashboard" ? (
               <DashboardStep profileName={profileName} onNavigate={setStep} />
             ) : null}
+
+            {step === "notifications" ? <NotificationsStep /> : null}
 
             {step === "onboarding" ? (
               <ChatOnboardingStep

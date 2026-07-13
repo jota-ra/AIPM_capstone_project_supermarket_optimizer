@@ -1,5 +1,6 @@
 import { useLanguage } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { Footer } from "@/components/Footer";
 
 // Demo entry point, shown before the app shell / nav mounts (see App.tsx) —
 // a marketing-style hero, not another internal app screen, so it
@@ -85,6 +86,7 @@ export function LandingStep({
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

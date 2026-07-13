@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n";
+import { Footer } from "@/components/Footer";
 
 export type StepId =
   | "landing"
@@ -12,7 +13,8 @@ export type StepId =
   | "onboarding"
   | "userProfile"
   | "pantry"
-  | "results";
+  | "results"
+  | "notifications";
 
 // Flow order: Disclaimer (consent gate) -> Onboarding -> Upload -> Review -> Results.
 // "User Profile" and "Pantry" (Lager-Bestand) are standalone pages reachable
@@ -20,14 +22,20 @@ export type StepId =
 // accumulates across every receipt in the session, not just the latest one.
 // "Dashboard" (DashboardStep.tsx, currently a static layout dummy) is the
 // new home for returning users — first in the list on purpose.
-const NAV: { id: StepId; labelKey: string }[] = [
-  { id: "dashboard", labelKey: "nav.dashboard" },
-  { id: "onboarding", labelKey: "nav.onboarding" },
-  { id: "userProfile", labelKey: "nav.userProfile" },
-  { id: "upload", labelKey: "nav.upload" },
-  { id: "review", labelKey: "nav.review" },
-  { id: "pantry", labelKey: "nav.pantry" },
-  { id: "results", labelKey: "nav.results" },
+//
+// "Onboarding" is deliberately NOT a permanent nav destination: it's a
+// one-time, situational flow (new account setup), not something a
+// returning user should ever tap into by accident. It's still reachable
+// via its own entry points (Landing's "Register", the empty-profile
+// nudge on My Profile) — just not surfaced as a tab to click into at
+// random, which risked resetting an existing user's answers mid-session.
+const NAV: { id: StepId; labelKey: string; icon: string }[] = [
+  { id: "dashboard", labelKey: "nav.dashboard", icon: "🏠" },
+  { id: "userProfile", labelKey: "nav.userProfile", icon: "👤" },
+  { id: "upload", labelKey: "nav.upload", icon: "🧾" },
+  { id: "review", labelKey: "nav.review", icon: "🔍" },
+  { id: "pantry", labelKey: "nav.pantry", icon: "🧺" },
+  { id: "results", labelKey: "nav.results", icon: "📊" },
 ];
 
 export function AppShell({
@@ -52,65 +60,84 @@ export function AppShell({
   // chat no longer asks a language question itself (removed: language
   // is chosen once, on the landing page, and stays changeable from here).
   const isOnboarding = step === "onboarding" || step === "onboardingUpload";
+  const langToggle = (
+    <div className="flex shrink-0 gap-1 rounded-full bg-surface p-1 text-xs ring-1 ring-black/5">
+      {(["en", "de"] as const).map((lng) => (
+        <button
+          key={lng}
+          type="button"
+          onClick={() => setLanguage(lng)}
+          className={cn(
+            "rounded-full px-2.5 py-1 font-medium uppercase tracking-widest transition-colors",
+            language === lng ? "bg-ink text-canvas" : "text-ink/50 hover:text-ink",
+          )}
+        >
+          {lng}
+        </button>
+      ))}
+    </div>
+  );
   return (
     <div className="min-h-screen bg-canvas font-sans text-ink antialiased selection:bg-ink/10">
-      <nav className="mx-auto flex max-w-3xl items-center justify-between px-6 py-8">
+      <nav className="mx-auto flex max-w-3xl items-center gap-3 px-6 py-6">
         <button
           type="button"
-          onClick={() => onNavigate("onboarding")}
-          className="flex items-center gap-3"
+          onClick={() => onNavigate("dashboard")}
+          className="flex shrink-0 items-center gap-3"
         >
           <span className="size-5 rounded-full bg-ink" />
           <span className="text-sm font-medium tracking-tight">NutriWise</span>
         </button>
-        {isOnboarding ? (
-          <div className="flex gap-1 rounded-full bg-surface p-1 text-xs ring-1 ring-black/5">
-            {(["en", "de"] as const).map((lng) => (
+        {/* Bug fix: the tab list used to be `hidden sm:flex` — on any
+            viewport narrower than the `sm` breakpoint there was no nav
+            at all, only the logo. Now it always renders and scrolls
+            horizontally instead of disappearing, so it's never a dead
+            end on mobile. The language toggle stays visible everywhere
+            (previously only shown during onboarding — outside it there
+            was no way to change language at all once past the chat). */}
+        <div className="flex flex-1 items-center justify-end gap-2 overflow-x-auto">
+          {!isOnboarding ? (
+            <>
+              <div className="flex shrink-0 gap-1 rounded-full bg-surface p-1 ring-1 ring-black/5">
+                {NAV.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onNavigate(item.id)}
+                    className={cn(
+                      "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium tracking-tight transition-colors",
+                      step === item.id ? "bg-ink text-canvas" : "text-ink/55 hover:text-ink",
+                    )}
+                  >
+                    <span aria-hidden>{item.icon}</span>
+                    {t(item.labelKey)}
+                  </button>
+                ))}
+              </div>
+              {/* Notifications — icon-only, deliberately separate from
+                  the main tab pill group (same convention as most apps:
+                  a bell is a signal to check, not a "section" of the
+                  app you navigate into and stay in). Dummy unread dot
+                  hardcoded on for now — see NotificationsStep.tsx. */}
               <button
-                key={lng}
                 type="button"
-                onClick={() => setLanguage(lng)}
+                onClick={() => onNavigate("notifications")}
+                aria-label={t("nav.notifications")}
                 className={cn(
-                  "rounded-full px-2.5 py-1 font-medium uppercase tracking-widest transition-colors",
-                  language === lng ? "bg-ink text-canvas" : "text-ink/50 hover:text-ink",
+                  "relative flex size-8 shrink-0 items-center justify-center rounded-full ring-1 ring-black/5 transition-colors",
+                  step === "notifications" ? "bg-ink text-canvas" : "bg-surface text-ink/55 hover:text-ink",
                 )}
               >
-                {lng}
+                <span aria-hidden>🔔</span>
+                <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-red-500" />
               </button>
-            ))}
-          </div>
-        ) : (
-          <div className="hidden gap-1 rounded-full bg-surface p-1 ring-1 ring-black/5 sm:flex">
-            {NAV.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onNavigate(item.id)}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-xs font-medium tracking-tight transition-colors",
-                  step === item.id ? "bg-ink text-canvas" : "text-ink/55 hover:text-ink",
-                )}
-              >
-                {t(item.labelKey)}
-              </button>
-            ))}
-          </div>
-        )}
+            </>
+          ) : null}
+          {langToggle}
+        </div>
       </nav>
       <main className="mx-auto max-w-3xl">{children}</main>
-      <footer className="mx-auto max-w-3xl space-y-3 px-6 py-12 text-[11px] uppercase tracking-widest text-ink/35">
-        <p>{t("footer.tagline")}</p>
-        {onDeleteData ? (
-          <button
-            type="button"
-            onClick={onDeleteData}
-            disabled={!canDeleteData}
-            className="normal-case tracking-normal text-ink/50 underline decoration-ink/20 underline-offset-2 hover:text-ink disabled:cursor-not-allowed disabled:text-ink/25 disabled:no-underline"
-          >
-            {t("footer.deleteData")}
-          </button>
-        ) : null}
-      </footer>
+      <Footer onDeleteData={onDeleteData} canDeleteData={canDeleteData} />
     </div>
   );
 }

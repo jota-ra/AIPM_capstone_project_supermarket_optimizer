@@ -16,6 +16,14 @@ import type { StepId } from "@/components/AppShell";
 // hub of cards/buttons that launch into the existing dedicated pages
 // (Pantry, Upload, Results, Profile) — the Dashboard itself never tries
 // to replace those pages' depth.
+//
+// v2 (UX pass): the coach message and the "next step" recommendation
+// used to be two separate cards saying the same thing twice (message:
+// "your iron is low, try lentils" / card: "next step: lentils"). Merged
+// into one "today's insight" card ending in a single, real, high-
+// contrast CTA button — one clear action instead of two competing ones.
+// Quick actions now read as actual buttons (tinted icon badge + hover
+// lift), not flat info tiles, per the "make buttons stand out" request.
 
 type Bi = { en: string; de: string };
 function bi(en: string, de: string): Bi {
@@ -29,18 +37,17 @@ const REMINDER_TEXT = bi(
   "Du hast seit 3 Tagen nichts bestätigt — deine Schätzungen werden ungenauer.",
 );
 const REMINDER_CTA = bi("Confirm now", "Jetzt bestätigen");
-const COACH_LABEL = bi("Your coach today", "Dein Coach heute");
+const COACH_LABEL = bi("Today's insight", "Deine Erkenntnis heute");
 const COACH_DUMMY = bi(
-  "Nice work this week — your protein intake is right on target. One thing to watch: your iron is trending low. A handful of spinach or lentils would help close that gap.",
-  "Gute Arbeit diese Woche — deine Proteinzufuhr liegt genau im Zielbereich. Ein Punkt zum Beobachten: dein Eisenwert tendiert nach unten. Eine Handvoll Spinat oder Linsen würde diese Lücke schließen.",
+  "Nice work this week — your protein intake is right on target. One thing to watch: your iron is trending low.",
+  "Gute Arbeit diese Woche — deine Proteinzufuhr liegt genau im Zielbereich. Ein Punkt zum Beobachten: dein Eisenwert tendiert nach unten.",
 );
-const QUICK_ACTIONS_LABEL = bi("Quick actions", "Schnellzugriff");
-const NEXT_STEP_LABEL = bi("Your next step", "Dein nächster Schritt");
-const NEXT_STEP_DUMMY_ITEM = bi("Lentils", "Rote Linsen");
-const NEXT_STEP_DUMMY_REASON = bi(
+const COACH_CTA = bi("Add lentils to Next Cart", "Rote Linsen zum Next Cart hinzufügen");
+const COACH_CTA_SUB = bi(
   "Targets your iron gap — allowed under your vegan profile.",
   "Zielt auf deine Eisen-Lücke — passt zu deinem veganen Profil.",
 );
+const QUICK_ACTIONS_LABEL = bi("Quick actions", "Schnellzugriff");
 const SEE_DETAILS = bi("See full details →", "Alle Details →");
 const PROGRESS_LABEL = bi("This week's trend", "Trend diese Woche");
 const PROGRESS_DUMMY = [
@@ -82,14 +89,14 @@ export function DashboardStep({
   profileName?: string | null;
   onNavigate: (step: StepId) => void;
 }) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const lang: Lang = language;
   const greeting = profileName ? `Hi ${profileName} 👋` : `${GREETING_FALLBACK[lang]} 👋`;
 
   return (
     <section className="space-y-6 px-6 pb-16">
       <span className="inline-block rounded-full bg-amber-100 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-amber-700">
-        Dummy — layout mockup, no live data
+        {t("dashboard.dummyBadge")}
       </span>
 
       <header className="flex items-center justify-between">
@@ -106,14 +113,16 @@ export function DashboardStep({
         <button
           type="button"
           onClick={() => onNavigate("pantry")}
-          className="shrink-0 rounded-full bg-amber-600 px-4 py-2 text-xs font-medium tracking-tight text-white hover:opacity-90"
+          className="shrink-0 rounded-full bg-amber-600 px-4 py-2.5 text-xs font-semibold tracking-tight text-white shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md"
         >
           {REMINDER_CTA[lang]}
         </button>
       </div>
 
-      {/* Coach message */}
-      <Card className="space-y-2">
+      {/* Today's insight — one merged card, one clear primary action
+          (previously split across a "coach message" card and a
+          separate "next step" card that said the same thing twice). */}
+      <Card className="space-y-4">
         <div className="flex items-center gap-2">
           <span
             aria-hidden
@@ -124,9 +133,20 @@ export function DashboardStep({
           <SectionLabel>{COACH_LABEL[lang]}</SectionLabel>
         </div>
         <p className="text-sm leading-relaxed text-ink/80">{COACH_DUMMY[lang]}</p>
+        <div className="flex flex-col gap-3 rounded-xl bg-[#f3f6f0] p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-ink/60">{COACH_CTA_SUB[lang]}</p>
+          <button
+            type="button"
+            onClick={() => onNavigate("results")}
+            className="shrink-0 rounded-full bg-[#7c9a6a] px-5 py-2.5 text-xs font-semibold tracking-tight text-white shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md"
+          >
+            🥬 {COACH_CTA[lang]}
+          </button>
+        </div>
       </Card>
 
-      {/* Quick actions */}
+      {/* Quick actions — the actual buttons, made to look and feel like
+          them: tinted icon badge, elevation on hover, not a flat tile. */}
       <div className="space-y-2">
         <SectionLabel>{QUICK_ACTIONS_LABEL[lang]}</SectionLabel>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -135,11 +155,13 @@ export function DashboardStep({
               key={action.target}
               type="button"
               onClick={() => onNavigate(action.target)}
-              className="flex items-start gap-3 rounded-2xl bg-surface p-4 text-left ring-1 ring-black/5 transition-colors hover:bg-zinc-50"
+              className="flex items-center gap-3 rounded-2xl bg-surface p-4 text-left ring-1 ring-black/5 transition-all hover:-translate-y-0.5 hover:shadow-md hover:ring-black/10"
             >
-              <span className="text-xl">{action.icon}</span>
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#eef2ea] text-lg">
+                {action.icon}
+              </span>
               <span>
-                <span className="block text-sm font-medium tracking-tight">{action.label[lang]}</span>
+                <span className="block text-sm font-semibold tracking-tight">{action.label[lang]}</span>
                 <span className="block text-xs text-ink/50">{action.sub[lang]}</span>
               </span>
             </button>
@@ -147,42 +169,12 @@ export function DashboardStep({
         </div>
       </div>
 
-      {/* Next Cart teaser */}
-      <Card className="space-y-3">
-        <div className="flex items-center justify-between">
-          <SectionLabel>{NEXT_STEP_LABEL[lang]}</SectionLabel>
-          <button
-            type="button"
-            onClick={() => onNavigate("results")}
-            className="text-xs font-medium tracking-tight text-ink/50 hover:text-ink"
-          >
-            {SEE_DETAILS[lang]}
-          </button>
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium tracking-tight">{NEXT_STEP_DUMMY_ITEM[lang]}</p>
-            <p className="text-xs text-ink/50">{NEXT_STEP_DUMMY_REASON[lang]}</p>
-          </div>
-          <span className="rounded-full bg-zinc-100 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-ink/50">
-            Add
-          </span>
-        </div>
-      </Card>
-
-      {/* Progress mini-strip */}
-      <Card className="space-y-3">
-        <div className="flex items-center justify-between">
+      {/* Progress mini-strip — lowest priority, kept visually quiet
+          (no card elevation) so it reads as a footer-style status line,
+          not another competing action. */}
+      <div className="flex items-center justify-between rounded-2xl px-1 py-1">
+        <div className="flex flex-wrap items-center gap-4">
           <SectionLabel>{PROGRESS_LABEL[lang]}</SectionLabel>
-          <button
-            type="button"
-            onClick={() => onNavigate("results")}
-            className="text-xs font-medium tracking-tight text-ink/50 hover:text-ink"
-          >
-            {SEE_DETAILS[lang]}
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-4">
           {PROGRESS_DUMMY.map((row) => (
             <div key={row.key} className="flex items-center gap-1.5 text-sm">
               <span className="capitalize text-ink/70">{row.label[lang]}</span>
@@ -198,7 +190,14 @@ export function DashboardStep({
             </div>
           ))}
         </div>
-      </Card>
+        <button
+          type="button"
+          onClick={() => onNavigate("results")}
+          className="shrink-0 text-xs font-medium tracking-tight text-ink/50 hover:text-ink"
+        >
+          {SEE_DETAILS[lang]}
+        </button>
+      </div>
     </section>
   );
 }

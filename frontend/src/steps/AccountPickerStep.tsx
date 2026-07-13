@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { setSessionId, getProfileBySession, ApiError } from "@/lib/api";
+import { Footer } from "@/components/Footer";
 
 // Demo-only "login": there's no real auth in this MVP (see lib/api.ts's
 // session.ts docstring) — instead each demo account is just a fixed,
@@ -93,6 +94,7 @@ export function AccountPickerStep({
           {t("accountPicker.back")}
         </button>
       </main>
+      <Footer />
     </div>
   );
 }
