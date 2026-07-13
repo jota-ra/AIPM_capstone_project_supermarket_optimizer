@@ -40,6 +40,16 @@ function getStoredSessionId(): string | null {
   return localStorage.getItem(SESSION_KEY);
 }
 
+// Demo account picker (AccountPickerStep.tsx): switches which fixed
+// session_id every subsequent request is tagged with, so picking
+// "Jennifer" vs. "Stuart" resolves to that identity's own data instead
+// of whatever this browser last used. Every other read in this module
+// re-reads localStorage per call (see sessionHeaders() below), so this
+// takes effect immediately, no reload needed.
+export function setSessionId(sessionId: string): void {
+  localStorage.setItem(SESSION_KEY, sessionId);
+}
+
 function sessionHeaders(): Record<string, string> {
   const id = getStoredSessionId();
   return id ? { [SESSION_HEADER]: id } : {};
@@ -144,6 +154,14 @@ export function updateProfile(profileId: string, updates: Partial<ProfileCreate>
     headers: { "Content-Type": "application/json", ...sessionHeaders() },
     body: JSON.stringify(updates),
   }).then((res) => handle<Profile>(res));
+}
+
+// Demo account picker: does this (fixed, shared) session_id already have
+// a profile? null (not an error) means it hasn't onboarded yet.
+export function getProfileBySession(sessionId: string): Promise<Profile | null> {
+  return fetch(`${API_BASE}/profile/by-session/${sessionId}`, { headers: sessionHeaders() }).then(
+    (res) => (res.status === 404 ? null : handle<Profile>(res)),
+  );
 }
 
 export function deleteProfile(profileId: string): Promise<{ profile_id: string; deleted: boolean }> {

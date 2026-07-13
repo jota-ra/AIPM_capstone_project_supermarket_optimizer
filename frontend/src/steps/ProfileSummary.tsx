@@ -117,7 +117,7 @@ export function ProfileSummary({ profileId }: { profileId: string }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const { language, setLanguage, t } = useLanguage();
+  const { language, t } = useLanguage();
   const lang: Lang = language;
 
   async function load() {
@@ -149,7 +149,6 @@ export function ProfileSummary({ profileId }: { profileId: string }) {
       const updated = await updateProfile(profileId, buildPatch(draft));
       setProfile(updated);
       setDraft(toDraft(updated));
-      if (typeof draft.language === "string" && draft.language) setLanguage(draft.language as Lang);
       setSaved(true);
     } catch (e) {
       setSaveError(e instanceof ApiError ? e.message : t("profile.saveFailed"));

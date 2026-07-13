@@ -6,6 +6,7 @@ from backend.app.services.session import get_session_id
 from backend.app.db.supabase import (
     create_profile_row,
     get_profile,
+    get_profile_by_session,
     delete_profile,
     update_profile_row,
 )
@@ -44,6 +45,25 @@ def create_profile(profile: ProfileCreate, session_id: str = Depends(get_session
     create_profile_row(profile_id, {**fields, "session_id": session_id})
 
     return {"profile_id": profile_id, "session_id": session_id, **fields}
+
+
+@router.get("/profile/by-session/{session_id}")
+def read_profile_by_session(session_id: str):
+    """
+    The most recent profile created under a given session_id (demo
+    account picker, see LandingStep/AccountPickerStep in the frontend) —
+    lets a fixed, shared session_id ("Jennifer", "Stuart") resolve to
+    whichever profile that identity last set up, without the frontend
+    needing to remember a separate profile_id per demo account.
+
+    404 just means this session hasn't onboarded yet, which is a normal,
+    expected state (not an error) — the frontend falls back to onboarding.
+    """
+
+    row = get_profile_by_session(session_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="No profile found for this session.")
+    return _profile_response(row)
 
 
 @router.get("/profile/{profile_id}")

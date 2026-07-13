@@ -2,13 +2,26 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n";
 
-export type StepId = "upload" | "review" | "onboarding" | "userProfile" | "pantry" | "results";
+export type StepId =
+  | "landing"
+  | "accountPicker"
+  | "dashboard"
+  | "upload"
+  | "onboardingUpload"
+  | "review"
+  | "onboarding"
+  | "userProfile"
+  | "pantry"
+  | "results";
 
 // Flow order: Disclaimer (consent gate) -> Onboarding -> Upload -> Review -> Results.
 // "User Profile" and "Pantry" (Lager-Bestand) are standalone pages reachable
 // from the nav at any time, not part of that linear flow — the pantry
 // accumulates across every receipt in the session, not just the latest one.
+// "Dashboard" (DashboardStep.tsx, currently a static layout dummy) is the
+// new home for returning users — first in the list on purpose.
 const NAV: { id: StepId; labelKey: string }[] = [
+  { id: "dashboard", labelKey: "nav.dashboard" },
   { id: "onboarding", labelKey: "nav.onboarding" },
   { id: "userProfile", labelKey: "nav.userProfile" },
   { id: "upload", labelKey: "nav.upload" },
@@ -30,7 +43,15 @@ export function AppShell({
   canDeleteData?: boolean;
   children: ReactNode;
 }) {
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
+  // During onboarding — including its baseline-receipt continuation,
+  // OnboardingUploadStep.tsx — the tab nav is hidden on purpose (the
+  // user shouldn't be able to jump to Results/Pantry mid-flow, before a
+  // profile or first receipt even exists) — a language toggle takes its
+  // place instead, same pill pattern as LandingStep's header, since the
+  // chat no longer asks a language question itself (removed: language
+  // is chosen once, on the landing page, and stays changeable from here).
+  const isOnboarding = step === "onboarding" || step === "onboardingUpload";
   return (
     <div className="min-h-screen bg-canvas font-sans text-ink antialiased selection:bg-ink/10">
       <nav className="mx-auto flex max-w-3xl items-center justify-between px-6 py-8">
@@ -42,21 +63,39 @@ export function AppShell({
           <span className="size-5 rounded-full bg-ink" />
           <span className="text-sm font-medium tracking-tight">NutriWise</span>
         </button>
-        <div className="hidden gap-1 rounded-full bg-surface p-1 ring-1 ring-black/5 sm:flex">
-          {NAV.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onNavigate(item.id)}
-              className={cn(
-                "rounded-full px-3 py-1.5 text-xs font-medium tracking-tight transition-colors",
-                step === item.id ? "bg-ink text-canvas" : "text-ink/55 hover:text-ink",
-              )}
-            >
-              {t(item.labelKey)}
-            </button>
-          ))}
-        </div>
+        {isOnboarding ? (
+          <div className="flex gap-1 rounded-full bg-surface p-1 text-xs ring-1 ring-black/5">
+            {(["en", "de"] as const).map((lng) => (
+              <button
+                key={lng}
+                type="button"
+                onClick={() => setLanguage(lng)}
+                className={cn(
+                  "rounded-full px-2.5 py-1 font-medium uppercase tracking-widest transition-colors",
+                  language === lng ? "bg-ink text-canvas" : "text-ink/50 hover:text-ink",
+                )}
+              >
+                {lng}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="hidden gap-1 rounded-full bg-surface p-1 ring-1 ring-black/5 sm:flex">
+            {NAV.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onNavigate(item.id)}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-xs font-medium tracking-tight transition-colors",
+                  step === item.id ? "bg-ink text-canvas" : "text-ink/55 hover:text-ink",
+                )}
+              >
+                {t(item.labelKey)}
+              </button>
+            ))}
+          </div>
+        )}
       </nav>
       <main className="mx-auto max-w-3xl">{children}</main>
       <footer className="mx-auto max-w-3xl space-y-3 px-6 py-12 text-[11px] uppercase tracking-widest text-ink/35">

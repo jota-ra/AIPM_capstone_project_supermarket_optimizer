@@ -223,6 +223,26 @@ def update_profile_row(profile_id: str, fields: dict):
     return _update_tolerant("profiles", profile_id, fields)
 
 
+def get_profile_by_session(session_id: str):
+    """
+    Most recently created profile tagged with this session_id (demo
+    account picker groundwork — see api/profile.py's `/profile/by-session`).
+    None if this session has never completed onboarding yet, which is a
+    normal state (not an error): the caller creates a fresh profile under
+    the same session_id in that case.
+    """
+
+    result = (
+        supabase.table("profiles")
+        .select("*")
+        .eq("session_id", session_id)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    return result.data[0] if result.data else None
+
+
 def delete_profile(profile_id: str):
     """Hard-delete a profile (GDPR: user-initiated erasure, Story 7.3)."""
 

@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { AppShell, type StepId } from "@/components/AppShell";
 import { ConsentBanner } from "@/components/ConsentBanner";
+import { LandingStep } from "@/steps/LandingStep";
+import { AccountPickerStep } from "@/steps/AccountPickerStep";
 import { UploadStep } from "@/steps/UploadStep";
+import { OnboardingUploadStep } from "@/steps/OnboardingUploadStep";
+import { DashboardStep } from "@/steps/DashboardStep";
 import { ReviewStep } from "@/steps/ReviewStep";
 import { PantryStep } from "@/steps/PantryStep";
 import { ChatOnboardingStep } from "@/steps/ChatOnboardingStep";
@@ -17,14 +21,21 @@ const CONSENT_KEY = "nutriwise.consent";
 function App() {
   // Flow order (after the consent/disclaimer gate): onboarding -> upload -> results.
   // "userProfile" (edit view of onboarding's answers) is a standalone nav
-  // destination, not part of that linear flow.
-  const [step, setStep] = useState<StepId>("onboarding");
+  // destination, not part of that linear flow. "landing" is the demo's
+  // very first screen (see LandingStep.tsx) and is rendered outside the
+  // AppShell entirely below — it deliberately has no nav/footer, since
+  // the user hasn't started the app yet.
+  const [step, setStep] = useState<StepId>("landing");
   const [receiptId, setReceiptId] = useState<string | null>(() =>
     localStorage.getItem(RECEIPT_KEY),
   );
   const [profileId, setProfileId] = useState<string | null>(() =>
     localStorage.getItem(PROFILE_KEY),
   );
+  // Only used to personalize OnboardingUploadStep's greeting right after
+  // the chat — not persisted, so a page reload just falls back to the
+  // name-less greeting instead of an extra profile fetch.
+  const [profileName, setProfileName] = useState<string | null>(null);
   const [consented, setConsented] = useState<boolean>(
     () => localStorage.getItem(CONSENT_KEY) === "true",
   );
@@ -40,10 +51,11 @@ function App() {
     setStep("review");
   }
 
-  function handleProfileCreated(id: string) {
+  function handleProfileCreated(id: string, name: string | null) {
     setProfileId(id);
+    setProfileName(name);
     localStorage.setItem(PROFILE_KEY, id);
-    setStep("upload");
+    setStep("onboardingUpload");
   }
 
   async function handleDeleteData() {
@@ -73,6 +85,41 @@ function App() {
     setStep("onboarding");
   }
 
+  if (step === "landing") {
+    return (
+      <LanguageProvider>
+        <LandingStep onRegister={() => setStep("onboarding")} onLogin={() => setStep("accountPicker")} />
+      </LanguageProvider>
+    );
+  }
+
+  if (step === "accountPicker") {
+    return (
+      <LanguageProvider>
+        <AccountPickerStep
+          onBack={() => setStep("landing")}
+          onResolved={({ profileId: resolvedProfileId }) => {
+            // Switching demo accounts means switching session_id — any
+            // receipt the previous account was reviewing belongs to a
+            // different session and would just 403 here, so drop it.
+            setReceiptId(null);
+            localStorage.removeItem(RECEIPT_KEY);
+
+            if (resolvedProfileId) {
+              setProfileId(resolvedProfileId);
+              localStorage.setItem(PROFILE_KEY, resolvedProfileId);
+              setStep("dashboard");
+            } else {
+              setProfileId(null);
+              localStorage.removeItem(PROFILE_KEY);
+              setStep("onboarding");
+            }
+          }}
+        />
+      </LanguageProvider>
+    );
+  }
+
   return (
     <LanguageProvider>
       <AppShell
@@ -85,10 +132,26 @@ function App() {
           <ConsentBanner onAccept={handleConsent} />
         ) : (
           <>
+            {step === "dashboard" ? (
+              <DashboardStep profileName={profileName} onNavigate={setStep} />
+            ) : null}
+
             {step === "onboarding" ? (
               <ChatOnboardingStep
                 onProfileCreated={handleProfileCreated}
                 onSkip={() => setStep("upload")}
+              />
+            ) : null}
+
+            {step === "onboardingUpload" ? (
+              <OnboardingUploadStep
+                profileId={profileId}
+                profileName={profileName}
+                onUploaded={handleUploaded}
+                // Results/Next Cart need at least one receipt (409
+                // otherwise) — Pantry handles "nothing yet" gracefully
+                // (pantry.empty) and still nudges towards uploading.
+                onSkip={() => setStep("pantry")}
               />
             ) : null}
 

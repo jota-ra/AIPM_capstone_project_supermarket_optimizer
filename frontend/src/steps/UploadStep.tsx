@@ -7,6 +7,10 @@ import type { UploadReceiptResponse } from "@/types/api";
 
 type Mode = "image" | "text";
 
+// The very first ("baseline") receipt has its own dedicated page —
+// OnboardingUploadStep.tsx, deliberately independent of this one (see
+// its docstring) — so this component only ever handles re-uploads for
+// a session that already has at least one receipt.
 export function UploadStep({
   profileId,
   onUploaded,

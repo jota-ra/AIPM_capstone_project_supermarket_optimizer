@@ -12,7 +12,38 @@ export type Lang = "en" | "de";
 const LANGUAGE_KEY = "nutriwise.language";
 
 const STRINGS: Record<string, { en: string; de: string }> = {
+  // Landing / demo entry point (LandingStep.tsx)
+  "landing.badge": { en: "A NUTRITION COACH, ON AUTOPILOT", de: "EIN ERNÄHRUNGS-COACH, IM HINTERGRUND" },
+  "landing.titleLine1": { en: "Your nutrition,", de: "Deine Ernährung," },
+  "landing.titleLine2": { en: "actually understood.", de: "endlich verstanden." },
+  "landing.body": {
+    en: "NutriWise reads your grocery receipts and compares them to what your body actually needs — iron, protein, calcium, calories. Confirm what you really ate in seconds each day, and your coach gets sharper every week.",
+    de: "NutriWise liest deine Kassenbons und vergleicht sie mit deinem tatsächlichen Bedarf — Eisen, Protein, Calcium, Kalorien. Bestätige in Sekunden, was du wirklich gegessen hast, und dein Coach wird jede Woche treffsicherer.",
+  },
+  "landing.registerCta": { en: "New here? Get started", de: "Neu hier? Jetzt starten" },
+  "landing.loginCta": {
+    en: "I already have an account — go to dashboard",
+    de: "Ich habe schon ein Konto — weiter zum Dashboard",
+  },
+  "landing.subtext": { en: "Takes about 90 seconds. No credit card needed.", de: "Dauert ca. 90 Sekunden. Keine Kreditkarte nötig." },
+  "landing.imageCaption": {
+    en: "Fresh, whole ingredients — the same ones your gap analysis is built on.",
+    de: "Frische, unverarbeitete Lebensmittel — dieselben, auf denen deine Bedarfsanalyse basiert.",
+  },
+
+  // Account picker (AccountPickerStep.tsx) — demo-only, see file docstring
+  "accountPicker.title": { en: "Whose account is this?", de: "Wessen Konto ist das?" },
+  "accountPicker.body": {
+    en: "Demo accounts for this presentation. Pick one to load its saved data.",
+    de: "Demo-Konten für diese Präsentation. Wähle eins, um dessen gespeicherte Daten zu laden.",
+  },
+  "accountPicker.select": { en: "Select", de: "Auswählen" },
+  "accountPicker.loading": { en: "Loading…", de: "Wird geladen…" },
+  "accountPicker.loadFailed": { en: "Could not load this account.", de: "Konto konnte nicht geladen werden." },
+  "accountPicker.back": { en: "Back", de: "Zurück" },
+
   // Nav / shell
+  "nav.dashboard": { en: "Dashboard", de: "Dashboard" },
   "nav.onboarding": { en: "Onboarding", de: "Onboarding" },
   "nav.userProfile": { en: "My Profile", de: "Nutzerprofil" },
   "nav.upload": { en: "Upload", de: "Hochladen" },
@@ -93,6 +124,24 @@ const STRINGS: Record<string, { en: string; de: string }> = {
   "upload.itemsSuffix": { en: "items", de: "Artikel" },
   "upload.uncertainTag": { en: "uncertain", de: "unsicher" },
   "upload.reviewButton": { en: "Review items →", de: "Artikel prüfen →" },
+
+  // Onboarding baseline upload (OnboardingUploadStep.tsx) — deliberately
+  // separate copy from the generic "upload" namespace above: this is the
+  // chat's continuation, not the standalone re-upload page.
+  "onboardingUpload.progressProfile": { en: "Profile", de: "Profil" },
+  "onboardingUpload.progressReceipt": { en: "Baseline receipt", de: "Baseline-Kassenbon" },
+  "onboardingUpload.badge": { en: "ALMOST THERE", de: "GLEICH GESCHAFFT" },
+  "onboardingUpload.titleLine1": { en: "One last thing —", de: "Eine letzte Sache —" },
+  "onboardingUpload.titleLine2": { en: "your baseline.", de: "deine Baseline." },
+  "onboardingUpload.greetingWithName": {
+    en: "Great, {name}! Upload your first receipt so I can see what's already in your kitchen — this becomes the baseline everything else compares against.",
+    de: "Perfekt, {name}! Lade deinen ersten Kassenbon hoch, damit ich sehe, was bei dir schon in der Küche steht — das wird die Baseline, mit der alles Weitere verglichen wird.",
+  },
+  "onboardingUpload.greeting": {
+    en: "Upload your first receipt so I can see what's already in your kitchen — this becomes the baseline everything else compares against.",
+    de: "Lade deinen ersten Kassenbon hoch, damit ich sehe, was bei dir schon in der Küche steht — das wird die Baseline, mit der alles Weitere verglichen wird.",
+  },
+  "onboardingUpload.skip": { en: "I'll do this later", de: "Das mache ich später" },
 
   // Review step
   "review.step": { en: "Step 4 · Review", de: "Schritt 4 · Prüfen" },
