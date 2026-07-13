@@ -1,21 +1,28 @@
-import { useEffect, useState } from "react";
-import { SectionLabel, Card, inputCls } from "@/components/AppShell";
+import { useEffect, useRef, useState } from "react";
+import { SectionLabel, Card, PrimaryButton, inputCls } from "@/components/AppShell";
+import type { StepId } from "@/components/AppShell";
+import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n";
 import {
   getPantry,
-  consumePantryItem,
   removePantryItem,
-  logManualConsumption,
-  getConsumptionLogForDate,
   updatePantryItemMetadata,
+  uploadReceiptFile,
+  uploadReceiptText,
   ApiError,
 } from "@/lib/api";
-import type { PantryItem, ConsumptionLogEntry } from "@/types/api";
+import type { PantryItem, UploadReceiptResponse } from "@/types/api";
+
+// "Lager" — menu restructure: this used to be one combined page (stock
+// list + day-by-day consumption log). The day-log half moved out to its
+// own "Tagebuch" (DiaryStep.tsx) — confirming what you *ate* is a diary
+// action, not a stock-management one. What's left here is purely "what
+// do I have": the inventory list (correct/discard) plus adding a new
+// receipt, which used to be a separate "Upload" page/nav destination —
+// merged in since adding stock and managing stock are the same job.
 
 const quantityInputCls =
   "w-20 rounded-lg bg-zinc-50 px-2 py-1.5 text-sm text-ink ring-1 ring-black/5 outline-none focus:ring-ink/30";
-
-const MAX_DAYS_BACK = 14;
 
 // Mirrors backend fallback_categories.CATEGORY_NUTRITION's key set — the
 // only categories the shelf-life/gram-conversion lookups recognize
@@ -31,39 +38,40 @@ const PANTRY_CATEGORIES = [
   "other",
 ] as const;
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+// Shelf-life is an estimate (see backend services/shelf_life.py) based on
+// category + when this item was last replenished — not a food-safety
+// guarantee, just an "expiring soon" nudge, so the tone stays cautious
+// ("expires in") rather than alarming.
+function ExpiryTag({ daysUntilExpiry }: { daysUntilExpiry: number | null | undefined }) {
+  const { t } = useLanguage();
+  if (daysUntilExpiry === null || daysUntilExpiry === undefined) return null;
 
-function daysAgoIso(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
-}
-
-// Noon UTC on the selected day avoids day-boundary ambiguity when the
-// backend compares consumed_at against calendar dates — "today" is left
-// undefined so the backend's real-time default (now()) is used instead,
-// which is more precise than a fixed noon timestamp.
-function consumedAtFor(selectedDate: string): string | undefined {
-  return selectedDate === todayIso() ? undefined : `${selectedDate}T12:00:00.000Z`;
+  if (daysUntilExpiry < 0) {
+    return (
+      <span className="text-red-600">
+        {t("pantry.expiredAgo").replace("{days}", String(Math.abs(daysUntilExpiry)))}
+      </span>
+    );
+  }
+  if (daysUntilExpiry === 0) {
+    return <span className="text-amber-600">{t("pantry.expiresToday")}</span>;
+  }
+  return (
+    <span className={daysUntilExpiry <= 2 ? "text-amber-600" : "text-ink/50"}>
+      {t("pantry.expiresIn").replace("{days}", String(daysUntilExpiry))}
+    </span>
+  );
 }
 
 function PantryRow({
   item,
-  onConsume,
   onRemove,
   onEditMetadata,
 }: {
   item: PantryItem;
-  onConsume: (name: string, quantity: number) => Promise<void>;
   onRemove: (name: string, quantity: number) => Promise<void>;
   onEditMetadata: (name: string, unit: string, category: string) => Promise<void>;
 }) {
-  // Defaults to the full remaining quantity (so confirming everything is
-  // still one click) but is editable — a partial amount (5 of 10
-  // tomatoes, one glass of a 1L milk) is the normal case, not "all or
-  // nothing".
   const [quantity, setQuantity] = useState(String(item.quantity_available));
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -74,13 +82,11 @@ function PantryRow({
   const parsed = Number(quantity);
   const validQuantity = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 
-  async function handle(action: (name: string, quantity: number) => Promise<void>) {
+  async function handleRemove() {
     if (validQuantity === null) return;
     setBusy(true);
     try {
-      // The backend clamps to what's actually on hand too, so a stale
-      // or too-large value here never inflates the intake estimate.
-      await action(item.normalized_name, Math.min(validQuantity, item.quantity_available));
+      await onRemove(item.normalized_name, Math.min(validQuantity, item.quantity_available));
     } finally {
       setBusy(false);
     }
@@ -149,6 +155,12 @@ function PantryRow({
         <p className="truncate text-sm font-medium tracking-tight">{item.normalized_name}</p>
         <p className="truncate text-xs text-ink/50">
           {item.quantity_available} {item.unit ?? ""} · {item.category ?? t("review.uncategorized")}
+          {item.days_until_expiry !== null && item.days_until_expiry !== undefined ? (
+            <>
+              {" · "}
+              <ExpiryTag daysUntilExpiry={item.days_until_expiry} />
+            </>
+          ) : null}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
@@ -166,15 +178,7 @@ function PantryRow({
         <button
           type="button"
           disabled={busy || validQuantity === null}
-          onClick={() => handle(onConsume)}
-          className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium tracking-tight text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100 disabled:opacity-40"
-        >
-          {t("pantry.consumed")}
-        </button>
-        <button
-          type="button"
-          disabled={busy || validQuantity === null}
-          onClick={() => handle(onRemove)}
+          onClick={handleRemove}
           className="rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-medium tracking-tight text-ink ring-1 ring-black/5 hover:bg-zinc-200 disabled:opacity-40"
         >
           {t("pantry.remove")}
@@ -192,207 +196,221 @@ function PantryRow({
   );
 }
 
-function DateNav({
-  date,
-  onChange,
-}: {
-  date: string;
-  onChange: (date: string) => void;
-}) {
-  const { t } = useLanguage();
-  const min = daysAgoIso(MAX_DAYS_BACK);
-  const max = todayIso();
-  const isToday = date === max;
-  const atOldest = date <= min;
+type UploadMode = "image" | "text";
 
-  function shift(days: number) {
-    const d = new Date(date);
-    d.setDate(d.getDate() + days);
-    const next = d.toISOString().slice(0, 10);
-    if (next < min || next > max) return;
-    onChange(next);
+function UploadSection({
+  profileId,
+  onUploaded,
+}: {
+  profileId: string | null;
+  onUploaded: (receiptId: string) => void;
+}) {
+  const [mode, setMode] = useState<UploadMode>("image");
+  const [dragOver, setDragOver] = useState(false);
+  const [pastedText, setPastedText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<UploadReceiptResponse | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useLanguage();
+
+  async function handleFile(file: File) {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await uploadReceiptFile(file, profileId ?? undefined);
+      setResult(res);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t("upload.uploadFailed"));
+    } finally {
+      setLoading(false);
+    }
   }
 
-  return (
-    <div className="flex items-center justify-between rounded-2xl bg-surface px-4 py-3 ring-1 ring-black/5">
-      <button
-        type="button"
-        onClick={() => shift(-1)}
-        disabled={atOldest}
-        className="rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-medium tracking-tight text-ink ring-1 ring-black/5 hover:bg-zinc-200 disabled:opacity-40"
-      >
-        ← {t("pantry.previousDay")}
-      </button>
-      <span className="text-sm font-medium tracking-tight">
-        {isToday ? t("pantry.today") : date}
-      </span>
-      <button
-        type="button"
-        onClick={() => shift(1)}
-        disabled={isToday}
-        className="rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-medium tracking-tight text-ink ring-1 ring-black/5 hover:bg-zinc-200 disabled:opacity-40"
-      >
-        {t("pantry.nextDay")} →
-      </button>
-    </div>
-  );
-}
-
-function ManualLogForm({
-  pantryItemNames,
-  onSubmit,
-}: {
-  pantryItemNames: string[];
-  onSubmit: (name: string, quantity: number) => Promise<boolean>;
-}) {
-  const [name, setName] = useState("");
-  const [quantity, setQuantity] = useState("1");
-  const [submitting, setSubmitting] = useState(false);
-  const [lastMatch, setLastMatch] = useState<{ name: string; matched: boolean } | null>(null);
-  const { t } = useLanguage();
-
-  const parsedQuantity = Number(quantity);
-  const canSubmit = name.trim().length > 0 && Number.isFinite(parsedQuantity) && parsedQuantity > 0;
-
-  async function submit() {
-    if (!canSubmit) return;
-    setSubmitting(true);
+  async function handleTextSubmit() {
+    if (!pastedText.trim()) return;
+    setLoading(true);
+    setError(null);
     try {
-      const submittedName = name.trim();
-      const matched = await onSubmit(submittedName, parsedQuantity);
-      setLastMatch({ name: submittedName, matched });
-      setName("");
-      setQuantity("1");
+      const res = await uploadReceiptText(pastedText, profileId ?? undefined);
+      setResult(res);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t("upload.uploadFailed"));
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   }
 
   return (
-    <Card className="space-y-3">
-      <SectionLabel>{t("pantry.manualLogTitle")}</SectionLabel>
-      <p className="text-xs text-ink/50">{t("pantry.manualLogBody")}</p>
-      <div className="flex gap-2">
-        <input
-          className={inputCls}
-          placeholder={t("pantry.manualLogNamePlaceholder")}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          disabled={submitting}
-          // Suggests existing pantry names so a typo doesn't silently
-          // create an unrelated standalone log entry instead of matching
-          // (Epic 12.1) — pure browser autocomplete, no new endpoint.
-          list="pantry-item-names"
-        />
-        <datalist id="pantry-item-names">
-          {pantryItemNames.map((n) => (
-            <option key={n} value={n} />
-          ))}
-        </datalist>
-        <input
-          type="number"
-          min={0}
-          step="any"
-          className={quantityInputCls}
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          disabled={submitting}
-          aria-label={t("pantry.quantityLabel")}
-        />
-        <button
-          type="button"
-          onClick={submit}
-          disabled={!canSubmit || submitting}
-          className="shrink-0 rounded-full bg-ink px-4 py-2 text-xs font-medium tracking-tight text-canvas disabled:opacity-40"
-        >
-          {t("pantry.manualLogAdd")}
-        </button>
+    <Card className="space-y-4">
+      <SectionLabel>{t("pantry.uploadSectionTitle")}</SectionLabel>
+
+      <div className="flex gap-2 rounded-full bg-zinc-50 p-1 ring-1 ring-black/5 w-fit">
+        {(["image", "text"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => {
+              setMode(m);
+              setResult(null);
+              setError(null);
+            }}
+            className={cn(
+              "rounded-full px-4 py-2 text-xs font-medium tracking-tight transition-colors",
+              mode === m ? "bg-ink text-canvas" : "text-ink/55 hover:text-ink",
+            )}
+          >
+            {m === "image" ? t("upload.tabPhoto") : t("upload.tabText")}
+          </button>
+        ))}
       </div>
-      {lastMatch ? (
-        <p className="text-xs text-ink/50">
-          "{lastMatch.name}" —{" "}
-          {lastMatch.matched ? t("pantry.matchedGood") : t("pantry.matchedRough")}
-        </p>
+
+      {mode === "image" ? (
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            const file = e.dataTransfer.files?.[0];
+            if (file) handleFile(file);
+          }}
+          onClick={() => fileInputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          className={cn(
+            "block w-full cursor-pointer rounded-3xl border border-dashed p-10 text-center transition-colors",
+            dragOver ? "border-ink/50 bg-zinc-50" : "border-ink/20 bg-zinc-50 hover:border-ink/40",
+          )}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFile(file);
+            }}
+          />
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-white ring-1 ring-black/5">
+            <span className="text-lg text-ink/60">↑</span>
+          </div>
+          <p className="text-sm font-medium tracking-tight">
+            {loading ? t("upload.dropUploading") : t("upload.dropTitle")}
+          </p>
+          <p className="mt-1 text-xs text-ink/50">{t("upload.dropHint")}</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <textarea
+            className={cn(inputCls, "min-h-32 resize-y font-mono text-xs")}
+            placeholder={"REWE Markt GmbH\nVollmilch 3,5% 1L    1,29\nVollkornbrot 500g    1,99\n..."}
+            value={pastedText}
+            onChange={(e) => setPastedText(e.target.value)}
+          />
+          <PrimaryButton onClick={handleTextSubmit} disabled={loading || !pastedText.trim()}>
+            {loading ? t("upload.analyzing") : t("upload.analyzeButton")}
+          </PrimaryButton>
+        </div>
+      )}
+
+      {error ? (
+        <div className="space-y-3 rounded-2xl bg-red-50 px-5 py-4 text-sm text-red-700 ring-1 ring-red-200">
+          <p>{error}</p>
+          {mode === "image" ? (
+            <button
+              type="button"
+              onClick={() => {
+                setMode("text");
+                setError(null);
+              }}
+              className="rounded-full bg-red-100 px-3 py-1.5 text-xs font-medium tracking-tight text-red-800 hover:bg-red-200"
+            >
+              {t("upload.pasteInstead")}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {result ? (
+        <div className="space-y-4 border-t border-black/5 pt-4">
+          <div className="flex items-center justify-between">
+            <SectionLabel>
+              {result.parsed.store} ({result.parsed.scan_quality})
+            </SectionLabel>
+            <span className="text-xs text-ink/40">
+              {result.parsed.items_count} {t("upload.itemsSuffix")}
+            </span>
+          </div>
+          <ul className="grid gap-1.5 sm:grid-cols-2">
+            {result.parsed.items.map((item, i) => (
+              <li key={i} className="text-sm text-ink/70">
+                · {item.name}
+                {item.uncertain ? (
+                  <span className="ml-1 text-[10px] uppercase tracking-widest text-ink/35">
+                    {t("upload.uncertainTag")}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          <PrimaryButton onClick={() => onUploaded(result.receipt_id)}>
+            {t("upload.reviewButton")}
+          </PrimaryButton>
+        </div>
       ) : null}
     </Card>
   );
 }
 
-function DayLog({ entries }: { entries: ConsumptionLogEntry[] }) {
-  const { t } = useLanguage();
-  if (entries.length === 0) return null;
-  return (
-    <Card className="space-y-2">
-      <SectionLabel>{t("pantry.dayLogTitle")}</SectionLabel>
-      <ul className="space-y-1 text-sm text-ink/70">
-        {entries.map((entry) => (
-          <li key={entry.id}>
-            · {entry.normalized_name} ({entry.quantity_consumed})
-          </li>
-        ))}
-      </ul>
-    </Card>
-  );
+// Groups items by category (fixed order, matching PANTRY_CATEGORIES) so
+// the overview reads as "what kind of food do I have" instead of one
+// long alphabetical list — each group is a native <details> section,
+// expanded by default, collapsible per category.
+function groupByCategory(items: PantryItem[]): { category: (typeof PANTRY_CATEGORIES)[number]; items: PantryItem[] }[] {
+  return PANTRY_CATEGORIES.map((category) => ({
+    category,
+    items: items.filter((item) => (item.category ?? "other") === category),
+  })).filter((group) => group.items.length > 0);
 }
 
-const REMINDER_THRESHOLD_DAYS = 3;
-
-export function PantryStep() {
+export function PantryStep({
+  profileId,
+  onUploaded,
+  onNavigate,
+}: {
+  profileId: string | null;
+  onUploaded: (receiptId: string) => void;
+  // Cross-link to Insights — adding/removing stock changes your gaps,
+  // so it's worth a direct way back without hunting for the nav tab.
+  onNavigate?: (step: StepId) => void;
+}) {
   const [items, setItems] = useState<PantryItem[] | null>(null);
-  const [daysSinceLastConfirmation, setDaysSinceLastConfirmation] = useState<number | null>(null);
-  const [selectedDate, setSelectedDate] = useState(todayIso());
-  const [logEntries, setLogEntries] = useState<ConsumptionLogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { t } = useLanguage();
 
   async function loadPantry() {
+    setError(null);
     try {
       const res = await getPantry();
       setItems(res.items);
-      setDaysSinceLastConfirmation(res.days_since_last_confirmation);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t("pantry.loadFailed"));
     }
-  }
-
-  async function loadLog(date: string) {
-    try {
-      const res = await getConsumptionLogForDate(date);
-      setLogEntries(res.entries);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : t("pantry.loadFailed"));
-    }
-  }
-
-  async function loadAll() {
-    setError(null);
-    await Promise.all([loadPantry(), loadLog(selectedDate)]);
   }
 
   useEffect(() => {
-    loadAll();
+    loadPantry();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    loadLog(selectedDate);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate]);
-
-  async function handleConsume(name: string, quantity: number) {
-    await consumePantryItem(name, quantity, consumedAtFor(selectedDate));
-    await loadAll();
-  }
 
   async function handleRemove(name: string, quantity: number) {
     await removePantryItem(name, quantity);
     await loadPantry();
-  }
-
-  async function handleManualLog(name: string, quantity: number): Promise<boolean> {
-    const result = await logManualConsumption(name, quantity, consumedAtFor(selectedDate));
-    await loadAll();
-    return result.matched;
   }
 
   async function handleEditMetadata(name: string, unit: string, category: string) {
@@ -403,13 +421,22 @@ export function PantryStep() {
   return (
     <section className="space-y-8 px-6 pb-16">
       <header className="space-y-2">
-        <SectionLabel>{t("pantry.step")}</SectionLabel>
+        <div className="flex items-start justify-between gap-4">
+          <SectionLabel>{t("pantry.step")}</SectionLabel>
+          {onNavigate ? (
+            <button
+              type="button"
+              onClick={() => onNavigate("results")}
+              className="shrink-0 text-xs font-medium tracking-tight text-ink/50 hover:text-ink"
+            >
+              {t("results.viewInsights")}
+            </button>
+          ) : null}
+        </div>
         <h1 className="text-balance text-4xl font-medium leading-none tracking-tight">
           {t("pantry.title")}
         </h1>
         <p className="max-w-[56ch] text-pretty text-base text-ink/60">{t("pantry.body")}</p>
-        {/* Epic 13.2: brief explanation of why daily confirmation matters. */}
-        <p className="max-w-[56ch] text-pretty text-xs text-ink/40">{t("pantry.whyItMatters")}</p>
       </header>
 
       {error ? (
@@ -418,20 +445,15 @@ export function PantryStep() {
         </div>
       ) : null}
 
-      {/* Epic 13.1: in-app nudge, no email/push (deliberately out of scope). */}
-      {daysSinceLastConfirmation !== null && daysSinceLastConfirmation >= REMINDER_THRESHOLD_DAYS ? (
-        <div className="rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-800 ring-1 ring-amber-200">
-          {t("pantry.reminderPrefix")} {daysSinceLastConfirmation} {t("pantry.reminderSuffix")}
-        </div>
-      ) : null}
-
-      <DateNav date={selectedDate} onChange={setSelectedDate} />
-
-      <DayLog entries={logEntries} />
-
-      <ManualLogForm
-        pantryItemNames={items?.map((item) => item.normalized_name) ?? []}
-        onSubmit={handleManualLog}
+      <UploadSection
+        profileId={profileId}
+        onUploaded={(receiptId) => {
+          onUploaded(receiptId);
+          // The uploaded items land in the pantry once the review step
+          // (App.tsx routes there next) confirms them — refresh here too
+          // so coming back to Pantry directly (browser back) isn't stale.
+          loadPantry();
+        }}
       />
 
       {items === null && !error ? (
@@ -445,17 +467,30 @@ export function PantryStep() {
       ) : null}
 
       {items && items.length > 0 ? (
-        <ul className="divide-y divide-black/5 rounded-2xl bg-surface ring-1 ring-black/5">
-          {items.map((item) => (
-            <PantryRow
-              key={item.id}
-              item={item}
-              onConsume={handleConsume}
-              onRemove={handleRemove}
-              onEditMetadata={handleEditMetadata}
-            />
+        <div className="space-y-3">
+          {groupByCategory(items).map((group) => (
+            <details
+              key={group.category}
+              open
+              className="overflow-hidden rounded-2xl bg-surface ring-1 ring-black/5"
+            >
+              <summary className="flex cursor-pointer select-none items-center justify-between px-5 py-3 text-sm font-medium tracking-tight marker:content-none">
+                <span>{t(`pantry.category.${group.category}`)}</span>
+                <span className="text-xs font-normal text-ink/40">{group.items.length}</span>
+              </summary>
+              <ul className="divide-y divide-black/5 border-t border-black/5">
+                {group.items.map((item) => (
+                  <PantryRow
+                    key={item.id}
+                    item={item}
+                    onRemove={handleRemove}
+                    onEditMetadata={handleEditMetadata}
+                  />
+                ))}
+              </ul>
+            </details>
           ))}
-        </ul>
+        </div>
       ) : null}
     </section>
   );

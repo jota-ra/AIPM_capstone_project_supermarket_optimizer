@@ -1,8 +1,17 @@
 import { useEffect, useState } from "react";
 import { SectionLabel, Card, inputCls } from "@/components/AppShell";
+import type { StepId } from "@/components/AppShell";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n";
-import { getNutritionSnapshot, getNextCart, submitFeedback, consumePantryItem, ApiError } from "@/lib/api";
+import {
+  getNutritionSnapshot,
+  getNextCart,
+  getProfile,
+  getPantry,
+  submitFeedback,
+  consumePantryItem,
+  ApiError,
+} from "@/lib/api";
 import type {
   AbsoluteGap,
   Conflict,
@@ -15,6 +24,12 @@ import type {
   PantryMatch,
   ProgressReport,
 } from "@/types/api";
+
+// Menu restructure: this page absorbed DashboardStep.tsx's mockup
+// content (greeting, inactivity reminder, promoted trend/recipe cards)
+// — "Results" and "Dashboard" are now one merged "Overview" home instead
+// of two separate destinations that repeated the same coach insight.
+const REMINDER_THRESHOLD_DAYS = 3;
 
 const HEALTH_SCORE_TONE: Record<HealthScore["label"], string> = {
   great: "text-emerald-600",
@@ -365,11 +380,31 @@ function NextCartCard({ rec }: { rec: NextCartRecommendation }) {
   );
 }
 
-function PantryRecipesCard({ recipes }: { recipes: NextCartRecommendation["pantry_recipes"] }) {
+function PantryRecipesCard({
+  recipes,
+  onNavigate,
+}: {
+  recipes: NextCartRecommendation["pantry_recipes"];
+  onNavigate?: (step: StepId) => void;
+}) {
   const { t } = useLanguage();
   return (
     <Card className="space-y-3">
-      <SectionLabel>{t("results.pantryRecipes")}</SectionLabel>
+      <div className="flex items-center justify-between">
+        <SectionLabel>{t("results.pantryRecipes")}</SectionLabel>
+        {/* Cross-link: cooking one of these implies eating it now — a
+            direct shortcut into the Diary saves hunting for the nav tab
+            at exactly the moment it's relevant. */}
+        {onNavigate ? (
+          <button
+            type="button"
+            onClick={() => onNavigate("diary")}
+            className="text-xs font-medium tracking-tight text-ink/50 hover:text-ink"
+          >
+            {t("results.logInDiary")}
+          </button>
+        ) : null}
+      </div>
       <div className="grid gap-3 sm:grid-cols-3">
         {recipes.map((recipe, i) => (
           <div key={i} className="rounded-xl bg-emerald-50 p-3 ring-1 ring-emerald-100">
@@ -519,13 +554,26 @@ function FeedbackWidget({ recommendationId }: { recommendationId: string }) {
 export function ResultsStep({
   profileId,
   onEditProfile,
+  onNavigate,
 }: {
   profileId: string | null;
   onEditProfile?: () => void;
+  // Reminder banner's CTA jumps to the Diary ("Tagebuch") page, since
+  // that's where confirming consumption now lives (see DiaryStep.tsx).
+  onNavigate?: (step: StepId) => void;
 }) {
   const [snapshot, setSnapshot] = useState<NutritionSnapshot | null>(null);
   const [recommendation, setRecommendation] = useState<NextCartRecommendation | null>(null);
+  const [profileName, setProfileName] = useState<string | null>(null);
+  const [daysSinceLastConfirmation, setDaysSinceLastConfirmation] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // True specifically for the "no receipts yet" 409 the backend returns
+  // when there's nothing to analyse — distinct from a real failure
+  // (`error`, below). In this state the page still renders its normal
+  // shape (greeting, placeholder cards) instead of just an error line,
+  // so a brand-new session sees what Insights *will* look like rather
+  // than a dead end.
+  const [noData, setNoData] = useState(false);
   const [loading, setLoading] = useState(true);
   // Epic 14.1: collapsed by default so the page reads as a short "here's
   // where you stand" summary first, not a wall of cards.
@@ -538,18 +586,44 @@ export function ResultsStep({
   async function load() {
     setLoading(true);
     setError(null);
-    try {
-      const [snap, rec] = await Promise.all([
-        getNutritionSnapshot(profileId ?? undefined),
-        getNextCart(profileId ?? undefined),
-      ]);
-      setSnapshot(snap);
-      setRecommendation(rec);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : t("results.loadFailed"));
-    } finally {
-      setLoading(false);
+    setNoData(false);
+
+    // allSettled, not all — a "no receipts yet" 409 on snapshot/next-cart
+    // shouldn't also block the independent pantry fetch (the reminder
+    // banner should still work) or the profile name fetch (the greeting
+    // should still be personalized) below.
+    const [snapResult, recResult, pantryResult] = await Promise.allSettled([
+      getNutritionSnapshot(profileId ?? undefined),
+      getNextCart(profileId ?? undefined),
+      getPantry(),
+    ]);
+
+    setSnapshot(snapResult.status === "fulfilled" ? snapResult.value : null);
+    setRecommendation(recResult.status === "fulfilled" ? recResult.value : null);
+    setDaysSinceLastConfirmation(
+      pantryResult.status === "fulfilled" ? pantryResult.value.days_since_last_confirmation : null,
+    );
+
+    const is409 = (result: PromiseSettledResult<unknown>) =>
+      result.status === "rejected" && result.reason instanceof ApiError && result.reason.status === 409;
+
+    if (is409(snapResult) || is409(recResult)) {
+      setNoData(true);
+    } else if (snapResult.status === "rejected") {
+      setError(snapResult.reason instanceof ApiError ? snapResult.reason.message : t("results.loadFailed"));
+    } else if (recResult.status === "rejected") {
+      setError(recResult.reason instanceof ApiError ? recResult.reason.message : t("results.loadFailed"));
     }
+
+    if (profileId) {
+      // Best-effort: a stale/invalid profileId shouldn't break the
+      // rest of the page, it just falls back to the name-less greeting.
+      getProfile(profileId)
+        .then((p) => setProfileName(p.name ?? null))
+        .catch(() => setProfileName(null));
+    }
+
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -557,13 +631,32 @@ export function ResultsStep({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileId]);
 
+  const greeting = profileName
+    ? `Hi ${profileName} 👋`
+    : `${t("results.greetingFallback")} 👋`;
+
   return (
     <section className="space-y-8 px-6 pb-16">
       <header className="space-y-2">
-        <SectionLabel>{t("results.step")}</SectionLabel>
-        <h1 className="text-balance text-4xl font-medium leading-none tracking-tight">
-          {t("results.title")}
-        </h1>
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <SectionLabel>{t("results.step")}</SectionLabel>
+            <h1 className="text-balance text-4xl font-medium leading-none tracking-tight">{greeting}</h1>
+          </div>
+          {snapshot ? (
+            <div className="flex shrink-0 items-center gap-2 rounded-full bg-surface px-4 py-2 ring-1 ring-black/5">
+              <span className="text-xs uppercase tracking-widest text-ink/40">{t("results.healthScore")}</span>
+              <span
+                className={cn(
+                  "text-lg font-semibold tracking-tight",
+                  HEALTH_SCORE_TONE[snapshot.health_score.label],
+                )}
+              >
+                {snapshot.health_score.value}
+              </span>
+            </div>
+          ) : null}
+        </div>
         <p className="max-w-[56ch] text-pretty text-base text-ink/60">{t("results.body")}</p>
         <button
           type="button"
@@ -574,12 +667,74 @@ export function ResultsStep({
         </button>
       </header>
 
+      {/* Promoted from DashboardStep.tsx's mockup: the inactivity nudge
+          now lives on the merged home page, pointing at the Diary
+          ("Tagebuch") page where confirming consumption actually happens. */}
+      {daysSinceLastConfirmation !== null && daysSinceLastConfirmation >= REMINDER_THRESHOLD_DAYS ? (
+        <div className="flex items-center justify-between gap-4 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-800 ring-1 ring-amber-200">
+          <p>{t("results.reminderText").replace("{days}", String(daysSinceLastConfirmation))}</p>
+          {onNavigate ? (
+            <button
+              type="button"
+              onClick={() => onNavigate("diary")}
+              className="shrink-0 rounded-full bg-amber-600 px-4 py-2 text-xs font-medium tracking-tight text-white hover:opacity-90"
+            >
+              {t("results.reminderCta")}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {loading ? <p className="text-sm text-ink/50">{t("results.loading")}</p> : null}
 
       {error ? (
         <div className="rounded-2xl bg-red-50 px-5 py-4 text-sm text-red-700 ring-1 ring-red-200">
           {error}
         </div>
+      ) : null}
+
+      {/* "No receipts yet" placeholder: shows the page's actual shape
+          (same cards, same order) instead of a bare error line, each
+          one clearly marked as empty rather than populated with
+          invented numbers. */}
+      {noData ? (
+        <>
+          <div className="flex items-center justify-between gap-4 rounded-2xl bg-zinc-50 px-5 py-4 text-sm text-ink/60 ring-1 ring-black/5">
+            <p>{t("results.noDataNotice")}</p>
+            {onNavigate ? (
+              <button
+                type="button"
+                onClick={() => onNavigate("pantry")}
+                className="shrink-0 rounded-full bg-ink px-4 py-2 text-xs font-medium tracking-tight text-canvas hover:opacity-90"
+              >
+                {t("results.noDataCta")}
+              </button>
+            ) : null}
+          </div>
+
+          <Card className="space-y-2 bg-ink text-canvas opacity-50">
+            <span className="text-xs font-medium uppercase tracking-widest text-canvas/50">
+              {t("results.coach")}
+            </span>
+            <p className="text-base leading-relaxed">{t("results.noDataPlaceholderCoach")}</p>
+          </Card>
+
+          <Card className="space-y-3 opacity-50">
+            <SectionLabel>{t("results.healthScore")}</SectionLabel>
+            <div className="flex items-baseline gap-2">
+              <p className="text-4xl font-medium tracking-tight">—</p>
+              <p className="text-sm text-ink/40">/ 100</p>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-zinc-100" />
+            <p className="text-sm text-ink/50">{t("results.noDataPlaceholderScore")}</p>
+          </Card>
+
+          <Card className="space-y-3 opacity-50">
+            <SectionLabel>Next Cart</SectionLabel>
+            <p className="text-2xl font-medium tracking-tight text-ink/30">—</p>
+            <p className="text-sm text-ink/50">{t("results.noDataPlaceholderNextCart")}</p>
+          </Card>
+        </>
       ) : null}
 
       {snapshot ? (
@@ -628,6 +783,16 @@ export function ResultsStep({
         />
       ) : null}
 
+      {/* Promoted out of the details-only section (menu restructure):
+          weekly trend and pantry-recipe suggestions are quick-glance
+          items from the old Dashboard mockup, not technical detail —
+          they stay visible without needing "Show details". */}
+      {recommendation?.progress ? <ProgressCard progress={recommendation.progress} /> : null}
+
+      {recommendation && recommendation.pantry_recipes.length > 0 ? (
+        <PantryRecipesCard recipes={recommendation.pantry_recipes} onNavigate={onNavigate} />
+      ) : null}
+
       {/* Epic 14.1: everything below is secondary/technical detail — collapsed by default. */}
       {snapshot || recommendation ? (
         <button
@@ -644,12 +809,6 @@ export function ResultsStep({
           {recommendation && recommendation.easy_swaps.length > 0 ? (
             <EasySwapsCard swaps={recommendation.easy_swaps} />
           ) : null}
-
-          {recommendation && recommendation.pantry_recipes.length > 0 ? (
-            <PantryRecipesCard recipes={recommendation.pantry_recipes} />
-          ) : null}
-
-          {recommendation?.progress ? <ProgressCard progress={recommendation.progress} /> : null}
 
           {snapshot ? (
             <>

@@ -43,12 +43,17 @@ const STRINGS: Record<string, { en: string; de: string }> = {
   "accountPicker.back": { en: "Back", de: "Zurück" },
 
   // Nav / shell
-  "nav.dashboard": { en: "Dashboard", de: "Dashboard" },
+  // Menu restructure: Dashboard + Results merged into one "Overview" home
+  // (nav.results relabeled); Upload merged into Pantry ("Lager" stays);
+  // the day-log/diary half of the old Pantry page split out into its own
+  // "Tagebuch" destination. "Review" and "Upload" are no longer nav
+  // pills — Review is still a real, reachable step (right after an
+  // upload), just not a permanent menu destination; Upload's UI now
+  // lives inside Pantry itself.
   "nav.userProfile": { en: "My Profile", de: "Nutzerprofil" },
-  "nav.upload": { en: "Upload", de: "Hochladen" },
-  "nav.review": { en: "Review", de: "Prüfen" },
-  "nav.pantry": { en: "Pantry", de: "Lager" },
-  "nav.results": { en: "Results", de: "Ergebnisse" },
+  "nav.pantry": { en: "My Pantry", de: "Vorrat" },
+  "nav.results": { en: "Insights", de: "Analyse" },
+  "nav.diary": { en: "My Day", de: "Tag" },
   "nav.notifications": { en: "Notifications", de: "Mitteilungen" },
   "footer.tagline": {
     en: "NutriWise · estimated from your shopping habits, not actual intake",
@@ -74,12 +79,6 @@ const STRINGS: Record<string, { en: string; de: string }> = {
   "notifications.dummyBadge": {
     en: "Dummy — static list, no live data yet",
     de: "Dummy — statische Liste, noch keine echten Daten",
-  },
-
-  // Dashboard (dummy — DashboardStep.tsx)
-  "dashboard.dummyBadge": {
-    en: "Dummy — mockup layout, no live data yet",
-    de: "Dummy — Mockup-Layout, noch keine echten Daten",
   },
 
   // Consent banner
@@ -197,14 +196,39 @@ const STRINGS: Record<string, { en: string; de: string }> = {
   "review.rawPrefix": { en: "raw:", de: "roh:" },
   "review.uncategorized": { en: "uncategorized", de: "unkategorisiert" },
 
-  // Results step
-  "results.step": { en: "Step 5 · Results", de: "Schritt 5 · Ergebnisse" },
+  // Results step — now also the merged "Overview"/home page (formerly
+  // DashboardStep.tsx's mockup): greeting, inactivity reminder, and the
+  // trend/recipe cards promoted out of the details-only section below.
+  "results.step": { en: "Overview", de: "Übersicht" },
   "results.title": { en: "Your basket, aggregated.", de: "Dein Einkaufskorb, zusammengefasst." },
   "results.body": {
     en: "Combines every receipt you've uploaded so far — not just the last one.",
     de: "Fasst alle bisher hochgeladenen Kassenbons zusammen — nicht nur den letzten.",
   },
   "results.refresh": { en: "Refresh", de: "Aktualisieren" },
+  "results.greetingFallback": { en: "Welcome back", de: "Willkommen zurück" },
+  "results.reminderText": {
+    en: "You haven't confirmed anything in {days} days — your estimates are getting less accurate.",
+    de: "Du hast seit {days} Tagen nichts bestätigt — deine Schätzungen werden ungenauer.",
+  },
+  "results.reminderCta": { en: "Confirm now", de: "Jetzt bestätigen" },
+  "results.noDataNotice": {
+    en: "No data yet — upload your first receipt to see your Insights.",
+    de: "Noch keine Daten — lade deinen ersten Kassenbon hoch, um deine Insights zu sehen.",
+  },
+  "results.noDataCta": { en: "Upload a receipt", de: "Kassenbon hochladen" },
+  "results.noDataPlaceholderCoach": {
+    en: "I can't tell you anything yet — I need at least one receipt first.",
+    de: "Ich kann dir noch nichts sagen — dafür brauche ich zuerst mindestens einen Kassenbon.",
+  },
+  "results.noDataPlaceholderScore": {
+    en: "Appears once there's enough data.",
+    de: "Erscheint, sobald genug Daten vorhanden sind.",
+  },
+  "results.noDataPlaceholderNextCart": {
+    en: "No recommendation possible yet.",
+    de: "Noch keine Empfehlung möglich.",
+  },
   "results.loading": { en: "Loading…", de: "Wird geladen…" },
   "results.loadFailed": { en: "Failed to load results.", de: "Ergebnisse konnten nicht geladen werden." },
   "results.basedOnPrefix": { en: "Based on", de: "Basierend auf" },
@@ -251,6 +275,8 @@ const STRINGS: Record<string, { en: string; de: string }> = {
     de: "Noch nicht genug Daten — bestätige im Lager, was du gegessen hast, um das zu sehen.",
   },
   "results.pantryRecipes": { en: "Recipes from your pantry", de: "Rezepte aus deinem Lager" },
+  "results.logInDiary": { en: "Log in Diary →", de: "Im Tagebuch eintragen →" },
+  "results.viewInsights": { en: "View Insights →", de: "Insights ansehen →" },
   "results.healthScore": { en: "Health score", de: "Health Score" },
   "results.healthScore.great": { en: "great", de: "sehr gut" },
   "results.healthScore.good": { en: "good", de: "gut" },
@@ -274,12 +300,16 @@ const STRINGS: Record<string, { en: string; de: string }> = {
   "results.coach": { en: "Your Nutri-Coach", de: "Dein Nutri-Coach" },
 
   // Pantry (Lager-Bestand) page
+  // Pantry ("Lager") — menu restructure: this is now inventory + adding
+  // new receipts merged into one page. Confirming consumption day-by-day
+  // moved out into its own "Tagebuch" (diary.*, below).
   "pantry.step": { en: "Pantry", de: "Lager" },
   "pantry.title": { en: "What's still around.", de: "Was noch da ist." },
   "pantry.body": {
-    en: "Every receipt adds to this list. Confirm what you actually ate or threw out, so estimates reflect real consumption, not just what you bought.",
-    de: "Jeder Kassenbon ergänzt diese Liste. Bestätige, was du tatsächlich gegessen oder weggeworfen hast, damit Schätzungen den echten Verzehr abbilden — nicht nur den Einkauf.",
+    en: "Every receipt adds to this list. Upload a new one below, or correct/remove what's no longer accurate.",
+    de: "Jeder Kassenbon ergänzt diese Liste. Lade unten einen neuen hoch oder korrigiere/entferne, was nicht mehr stimmt.",
   },
+  "pantry.uploadSectionTitle": { en: "Add a new receipt", de: "Neuen Kassenbon hinzufügen" },
   "pantry.loading": { en: "Loading…", de: "Wird geladen…" },
   "pantry.loadFailed": { en: "Could not load your pantry.", de: "Lager konnte nicht geladen werden." },
   "pantry.empty": {
@@ -289,28 +319,48 @@ const STRINGS: Record<string, { en: string; de: string }> = {
   "pantry.consumed": { en: "Ate it", de: "Gegessen" },
   "pantry.remove": { en: "No longer have it", de: "Nicht mehr vorhanden" },
   "pantry.quantityLabel": { en: "Quantity", de: "Menge" },
-  "pantry.previousDay": { en: "Previous day", de: "Vorheriger Tag" },
-  "pantry.nextDay": { en: "Next day", de: "Nächster Tag" },
-  "pantry.today": { en: "Today", de: "Heute" },
-  "pantry.dayLogTitle": { en: "Logged for this day", de: "Für diesen Tag erfasst" },
-  "pantry.manualLogTitle": { en: "Add something else", de: "Sonstiges hinzufügen" },
-  "pantry.manualLogBody": {
-    en: "Food that never came from a receipt — a restaurant meal, a snack bought elsewhere.",
-    de: "Lebensmittel, die nie auf einem Kassenbon standen — z. B. ein Restaurant-Essen oder ein Snack unterwegs.",
-  },
-  "pantry.manualLogNamePlaceholder": { en: "What did you eat?", de: "Was hast du gegessen?" },
-  "pantry.manualLogAdd": { en: "Add", de: "Hinzufügen" },
   "pantry.matchedGood": { en: "matched to real nutrition data", de: "echten Nährwerten zugeordnet" },
   "pantry.matchedRough": { en: "only a rough category estimate", de: "nur eine grobe Kategorie-Schätzung" },
-  "pantry.whyItMatters": {
+  "pantry.expiresIn": { en: "expires in {days}d", de: "läuft in {days}T ab" },
+  "pantry.expiresToday": { en: "expires today", de: "läuft heute ab" },
+  "pantry.expiredAgo": { en: "expired {days}d ago", de: "seit {days}T abgelaufen" },
+  "pantry.category.dairy": { en: "Dairy", de: "Milchprodukte" },
+  "pantry.category.grain": { en: "Grains & bread", de: "Getreide & Brot" },
+  "pantry.category.vegetable": { en: "Vegetables", de: "Gemüse" },
+  "pantry.category.fruit": { en: "Fruit", de: "Obst" },
+  "pantry.category.protein": { en: "Protein", de: "Protein" },
+  "pantry.category.snack": { en: "Snacks", de: "Snacks" },
+  "pantry.category.drink": { en: "Drinks", de: "Getränke" },
+  "pantry.category.other": { en: "Other", de: "Sonstiges" },
+
+  // Diary ("Tagebuch") — day-by-day confirmation of what was actually
+  // eaten, split out of the old combined Pantry page (DiaryStep.tsx).
+  "diary.step": { en: "Diary", de: "Tagebuch" },
+  "diary.title": { en: "What did you eat?", de: "Was hast du gegessen?" },
+  "diary.body": {
+    en: "Pick from what's in your pantry, or add something that never came from a receipt.",
+    de: "Wähle aus deinem Lagerbestand, oder ergänze etwas, das nie auf einem Kassenbon stand.",
+  },
+  "diary.whyItMatters": {
     en: "Confirming daily keeps your nutrient estimates accurate — the coach can only see what you've told it.",
     de: "Tägliches Bestätigen hält deine Nährstoff-Schätzungen genau — der Coach sieht nur, was du ihm sagst.",
   },
-  "pantry.reminderPrefix": { en: "You haven't confirmed anything in", de: "Du hast seit" },
-  "pantry.reminderSuffix": {
-    en: "days — your estimates are getting less accurate.",
-    de: "Tagen nichts bestätigt — deine Schätzungen werden ungenauer.",
+  "diary.pickFromPantryTitle": { en: "From your pantry", de: "Aus deinem Lager" },
+  "diary.pickFromPantryEmpty": {
+    en: "Your pantry is empty — upload a receipt first, or add something manually below.",
+    de: "Dein Lager ist leer — lade zuerst einen Kassenbon hoch oder ergänze unten manuell etwas.",
   },
+  "diary.previousDay": { en: "Previous day", de: "Vorheriger Tag" },
+  "diary.nextDay": { en: "Next day", de: "Nächster Tag" },
+  "diary.today": { en: "Today", de: "Heute" },
+  "diary.dayLogTitle": { en: "Logged for this day", de: "Für diesen Tag erfasst" },
+  "diary.manualLogTitle": { en: "Add something else", de: "Sonstiges hinzufügen" },
+  "diary.manualLogBody": {
+    en: "Food that never came from a receipt — a restaurant meal, a snack bought elsewhere.",
+    de: "Lebensmittel, die nie auf einem Kassenbon standen — z. B. ein Restaurant-Essen oder ein Snack unterwegs.",
+  },
+  "diary.manualLogNamePlaceholder": { en: "What did you eat?", de: "Was hast du gegessen?" },
+  "diary.manualLogAdd": { en: "Add", de: "Hinzufügen" },
 };
 
 export function t(key: string, lang: Lang): string {

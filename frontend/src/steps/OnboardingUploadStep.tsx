@@ -8,13 +8,13 @@ import type { UploadReceiptResponse } from "@/types/api";
 type Mode = "image" | "text";
 
 // The baseline receipt upload — the chat's direct continuation, not the
-// general "add another receipt" page (see UploadStep.tsx, reachable any
-// time from the nav). Deliberately a separate component: different
-// framing (this IS the baseline, not a re-upload), different visual
-// language (matches ChatOnboardingStep's avatar/serif-headline hero
-// instead of the plain in-app SectionLabel header), and it's the one
-// place in the app where completing it always means "continue the
-// onboarding journey", never "revisit an existing one".
+// general "add another receipt" flow (now embedded in PantryStep.tsx's
+// "Lager" page, reachable any time from the nav). Deliberately a
+// separate component: different framing (this IS the baseline, not a
+// re-upload), different visual language (matches ChatOnboardingStep's
+// avatar/serif-headline hero instead of the plain in-app SectionLabel
+// header), and it's the one place in the app where completing it always
+// means "continue the onboarding journey", never "revisit an existing one".
 export function OnboardingUploadStep({
   profileId,
   profileName,

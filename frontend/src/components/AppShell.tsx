@@ -6,39 +6,47 @@ import { Footer } from "@/components/Footer";
 export type StepId =
   | "landing"
   | "accountPicker"
-  | "dashboard"
-  | "upload"
   | "onboardingUpload"
   | "review"
   | "onboarding"
   | "userProfile"
   | "pantry"
+  | "diary"
   | "results"
   | "notifications";
 
-// Flow order: Disclaimer (consent gate) -> Onboarding -> Upload -> Review -> Results.
-// "User Profile" and "Pantry" (Lager-Bestand) are standalone pages reachable
-// from the nav at any time, not part of that linear flow — the pantry
-// accumulates across every receipt in the session, not just the latest one.
-// "Dashboard" (DashboardStep.tsx, currently a static layout dummy) is the
-// new home for returning users — first in the list on purpose.
+// Menu restructure (see docs/architektur_entscheidungen.md): three main
+// destinations instead of five.
+// - "results" ("Insights" / "Analyse") absorbed the old standalone
+//   Dashboard mockup — greeting, inactivity reminder, trend/recipes —
+//   so it's both the daily home and the detailed report, not two
+//   separate pages that repeated the same coach insight.
+// - "pantry" ("My Pantry" / "Vorrat") absorbed Upload — adding a new
+//   receipt is now an action inside the inventory page, not its own
+//   destination.
+// - "diary" ("My Day" / "Tag", DiaryStep.tsx) is the split-out
+//   day-by-day confirmation flow that used to live inside the old
+//   combined Pantry page — day navigation, what you logged, and
+//   picking from the pantry to mark as eaten.
 //
-// "Onboarding" is deliberately NOT a permanent nav destination: it's a
-// one-time, situational flow (new account setup), not something a
+// "Upload" and "Review" are still real, reachable steps (Pantry embeds
+// the upload UI; a successful upload still flows through Review before
+// landing back on Pantry) — just not permanent nav pills anymore, since
+// they're transient actions, not destinations you'd browse back into.
+//
+// "Onboarding" is deliberately NOT a permanent nav destination either:
+// it's a one-time, situational flow (new account setup), not something a
 // returning user should ever tap into by accident. It's still reachable
 // via its own entry points (Landing's "Register", the empty-profile
-// nudge on My Profile) — just not surfaced as a tab to click into at
-// random, which risked resetting an existing user's answers mid-session.
+// nudge on My Profile).
 //
 // "userProfile" also isn't in this list — same treatment as Notifications
 // below: an icon-only button off to the side, not a "section" tab you
 // browse through. Both are account-level, not app-flow destinations.
 const NAV: { id: StepId; labelKey: string; icon: string }[] = [
-  { id: "dashboard", labelKey: "nav.dashboard", icon: "🏠" },
-  { id: "upload", labelKey: "nav.upload", icon: "🧾" },
-  { id: "review", labelKey: "nav.review", icon: "🔍" },
-  { id: "pantry", labelKey: "nav.pantry", icon: "🧺" },
   { id: "results", labelKey: "nav.results", icon: "📊" },
+  { id: "pantry", labelKey: "nav.pantry", icon: "🧺" },
+  { id: "diary", labelKey: "nav.diary", icon: "📅" },
 ];
 
 export function AppShell({
@@ -85,7 +93,7 @@ export function AppShell({
       <nav className="mx-auto flex max-w-3xl items-center gap-3 px-6 py-6">
         <button
           type="button"
-          onClick={() => onNavigate("dashboard")}
+          onClick={() => onNavigate("results")}
           className="flex shrink-0 items-center gap-3"
         >
           <span className="size-5 rounded-full bg-ink" />

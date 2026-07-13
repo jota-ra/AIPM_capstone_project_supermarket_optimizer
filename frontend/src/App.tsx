@@ -3,12 +3,11 @@ import { AppShell, type StepId } from "@/components/AppShell";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { LandingStep } from "@/steps/LandingStep";
 import { AccountPickerStep } from "@/steps/AccountPickerStep";
-import { UploadStep } from "@/steps/UploadStep";
 import { OnboardingUploadStep } from "@/steps/OnboardingUploadStep";
-import { DashboardStep } from "@/steps/DashboardStep";
 import { NotificationsStep } from "@/steps/NotificationsStep";
 import { ReviewStep } from "@/steps/ReviewStep";
 import { PantryStep } from "@/steps/PantryStep";
+import { DiaryStep } from "@/steps/DiaryStep";
 import { ChatOnboardingStep } from "@/steps/ChatOnboardingStep";
 import { ProfileSummary } from "@/steps/ProfileSummary";
 import { ResultsStep } from "@/steps/ResultsStep";
@@ -126,7 +125,7 @@ function App() {
             if (resolvedProfileId) {
               setProfileId(resolvedProfileId);
               localStorage.setItem(PROFILE_KEY, resolvedProfileId);
-              setStep("dashboard");
+              setStep("results");
             } else {
               setProfileId(null);
               localStorage.removeItem(PROFILE_KEY);
@@ -150,16 +149,12 @@ function App() {
           <ConsentBanner onAccept={handleConsent} />
         ) : (
           <>
-            {step === "dashboard" ? (
-              <DashboardStep profileName={profileName} onNavigate={setStep} />
-            ) : null}
-
             {step === "notifications" ? <NotificationsStep /> : null}
 
             {step === "onboarding" ? (
               <ChatOnboardingStep
                 onProfileCreated={handleProfileCreated}
-                onSkip={() => setStep("upload")}
+                onSkip={() => setStep("pantry")}
               />
             ) : null}
 
@@ -183,23 +178,27 @@ function App() {
               )
             ) : null}
 
-            {step === "upload" ? (
-              <UploadStep profileId={profileId} onUploaded={handleUploaded} />
-            ) : null}
-
-            {/* Flow: Disclaimer -> Onboarding -> Upload -> Review -> Results. */}
+            {/* Flow: Disclaimer -> Onboarding -> Pantry (upload lives here now) -> Review -> Pantry. */}
             {step === "review" ? (
               receiptId ? (
-                <ReviewStep receiptId={receiptId} onContinue={() => setStep("results")} />
+                <ReviewStep receiptId={receiptId} onContinue={() => setStep("pantry")} />
               ) : (
-                <EmptyState message="Upload a receipt first." onAction={() => setStep("upload")} />
+                <EmptyState message="Upload a receipt first." onAction={() => setStep("pantry")} />
               )
             ) : null}
 
-            {step === "pantry" ? <PantryStep /> : null}
+            {step === "pantry" ? (
+              <PantryStep profileId={profileId} onUploaded={handleUploaded} onNavigate={setStep} />
+            ) : null}
+
+            {step === "diary" ? <DiaryStep onNavigate={setStep} /> : null}
 
             {step === "results" ? (
-              <ResultsStep profileId={profileId} onEditProfile={() => setStep("userProfile")} />
+              <ResultsStep
+                profileId={profileId}
+                onEditProfile={() => setStep("userProfile")}
+                onNavigate={setStep}
+              />
             ) : null}
           </>
         )}
