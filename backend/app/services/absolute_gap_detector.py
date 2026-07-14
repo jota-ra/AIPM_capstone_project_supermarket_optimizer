@@ -45,7 +45,7 @@ from backend.app.services.nutrition_personalization import (
 ProfileLike = Union[Profile, ProfileCreate]
 
 
-def has_sufficient_data(session_id: str) -> bool:
+def has_sufficient_data(user_id: str) -> bool:
     """
     True if this session has ANY confirmed consumption at all —
     distinguishes "nothing confirmed yet, so absolute_gaps is empty
@@ -57,7 +57,7 @@ def has_sufficient_data(session_id: str) -> bool:
 
     from backend.app.services.pantry import get_consumption_events
 
-    return len(get_consumption_events(session_id)) > 0
+    return len(get_consumption_events(user_id)) > 0
 
 # How far estimate/target may deviate (either direction) before it's
 # worth mentioning — a rough band, not a precise clinical threshold.
@@ -99,7 +99,7 @@ _NUTRIENTS = [
 
 
 def detect_calorie_gap(
-    session_id: str, profile: Optional[ProfileLike] = None
+    user_id: str, profile: Optional[ProfileLike] = None
 ) -> Optional[AbsoluteGap]:
     """
     Goal-aware, two-sided calorie gap: unlike iron/protein/calcium, being
@@ -110,7 +110,7 @@ def detect_calorie_gap(
     every minor fluctuation is worth flagging.
     """
 
-    estimate = estimate_daily_calories_kcal(session_id)
+    estimate = estimate_daily_calories_kcal(user_id)
     if estimate.daily_estimate is None:
         return None
 
@@ -159,7 +159,7 @@ def detect_calorie_gap(
 
 
 def detect_absolute_gaps(
-    session_id: str, profile: Optional[ProfileLike] = None
+    user_id: str, profile: Optional[ProfileLike] = None
 ) -> List[AbsoluteGap]:
     """
     Return the absolute gaps this session has enough confirmed pantry
@@ -171,7 +171,7 @@ def detect_absolute_gaps(
     candidates = []  # (severity, AbsoluteGap)
 
     for dimension, estimate_fn, requirement_fn, default_requirement, message_template in _NUTRIENTS:
-        estimate = estimate_fn(session_id)
+        estimate = estimate_fn(user_id)
         if estimate.daily_estimate is None:
             continue
 
@@ -191,7 +191,7 @@ def detect_absolute_gaps(
             confidence=estimate.confidence,
         )))
 
-    calorie_gap = detect_calorie_gap(session_id, profile)
+    calorie_gap = detect_calorie_gap(user_id, profile)
     if calorie_gap is not None:
         candidates.append((abs(1 - calorie_gap.ratio), calorie_gap))
 

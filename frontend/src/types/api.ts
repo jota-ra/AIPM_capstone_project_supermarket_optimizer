@@ -94,6 +94,22 @@ export type Digestion = "fine" | "bloated" | "slow" | "sensitive";
 export type VegFrequency = "every_meal" | "once_daily" | "few_times_week" | "rarely";
 export type Gender = "female" | "male" | "other";
 
+// --- Level-1 onboarding types (E1) — feed the Ideal Profile Engine (E2) ---
+export type FormOfAddress = "neutral" | "informal_du" | "formal_sie";
+export type Sex = "female" | "male" | "prefer_not_to_say";
+export type ExerciseFrequency =
+  | "none"
+  | "one_two"
+  | "three_four"
+  | "five_six"
+  | "daily_athlete";
+export type DailyMovement =
+  | "mostly_sitting"
+  | "mixed"
+  | "mostly_standing"
+  | "physical_labor";
+export type PregnancyStatus = "none" | "pregnant" | "breastfeeding";
+
 export interface ProfileCreate {
   goal: Goal;
   age_range?: AgeRange | null;
@@ -121,10 +137,42 @@ export interface ProfileCreate {
   veg_frequency?: VegFrequency | null;
 
   language: Language;
+
+  // --- Level-1 fields (E1). All optional so partial onboarding persists
+  // and can be resumed (E1-S6). ---
+  form_of_address?: FormOfAddress | null;
+  sex?: Sex | null;
+  date_of_birth?: string | null; // ISO "YYYY-MM-DD"
+  exercise_frequency?: ExerciseFrequency | null;
+  daily_movement?: DailyMovement | null;
+  pregnancy_status?: PregnancyStatus | null;
+  meals_per_day?: number | null;
+  snacks_per_day?: number | null;
+  dislikes?: string[];
+  address?: string | null;
+  profile_complete?: boolean;
+}
+
+// Personalized daily targets computed by the Ideal Profile Engine (E2),
+// attached to profile responses once the Level-1 biometrics are present.
+export interface IdealProfile {
+  calories_kcal: number;
+  protein_g: number;
+  fat_g: number;
+  carbs_g: number;
+  fiber_g: number;
+  micronutrients: Record<string, number>;
+  bmr_kcal: number;
+  neat_kcal: number;
+  eat_kcal: number;
+  tef_kcal: number;
+  tdee_kcal: number;
+  notes: string[];
 }
 
 export interface Profile extends ProfileCreate {
   profile_id: string;
+  ideal_profile?: IdealProfile | null;
 }
 
 // --- Epic 4: Nutrition snapshot ---------------------------------------
@@ -220,7 +268,7 @@ export interface NutritionSnapshot {
 
 export interface PantryItem {
   id: string;
-  session_id: string;
+  user_id: string;
   normalized_name: string;
   quantity_available: number;
   unit?: string | null;
@@ -234,7 +282,7 @@ export interface PantryItem {
 }
 
 export interface PantryResponse {
-  session_id: string;
+  user_id: string;
   items: PantryItem[];
   // null if nothing's ever been confirmed — used for the "you haven't
   // logged in a while" in-app nudge (Epic 13.1).
@@ -245,14 +293,14 @@ export interface PantryResponse {
 // normal pantry confirmation or a manual (free-text) entry.
 export interface ConsumptionLogEntry {
   id: string;
-  session_id: string;
+  user_id: string;
   normalized_name: string;
   quantity_consumed: number;
   consumed_at: string;
 }
 
 export interface ConsumptionLogResponse {
-  session_id: string;
+  user_id: string;
   date: string;
   entries: ConsumptionLogEntry[];
 }
@@ -329,7 +377,7 @@ export interface ProgressReport {
 
 export interface NextCartRecommendation {
   recommendation_id: string;
-  session_id: string;
+  user_id: string;
   status: RecommendationStatus;
   action_type: ActionType;
   item?: string | null;
@@ -369,7 +417,7 @@ export interface FeedbackCreate {
 
 export interface Feedback extends FeedbackCreate {
   id: string;
-  session_id: string;
+  user_id: string;
 }
 
 export interface ApiErrorBody {

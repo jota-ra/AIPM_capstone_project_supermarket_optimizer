@@ -175,7 +175,7 @@ def find_pantry_match(
     gaps: List[Gap],
     pantry_items: List[dict],
     profile: Optional[ProfileLike],
-    session_id: Optional[str] = None,
+    user_id: Optional[str] = None,
 ) -> Optional[PantryMatch]:
     """
     "Use what you already have" — walk gaps worst-first (same order
@@ -190,7 +190,7 @@ def find_pantry_match(
     hidden — "past its estimate" means "use it now or toss it", not
     "pretend it isn't there".
 
-    session_id is optional (P1.1): when given, past feedback for this
+    user_id is optional (P1.1): when given, past feedback for this
     session re-orders each gap's candidate list before matching against
     the pantry, same rule-based boost as recommend_next_cart below.
     """
@@ -198,7 +198,7 @@ def find_pantry_match(
     if profile is None:
         profile = default_profile()
 
-    scores = item_preference_scores(session_id) if session_id else {}
+    scores = item_preference_scores(user_id) if user_id else {}
 
     for gap in gaps:
         matches = []
@@ -255,7 +255,7 @@ def recommend_next_cart(
     gaps: List[Gap],
     profile: Optional[ProfileLike],
     confidence: ConfidenceLevel,
-    session_id: Optional[str] = None,
+    user_id: Optional[str] = None,
 ) -> NextCartRecommendation:
     """
     Build the single Next Cart recommendation for this basket + profile.
@@ -264,7 +264,7 @@ def recommend_next_cart(
     Story 5.2: never suggests something the profile excludes; says so
     explicitly if nothing in the table fits.
 
-    session_id is optional (P1.1, rule-based preference re-weighting):
+    user_id is optional (P1.1, rule-based preference re-weighting):
     when given, this session's past feedback ("would you buy this?")
     re-orders each gap's candidate list before the exclusion filter
     runs — a liked item is preferred over an equally-valid alternative,
@@ -285,7 +285,7 @@ def recommend_next_cart(
 
     evaluated: List[EvaluatedCandidate] = []
     gaps = _prioritize_gaps(gaps, profile)
-    scores = item_preference_scores(session_id) if session_id else {}
+    scores = item_preference_scores(user_id) if user_id else {}
 
     for gap in gaps:  # ranked worst-first by the gap detector, then Q6/Q7-boosted
         for candidate in _apply_preference_scores(_candidates_for(gap), scores):

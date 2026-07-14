@@ -23,7 +23,7 @@ def _insert_tolerant(table: str, record: dict):
     local DB, a fresh clone, a future re-deploy) that hasn't yet would
     otherwise hard-500 on every receipt/profile write instead of Epic
     1/3's already-shipped flows degrading gracefully. It only ever
-    silently drops `session_id` — until that environment is migrated,
+    silently drops `user_id` — until that environment is migrated,
     its requests just aren't session-scoped.
     """
 
@@ -67,7 +67,7 @@ def _update_tolerant(table: str, record_id: str, fields: dict):
     return supabase.table(table).update(remaining).eq("id", record_id).execute()
 
 
-def create_receipt_row(receipt_id, file_name, file_type, storage_path, session_id=None, user_id=None):
+def create_receipt_row(receipt_id, file_name, file_type, storage_path, user_id=None):
     return _insert_tolerant("receipts", {
         "id": receipt_id,
         "user_id": user_id,
@@ -75,17 +75,20 @@ def create_receipt_row(receipt_id, file_name, file_type, storage_path, session_i
         "file_type": file_type,
         "storage_path": storage_path,
         "status": "uploaded",
-        "session_id": session_id,
     })
 
 
-def get_receipts_by_session(session_id: str):
-    """Every receipt uploaded in this session (Task 8.4), newest first."""
+def get_receipts_by_user(user_id: str):
+    """Every receipt uploaded by this user (Task 8.4), newest first.
+
+    E1 full-replacement: scoped by the authenticated `user_id` (was the
+    anonymous user_id). Rows tagged only with a legacy user_id keep
+    user_id = NULL and no longer surface ("leave old data behind")."""
 
     result = (
         supabase.table("receipts")
         .select("*")
-        .eq("session_id", session_id)
+        .eq("user_id", user_id)
         .order("created_at", desc=True)
         .execute()
     )
@@ -129,13 +132,13 @@ def get_all_receipt_items():
 UNDEFINED_COLUMN_CODE = "42703"
 
 
-def get_receipt_items_by_session(session_id: str):
+def get_receipt_items_by_user(user_id: str):
     """
     Every receipt item across this session's receipts only (Story 8.3
     groundwork). Used to scope the nutrition snapshot / Next Cart to one
     session instead of aggregating every receipt in the database.
 
-    SAFETY NET, kept intentionally: if `receipts.session_id` doesn't
+    SAFETY NET, kept intentionally: if `receipts.user_id` doesn't
     exist in whichever environment is calling this (Epic 8 migration
     pending there), querying by it raises `42703 undefined_column`
     rather than the "missing column" schema-cache error inserts get, so
@@ -146,11 +149,11 @@ def get_receipt_items_by_session(session_id: str):
     """
 
     try:
-        receipts = get_receipts_by_session(session_id)
+        receipts = get_receipts_by_user(user_id)
     except APIError as e:
         if e.code != UNDEFINED_COLUMN_CODE:
             raise
-        print(f"[db] 'receipts.session_id' column missing (migration pending?) — falling back to ALL receipts, unscoped")
+        print(f"[db] 'receipts.user_id' column missing (migration pending?) — falling back to ALL receipts, unscoped")
         return get_all_receipt_items()
 
     receipt_ids = [r["id"] for r in receipts]
@@ -223,19 +226,18 @@ def update_profile_row(profile_id: str, fields: dict):
     return _update_tolerant("profiles", profile_id, fields)
 
 
-def get_profile_by_session(session_id: str):
+def get_profile_by_user(user_id: str):
     """
-    Most recently created profile tagged with this session_id (demo
-    account picker groundwork — see api/profile.py's `/profile/by-session`).
-    None if this session has never completed onboarding yet, which is a
-    normal state (not an error): the caller creates a fresh profile under
-    the same session_id in that case.
+    The authenticated user's profile (most recent if several exist) —
+    used to resume onboarding or route straight to the dashboard on
+    login (E1-S6). None if this user hasn't started onboarding yet, which
+    is a normal state (not an error), not an error the caller should 500 on.
     """
 
     result = (
         supabase.table("profiles")
         .select("*")
-        .eq("session_id", session_id)
+        .eq("user_id", user_id)
         .order("created_at", desc=True)
         .limit(1)
         .execute()
@@ -254,7 +256,7 @@ def delete_profile(profile_id: str):
     )
 
 
-def create_recommendation_row(recommendation_id: str, session_id: str, payload: dict):
+def create_recommendation_row(recommendation_id: str, user_id: str, payload: dict):
     """
     Persist a computed Next Cart recommendation (Task 8.5), so feedback
     (Task 8.2) has something stable to reference by ID. `payload` is the
@@ -277,7 +279,7 @@ def create_recommendation_row(recommendation_id: str, session_id: str, payload: 
     try:
         return supabase.table("recommendations").insert({
             "id": recommendation_id,
-            "session_id": session_id,
+            "user_id": user_id,
             "payload": payload,
         }).execute()
     except APIError as e:
@@ -304,14 +306,14 @@ def get_recommendation(recommendation_id: str):
     return result.data[0] if result.data else None
 
 
-def get_recommendations_by_session(session_id: str):
+def get_recommendations_by_user(user_id: str):
     """Every recommendation shown to this session (Task 8.8 groundwork), oldest first."""
 
     try:
         result = (
             supabase.table("recommendations")
             .select("*")
-            .eq("session_id", session_id)
+            .eq("user_id", user_id)
             .order("created_at")
             .execute()
         )
@@ -323,7 +325,7 @@ def get_recommendations_by_session(session_id: str):
     return result.data
 
 
-def create_feedback_row(feedback_id: str, session_id: str, fields: dict):
+def create_feedback_row(feedback_id: str, user_id: str, fields: dict):
     """
     Store one feedback response (Task 8.2), linked to its recommendation.
 
@@ -338,7 +340,7 @@ def create_feedback_row(feedback_id: str, session_id: str, fields: dict):
     try:
         return supabase.table("feedback").insert({
             "id": feedback_id,
-            "session_id": session_id,
+            "user_id": user_id,
             **fields,
         }).execute()
     except APIError as e:
@@ -365,14 +367,14 @@ def get_feedback_by_recommendation(recommendation_id: str):
     return result.data
 
 
-def get_feedback_by_session(session_id: str):
+def get_feedback_by_user(user_id: str):
     """Every feedback row this session has ever submitted (P1.1 groundwork, preference re-weighting)."""
 
     try:
         result = (
             supabase.table("feedback")
             .select("*")
-            .eq("session_id", session_id)
+            .eq("user_id", user_id)
             .order("created_at")
             .execute()
         )

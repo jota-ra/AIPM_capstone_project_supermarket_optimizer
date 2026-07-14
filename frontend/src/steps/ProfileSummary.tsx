@@ -22,6 +22,11 @@ function toDraft(profile: Profile): Draft {
   return draft;
 }
 
+// Required fields must never be nulled out; every other empty value maps
+// to null so an unset optional enum/date doesn't send "" (which would fail
+// the backend enum validation).
+const _REQUIRED_KEYS = new Set(["goal", "dietary_pattern"]);
+
 function buildPatch(draft: Draft): Partial<ProfileCreate> {
   const patch: Record<string, unknown> = {};
   for (const step of STEPS) {
@@ -30,14 +35,13 @@ function buildPatch(draft: Draft): Partial<ProfileCreate> {
       patch[step.key] = (value as string[]).filter((v) => v !== "none");
     } else if (step.kind === "number") {
       patch[step.key] = value ? Number(value) : null;
-    } else if (step.key === "age_range") {
-      patch.age_range = value && value !== "undisclosed" ? value : null;
-    } else if (step.key === "digestion" || step.key === "veg_frequency" || step.key === "gender") {
-      patch[step.key] = (value as string) || null;
     } else if (step.key === "name") {
       patch.name = (value as string).trim() || null;
-    } else {
+    } else if (_REQUIRED_KEYS.has(step.key)) {
       patch[step.key] = value;
+    } else {
+      // choice / text / date — empty means "not set".
+      patch[step.key] = (value as string)?.trim() ? (value as string).trim() : null;
     }
   }
   return patch as Partial<ProfileCreate>;
@@ -165,12 +169,10 @@ export function ProfileSummary({
 
   const symptomsStep = STEPS.find((s) => s.key === "symptoms")!;
   const allergiesStep = STEPS.find((s) => s.key === "allergies")!;
-  const activityStep = STEPS.find((s) => s.key === "activity_level")!;
+  const dislikesStep = STEPS.find((s) => s.key === "dislikes")!;
   const gridSteps = STEPS.filter(
-    (s) =>
-      (s.kind === "choice" && s.key !== "activity_level") || s.kind === "text" || s.kind === "number",
+    (s) => s.kind === "choice" || s.kind === "text" || s.kind === "number" || s.kind === "date",
   );
-  const activityValue = draft ? (draft.activity_level as string) : "";
 
   return (
     <section className="space-y-8 px-6 pb-16">
@@ -203,10 +205,10 @@ export function ProfileSummary({
           <div className="grid gap-4 sm:grid-cols-3">
             {gridSteps.map((step) => (
               <Field key={step.key} label={(step.shortLabel ?? step.prompt)[lang]}>
-                {step.kind === "text" || step.kind === "number" ? (
+                {step.kind === "text" || step.kind === "number" || step.kind === "date" ? (
                   <input
                     className={inputCls}
-                    type={step.kind === "number" ? "number" : "text"}
+                    type={step.kind === "number" ? "number" : step.kind === "date" ? "date" : "text"}
                     value={draft[step.key] as string}
                     onChange={(e) => setField(step.key, e.target.value)}
                     placeholder={step.placeholder?.[lang]}
@@ -223,32 +225,21 @@ export function ProfileSummary({
             ))}
           </div>
 
-          <Field label={(activityStep.shortLabel ?? activityStep.prompt)[lang]}>
-            <div className="flex flex-wrap gap-2">
-              {activityStep.options!.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setField("activity_level", opt.value)}
-                  className={cn(
-                    "rounded-xl px-4 py-2.5 text-sm font-medium tracking-tight ring-1 transition-colors",
-                    activityValue === opt.value
-                      ? "bg-ink text-canvas ring-ink"
-                      : "bg-zinc-50 text-ink/60 ring-black/5 hover:text-ink",
-                  )}
-                >
-                  {opt.label[lang]}
-                </button>
-              ))}
-            </div>
-          </Field>
-
           <Field label={(allergiesStep.shortLabel ?? allergiesStep.prompt)[lang]}>
             <MultiChips
               step={allergiesStep}
               value={draft.allergies as string[]}
               lang={lang}
               onChange={(v) => setField("allergies", v)}
+            />
+          </Field>
+
+          <Field label={(dislikesStep.shortLabel ?? dislikesStep.prompt)[lang]}>
+            <MultiChips
+              step={dislikesStep}
+              value={(draft.dislikes as string[]) ?? []}
+              lang={lang}
+              onChange={(v) => setField("dislikes", v)}
             />
           </Field>
 

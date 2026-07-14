@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import ValidationError
 
-from backend.app.services.session import get_session_id
+from backend.app.services.auth import get_current_user
 from backend.app.services.nutrition_snapshot import build_snapshot_from_db
 from backend.app.services.absolute_gap_detector import detect_absolute_gaps, has_sufficient_data
 from backend.app.services.health_score import compute_health_score
@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.get("/nutrition/snapshot")
-def nutrition_snapshot(profile_id: Optional[str] = None, session_id: str = Depends(get_session_id)):
+def nutrition_snapshot(profile_id: Optional[str] = None, user_id: str = Depends(get_current_user)):
     """
     Aggregated nutrition snapshot + top gaps across this session's saved
     receipts (Epic 4, scoped per Story 8.3). Density-based, rule-driven,
@@ -46,7 +46,7 @@ def nutrition_snapshot(profile_id: Optional[str] = None, session_id: str = Depen
             print(f"[api] profile {profile_id} failed validation (stale schema?) — continuing without personalization")
             profile = None
 
-    snapshot = build_snapshot_from_db(session_id, user_profile=profile)
+    snapshot = build_snapshot_from_db(user_id, user_profile=profile)
     if snapshot.items_analyzed == 0:
         raise HTTPException(
             status_code=409,
@@ -57,23 +57,23 @@ def nutrition_snapshot(profile_id: Optional[str] = None, session_id: str = Depen
     # density-based `gaps` above since they compare real daily units
     # against confirmed pantry consumption, not a receipt's basket
     # ratios. [] until the user has confirmed any consumption/removal.
-    absolute_gaps = detect_absolute_gaps(session_id, profile)
+    absolute_gaps = detect_absolute_gaps(user_id, profile)
     health_score = compute_health_score(snapshot.dimensions, absolute_gaps)
 
     # Purchased items that conflict with the profile (e.g. meat bought by
     # a self-described vegan) — [] without a profile to check against.
     # Never changes the profile or the analysis itself; just surfaced so
     # the user can clarify (see conflict_detector.py's docstring).
-    conflicts = detect_conflicts(session_id, profile)
+    conflicts = detect_conflicts(user_id, profile)
 
     return {
-        "session_id": session_id,
+        "user_id": user_id,
         **snapshot.model_dump(),
         "absolute_gaps": [gap.model_dump() for gap in absolute_gaps],
         # Distinguishes "absolute_gaps is [] because nothing's been
         # confirmed yet" from "[] because everything's within range" —
         # otherwise both look identical to the frontend (Epic 11.1).
-        "has_sufficient_data": has_sufficient_data(session_id),
+        "has_sufficient_data": has_sufficient_data(user_id),
         "health_score": health_score.model_dump(),
         "conflicts": [conflict.model_dump() for conflict in conflicts],
     }

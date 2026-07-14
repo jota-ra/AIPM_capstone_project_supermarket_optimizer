@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from backend.app.services.session import get_session_id
+from backend.app.services.auth import get_current_user
 from backend.app.services.pantry import (
     get_pantry,
     confirm_consumption,
@@ -42,7 +42,7 @@ class PantryItemMetadata(BaseModel):
 
 
 @router.get("/pantry")
-def read_pantry(session_id: str = Depends(get_session_id)):
+def read_pantry(user_id: str = Depends(get_current_user)):
     """
     Current running stock for this session — what's still in the
     pantry after every receipt upload and every consume/remove action
@@ -51,11 +51,11 @@ def read_pantry(session_id: str = Depends(get_session_id)):
     """
 
     return {
-        "session_id": session_id,
-        "items": get_pantry(session_id),
+        "user_id": user_id,
+        "items": get_pantry(user_id),
         # Epic 13.1: lets the frontend show a "you haven't logged in a
         # while" nudge — None if nothing's ever been confirmed.
-        "days_since_last_confirmation": days_since_last_confirmation(session_id),
+        "days_since_last_confirmation": days_since_last_confirmation(user_id),
     }
 
 
@@ -63,7 +63,7 @@ def read_pantry(session_id: str = Depends(get_session_id)):
 def consume_pantry_item(
     normalized_name: str,
     body: PantryQuantity,
-    session_id: str = Depends(get_session_id),
+    user_id: str = Depends(get_current_user),
 ):
     """
     User confirms they actually ate `quantity` of this item. This is
@@ -71,20 +71,20 @@ def consume_pantry_item(
     from purchase quantity or time elapsed.
     """
 
-    applied = confirm_consumption(session_id, normalized_name, body.quantity, body.consumed_at)
+    applied = confirm_consumption(user_id, normalized_name, body.quantity, body.consumed_at)
     if applied is None:
         raise HTTPException(
             status_code=404,
             detail="Item not found in this session's pantry.",
         )
-    return {"session_id": session_id, "normalized_name": normalized_name, "consumed": applied}
+    return {"user_id": user_id, "normalized_name": normalized_name, "consumed": applied}
 
 
 @router.post("/pantry/items/{normalized_name}/remove")
 def remove_pantry_item(
     normalized_name: str,
     body: PantryQuantity,
-    session_id: str = Depends(get_session_id),
+    user_id: str = Depends(get_current_user),
 ):
     """
     User marks `quantity` of this item as no longer available (thrown
@@ -92,20 +92,20 @@ def remove_pantry_item(
     contributes nothing to the intake estimate.
     """
 
-    applied = mark_unavailable(session_id, normalized_name, body.quantity)
+    applied = mark_unavailable(user_id, normalized_name, body.quantity)
     if applied is None:
         raise HTTPException(
             status_code=404,
             detail="Item not found in this session's pantry.",
         )
-    return {"session_id": session_id, "normalized_name": normalized_name, "removed": applied}
+    return {"user_id": user_id, "normalized_name": normalized_name, "removed": applied}
 
 
 @router.patch("/pantry/items/{normalized_name}")
 def edit_pantry_item(
     normalized_name: str,
     body: PantryItemMetadata,
-    session_id: str = Depends(get_session_id),
+    user_id: str = Depends(get_current_user),
 ):
     """
     Correct a pantry item's unit/category after the fact (Epic 12.3) —
@@ -114,17 +114,17 @@ def edit_pantry_item(
     Only fields provided in the body are changed.
     """
 
-    updated = update_pantry_item_metadata(session_id, normalized_name, unit=body.unit, category=body.category)
+    updated = update_pantry_item_metadata(user_id, normalized_name, unit=body.unit, category=body.category)
     if updated is None:
         raise HTTPException(
             status_code=404,
             detail="Item not found in this session's pantry.",
         )
-    return {"session_id": session_id, "normalized_name": normalized_name, "item": updated}
+    return {"user_id": user_id, "normalized_name": normalized_name, "item": updated}
 
 
 @router.post("/pantry/log")
-def log_food(body: ManualLogEntry, session_id: str = Depends(get_session_id)):
+def log_food(body: ManualLogEntry, user_id: str = Depends(get_current_user)):
     """
     Tages-Log: log food eaten that may or may not be in the pantry.
     Matches an existing pantry item by name if one exists (behaves like
@@ -134,7 +134,7 @@ def log_food(body: ManualLogEntry, session_id: str = Depends(get_session_id)):
     """
 
     applied = log_manual_consumption(
-        session_id,
+        user_id,
         body.name,
         body.quantity,
         unit=body.unit,
@@ -150,7 +150,7 @@ def log_food(body: ManualLogEntry, session_id: str = Depends(get_session_id)):
     matched = matched_product.match_type in (MatchType.EXACT, MatchType.FUZZY)
 
     return {
-        "session_id": session_id,
+        "user_id": user_id,
         "name": body.name,
         "logged": applied,
         "matched": matched,
@@ -158,12 +158,12 @@ def log_food(body: ManualLogEntry, session_id: str = Depends(get_session_id)):
 
 
 @router.get("/pantry/log")
-def read_food_log(date: date, session_id: str = Depends(get_session_id)):
+def read_food_log(date: date, user_id: str = Depends(get_current_user)):
     """Everything logged (pantry-based or manual) on `date`
     (query param, YYYY-MM-DD), for the Tages-Log's per-day view."""
 
     return {
-        "session_id": session_id,
+        "user_id": user_id,
         "date": date.isoformat(),
-        "entries": get_consumption_log_for_date(session_id, date),
+        "entries": get_consumption_log_for_date(user_id, date),
     }

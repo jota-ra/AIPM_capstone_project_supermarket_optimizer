@@ -13,19 +13,19 @@ from datetime import date, datetime, timezone
 from typing import List, Optional
 
 from backend.app.db.pantry_repo import (
-    get_pantry_items_by_session,
+    get_pantry_items_by_user,
     get_pantry_item,
     upsert_pantry_item_quantity,
     update_pantry_item_fields,
     insert_consumption_event,
-    get_consumption_events_by_session,
-    get_consumption_events_by_session_and_date,
+    get_consumption_events_by_user,
+    get_consumption_events_by_user_and_date,
 )
 from backend.app.services.shelf_life import estimate_expiry, days_until_expiry
 from backend.app.services.fallback_categories import _canonical_category, CATEGORY_NUTRITION
 
 
-def add_items_to_pantry(session_id: str, items: List[dict]) -> None:
+def add_items_to_pantry(user_id: str, items: List[dict]) -> None:
     """
     Add a freshly-parsed receipt's items to the session's running stock.
 
@@ -49,7 +49,7 @@ def add_items_to_pantry(session_id: str, items: List[dict]) -> None:
         if not name or not quantity or quantity <= 0:
             continue
         upsert_pantry_item_quantity(
-            session_id,
+            user_id,
             name,
             delta=float(quantity),
             unit=item.get("unit"),
@@ -70,18 +70,18 @@ def _with_expiry(item: dict) -> dict:
     }
 
 
-def get_pantry(session_id: str) -> List[dict]:
+def get_pantry(user_id: str) -> List[dict]:
     """Current running stock for a session, only items still in stock."""
 
     return [
         _with_expiry(item)
-        for item in get_pantry_items_by_session(session_id)
+        for item in get_pantry_items_by_user(user_id)
         if item.get("quantity_available", 0) > 0
     ]
 
 
 def confirm_consumption(
-    session_id: str,
+    user_id: str,
     normalized_name: str,
     quantity: float,
     consumed_at: Optional[str] = None,
@@ -102,7 +102,7 @@ def confirm_consumption(
     all — can't confirm consuming something never tracked as available.
     """
 
-    existing = get_pantry_item(session_id, normalized_name)
+    existing = get_pantry_item(user_id, normalized_name)
     if existing is None:
         return None
 
@@ -110,13 +110,13 @@ def confirm_consumption(
     # (more than `quantity_available`) would otherwise inflate the
     # intake estimate beyond what was ever in the pantry.
     quantity = min(quantity, existing["quantity_available"])
-    insert_consumption_event(session_id, normalized_name, quantity, consumed_at)
-    upsert_pantry_item_quantity(session_id, normalized_name, delta=-quantity)
+    insert_consumption_event(user_id, normalized_name, quantity, consumed_at)
+    upsert_pantry_item_quantity(user_id, normalized_name, delta=-quantity)
     return quantity
 
 
 def log_manual_consumption(
-    session_id: str,
+    user_id: str,
     name: str,
     quantity: float,
     unit: Optional[str] = None,
@@ -135,16 +135,16 @@ def log_manual_consumption(
     this log a standalone ConsumptionEvent with nothing to reduce.
     """
 
-    existing = get_pantry_item(session_id, name)
+    existing = get_pantry_item(user_id, name)
     if existing is not None:
-        applied = confirm_consumption(session_id, name, quantity, consumed_at)
+        applied = confirm_consumption(user_id, name, quantity, consumed_at)
         return applied if applied is not None else 0.0
 
-    insert_consumption_event(session_id, name, quantity, consumed_at)
+    insert_consumption_event(user_id, name, quantity, consumed_at)
     return quantity
 
 
-def mark_unavailable(session_id: str, normalized_name: str, quantity: float) -> Optional[float]:
+def mark_unavailable(user_id: str, normalized_name: str, quantity: float) -> Optional[float]:
     """
     Record that `quantity` of `normalized_name` is no longer available
     (thrown out, spoiled, etc.) WITHOUT it having been eaten — reduces
@@ -153,17 +153,17 @@ def mark_unavailable(session_id: str, normalized_name: str, quantity: float) -> 
     return shape) as confirm_consumption, for the same reason.
     """
 
-    existing = get_pantry_item(session_id, normalized_name)
+    existing = get_pantry_item(user_id, normalized_name)
     if existing is None:
         return None
 
     quantity = min(quantity, existing["quantity_available"])
-    upsert_pantry_item_quantity(session_id, normalized_name, delta=-quantity)
+    upsert_pantry_item_quantity(user_id, normalized_name, delta=-quantity)
     return quantity
 
 
 def update_pantry_item_metadata(
-    session_id: str,
+    user_id: str,
     normalized_name: str,
     unit: Optional[str] = None,
     category: Optional[str] = None,
@@ -188,7 +188,7 @@ def update_pantry_item_metadata(
     Returns the updated fields dict, or None if the item doesn't exist.
     """
 
-    existing = get_pantry_item(session_id, normalized_name)
+    existing = get_pantry_item(user_id, normalized_name)
     if existing is None:
         return None
 
@@ -202,22 +202,22 @@ def update_pantry_item_metadata(
     if not fields:
         return existing
 
-    update_pantry_item_fields(session_id, normalized_name, fields)
+    update_pantry_item_fields(user_id, normalized_name, fields)
     return {**existing, **fields}
 
 
-def get_consumption_events(session_id: str) -> List[dict]:
-    return get_consumption_events_by_session(session_id)
+def get_consumption_events(user_id: str) -> List[dict]:
+    return get_consumption_events_by_user(user_id)
 
 
-def get_consumption_log_for_date(session_id: str, log_date: date) -> List[dict]:
+def get_consumption_log_for_date(user_id: str, log_date: date) -> List[dict]:
     """Every consumption event (pantry-based or manual) logged on
     `log_date` — the Tages-Log's per-day view."""
 
-    return get_consumption_events_by_session_and_date(session_id, log_date)
+    return get_consumption_events_by_user_and_date(user_id, log_date)
 
 
-def days_since_last_confirmation(session_id: str) -> Optional[int]:
+def days_since_last_confirmation(user_id: str) -> Optional[int]:
     """
     Days since this session's most recent ConsumptionEvent — None if
     nothing has ever been confirmed. Used for the Epic 13.1 "you haven't
@@ -226,7 +226,7 @@ def days_since_last_confirmation(session_id: str) -> Optional[int]:
     docs/architektur_entscheidungen.md).
     """
 
-    events = get_consumption_events(session_id)
+    events = get_consumption_events(user_id)
     if not events:
         return None
 

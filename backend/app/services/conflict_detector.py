@@ -19,7 +19,7 @@ come with curated tags.
 import re
 from typing import List, Optional, Union
 
-from backend.app.db.supabase import get_receipt_items_by_session
+from backend.app.db.supabase import get_receipt_items_by_user
 from backend.app.models.conflict import Conflict
 from backend.app.models.profile import Profile, ProfileCreate
 from backend.app.services.exclusion_filter import ExclusionCandidate, check_candidate
@@ -66,7 +66,7 @@ def _tags_for_name(name: str) -> set:
     return tags
 
 
-def detect_conflicts(session_id: str, profile: Optional[ProfileLike]) -> List[Conflict]:
+def detect_conflicts(user_id: str, profile: Optional[ProfileLike]) -> List[Conflict]:
     """
     Every purchased item (across this session's receipts) that conflicts
     with the profile's dietary pattern, allergies, or dislikes — [] if
@@ -77,7 +77,7 @@ def detect_conflicts(session_id: str, profile: Optional[ProfileLike]) -> List[Co
     if profile is None:
         return []
 
-    items = get_receipt_items_by_session(session_id)
+    items = get_receipt_items_by_user(user_id)
     seen_names = set()
     conflicts: List[Conflict] = []
 

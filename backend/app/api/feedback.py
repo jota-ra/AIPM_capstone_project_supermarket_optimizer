@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Depends
 
-from backend.app.services.session import get_session_id
+from backend.app.services.auth import get_current_user
 from backend.app.analytics.events import log_event
 from backend.app.db.supabase import (
     get_recommendation,
@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.post("/feedback")
-def submit_feedback(feedback: FeedbackCreate, session_id: str = Depends(get_session_id)):
+def submit_feedback(feedback: FeedbackCreate, user_id: str = Depends(get_current_user)):
     """
     Record "Would you consider buying this next time?" (Story 8.1).
 
@@ -41,13 +41,13 @@ def submit_feedback(feedback: FeedbackCreate, session_id: str = Depends(get_sess
     if recommendation is None:
         raise HTTPException(status_code=404, detail="Recommendation not found.")
 
-    owner_session_id = recommendation.get("session_id")
-    if owner_session_id is not None and owner_session_id != session_id:
+    owner_session_id = recommendation.get("user_id")
+    if owner_session_id is not None and owner_session_id != user_id:
         raise HTTPException(status_code=403, detail="This recommendation belongs to a different session.")
 
     feedback_id = str(uuid4())
     fields = feedback.model_dump()
-    stored = create_feedback_row(feedback_id, session_id, fields)
+    stored = create_feedback_row(feedback_id, user_id, fields)
     if stored is None:
         raise HTTPException(
             status_code=503,
@@ -57,10 +57,10 @@ def submit_feedback(feedback: FeedbackCreate, session_id: str = Depends(get_sess
     log_event(
         "feedback_submitted",
         {"recommendation_id": feedback.recommendation_id, "response": feedback.response.value},
-        session_id,
+        user_id,
     )
 
-    return {"id": feedback_id, "session_id": session_id, **fields}
+    return {"id": feedback_id, "user_id": user_id, **fields}
 
 
 @router.get("/feedback/{recommendation_id}")

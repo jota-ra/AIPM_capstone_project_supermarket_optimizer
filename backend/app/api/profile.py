@@ -2,77 +2,98 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Depends
 
-from backend.app.services.session import get_session_id
+from backend.app.services.auth import get_current_user
+from backend.app.services.ideal_profile import compute_ideal_profile
 from backend.app.db.supabase import (
     create_profile_row,
     get_profile,
-    get_profile_by_session,
+    get_profile_by_user,
     delete_profile,
     update_profile_row,
 )
-from backend.app.models.profile import ProfileCreate, ProfileUpdate
+from backend.app.models.profile import ProfileCreate, ProfileUpdate, Profile
 
 router = APIRouter()
 
 
 def _profile_response(row: dict) -> dict:
     """
-    Normalize a stored row (DB column is `id`) to the shape every other
-    profile endpoint uses (`profile_id`), so GET/PATCH match POST's
-    response and the frontend's `Profile` type (which has `profile_id`,
-    not `id`).
+    Normalize a stored row (DB column is `id`) to the shape every profile
+    endpoint uses (`profile_id`), matching the frontend's `Profile` type,
+    and attach the computed Ideal Profile (E2) when the Level-1 biometrics
+    are present — so completing onboarding immediately yields personalized
+    targets (E1-S6 -> E2 handoff). `ideal_profile` is null until enough of
+    the profile is filled in.
     """
 
-    return {"profile_id": row["id"], **{k: v for k, v in row.items() if k != "id"}}
+    ideal = None
+    try:
+        profile = Profile.model_validate(row)
+        ideal_obj = compute_ideal_profile(profile)
+        ideal = ideal_obj.model_dump() if ideal_obj else None
+    except Exception:
+        # A legacy row saved under an older enum set shouldn't 500 a read;
+        # personalization just stays off until the profile is re-saved.
+        ideal = None
+
+    return {
+        "profile_id": row["id"],
+        **{k: v for k, v in row.items() if k != "id"},
+        "ideal_profile": ideal,
+    }
+
+
+def _assert_owner(row: dict, user_id: str) -> None:
+    """Reject access to a profile owned by another user. A row with no
+    user_id on record (legacy/pre-auth data) is treated as unowned and
+    still accessible, matching the codebase's migration-window safety nets."""
+
+    owner = row.get("user_id")
+    if owner is not None and owner != user_id:
+        raise HTTPException(status_code=403, detail="This profile belongs to a different user.")
 
 
 @router.post("/profile")
-def create_profile(profile: ProfileCreate, session_id: str = Depends(get_session_id)):
+def create_profile(profile: ProfileCreate, user_id: str = Depends(get_current_user)):
     """
-    Create a user profile (Story 3.1, extended for chat onboarding).
+    Create the authenticated user's Level-1 profile (E1-S5).
 
-    Goal, eating style, allergies and exclusions (Story 3.2) are stored
-    as-is for later use by the exclusion filter (Task 3.3) and the
-    recommender (Epic 5).
-
-    Tagged with `session_id` (Story 8.3) for consistency with receipts;
-    nothing currently looks profiles up by session, but this keeps the
-    door open without needing a schema change later.
+    Scoped to the caller's `user_id` (from the Supabase access token), so
+    every downstream read (`/profile/me`, receipts, snapshot, next-cart)
+    resolves to the right person. `profile_complete` on the body drives
+    the resume-vs-dashboard decision at next login (E1-S6).
     """
 
     profile_id = str(uuid4())
     fields = profile.model_dump(mode="json")
-    create_profile_row(profile_id, {**fields, "session_id": session_id})
+    create_profile_row(profile_id, {**fields, "user_id": user_id})
 
-    return {"profile_id": profile_id, "session_id": session_id, **fields}
+    row = get_profile(profile_id) or {"id": profile_id, "user_id": user_id, **fields}
+    return _profile_response(row)
 
 
-@router.get("/profile/by-session/{session_id}")
-def read_profile_by_session(session_id: str):
+@router.get("/profile/me")
+def read_my_profile(user_id: str = Depends(get_current_user)):
     """
-    The most recent profile created under a given session_id (demo
-    account picker, see LandingStep/AccountPickerStep in the frontend) —
-    lets a fixed, shared session_id ("Jennifer", "Stuart") resolve to
-    whichever profile that identity last set up, without the frontend
-    needing to remember a separate profile_id per demo account.
-
-    404 just means this session hasn't onboarded yet, which is a normal,
-    expected state (not an error) — the frontend falls back to onboarding.
+    The authenticated user's profile (E1-S6 resume). 404 means this user
+    hasn't started onboarding yet — a normal state the frontend handles by
+    starting the walk-through, not an error.
     """
 
-    row = get_profile_by_session(session_id)
+    row = get_profile_by_user(user_id)
     if row is None:
-        raise HTTPException(status_code=404, detail="No profile found for this session.")
+        raise HTTPException(status_code=404, detail="No profile found for this user.")
     return _profile_response(row)
 
 
 @router.get("/profile/{profile_id}")
-def read_profile(profile_id: str):
-    """Fetch a stored profile, e.g. to reuse across a session."""
+def read_profile(profile_id: str, user_id: str = Depends(get_current_user)):
+    """Fetch a stored profile (ownership-checked)."""
 
     row = get_profile(profile_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Profile not found.")
+    _assert_owner(row, user_id)
     return _profile_response(row)
 
 
@@ -80,24 +101,22 @@ def read_profile(profile_id: str):
 def edit_profile(
     profile_id: str,
     updates: ProfileUpdate,
-    session_id: str = Depends(get_session_id),
+    user_id: str = Depends(get_current_user),
 ):
     """
-    Edit a stored profile in place (profile summary/edit screen) —
-    users can revisit and change any answer from the chat onboarding.
+    Edit a stored profile in place (profile summary / edit screen, and
+    incremental saves during onboarding for resume — E1-S6).
 
     Only the fields present in the request body are touched
     (`exclude_unset`), so editing one answer never clobbers the rest.
-    Same session-ownership rule as `erase_profile`.
+    Changing any Level-1 field recomputes the Ideal Profile on the next
+    read (R-RECALC, via `_profile_response`).
     """
 
     row = get_profile(profile_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Profile not found.")
-
-    owner_session_id = row.get("session_id")
-    if owner_session_id is not None and owner_session_id != session_id:
-        raise HTTPException(status_code=403, detail="This profile belongs to a different session.")
+    _assert_owner(row, user_id)
 
     fields = updates.model_dump(mode="json", exclude_unset=True)
     if fields:
@@ -108,26 +127,16 @@ def edit_profile(
 
 
 @router.delete("/profile/{profile_id}")
-def erase_profile(profile_id: str, session_id: str = Depends(get_session_id)):
+def erase_profile(profile_id: str, user_id: str = Depends(get_current_user)):
     """
     Permanently delete a profile (GDPR user-initiated erasure, Story 7.3).
-    Hard delete, on request — no broader auth system exists to hang an
-    automatic TTL off of.
-
-    Restricted to the session that created the profile (bug fix: this
-    used to delete by profile_id alone, so anyone who obtained an ID
-    could erase another session's profile). A row with no session_id on
-    record (pre-migration environment) is treated as unowned and still
-    deletable, matching this codebase's other migration-window safety nets.
+    Restricted to the profile's owner.
     """
 
     row = get_profile(profile_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Profile not found.")
-
-    owner_session_id = row.get("session_id")
-    if owner_session_id is not None and owner_session_id != session_id:
-        raise HTTPException(status_code=403, detail="This profile belongs to a different session.")
+    _assert_owner(row, user_id)
 
     delete_profile(profile_id)
     return {"profile_id": profile_id, "deleted": True}

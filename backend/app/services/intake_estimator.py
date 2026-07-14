@@ -15,7 +15,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from backend.app.db.pantry_repo import get_pantry_items_by_session
+from backend.app.db.pantry_repo import get_pantry_items_by_user
 from backend.app.models.snapshot import ConfidenceLevel
 from backend.app.services.pantry import get_consumption_events
 from backend.app.services.nutrition_mapping import map_items
@@ -84,7 +84,7 @@ def _confidence(events_considered: int, confirmed_names: int, total_names: int) 
 
 
 def _estimate_daily_nutrient(
-    session_id: str,
+    user_id: str,
     dimension: str,
     nutrient_field: str,
     window_days: int = DEFAULT_WINDOW_DAYS,
@@ -108,12 +108,12 @@ def _estimate_daily_nutrient(
     window_end = datetime.now(timezone.utc) - timedelta(days=offset_days)
     window_start = window_end - timedelta(days=window_days)
     events = [
-        e for e in get_consumption_events(session_id)
+        e for e in get_consumption_events(user_id)
         if window_start <= _parse_ts(e.get("consumed_at")) < window_end
     ]
 
     if not events:
-        pantry_items = get_pantry_items_by_session(session_id)
+        pantry_items = get_pantry_items_by_user(user_id)
         return DailyIntakeEstimate(
             dimension=dimension,
             daily_estimate=None,
@@ -127,7 +127,7 @@ def _estimate_daily_nutrient(
     # unit that product is tracked in (see add_items_to_pantry).
     pantry_by_name = {
         item["normalized_name"]: item
-        for item in get_pantry_items_by_session(session_id)
+        for item in get_pantry_items_by_user(user_id)
     }
 
     matched = map_items([
@@ -152,7 +152,7 @@ def _estimate_daily_nutrient(
         total += grams / 100.0 * value
 
     confirmed_names = len({e["normalized_name"] for e in events})
-    pantry_items = get_pantry_items_by_session(session_id)
+    pantry_items = get_pantry_items_by_user(user_id)
 
     return DailyIntakeEstimate(
         dimension=dimension,
@@ -164,35 +164,35 @@ def _estimate_daily_nutrient(
 
 
 def estimate_daily_iron_mg(
-    session_id: str, window_days: int = DEFAULT_WINDOW_DAYS, offset_days: int = 0
+    user_id: str, window_days: int = DEFAULT_WINDOW_DAYS, offset_days: int = 0
 ) -> DailyIntakeEstimate:
     """Average daily iron intake (mg/day) from confirmed consumption."""
 
-    return _estimate_daily_nutrient(session_id, "iron", "iron_mg", window_days, offset_days)
+    return _estimate_daily_nutrient(user_id, "iron", "iron_mg", window_days, offset_days)
 
 
 def estimate_daily_protein_g(
-    session_id: str, window_days: int = DEFAULT_WINDOW_DAYS, offset_days: int = 0
+    user_id: str, window_days: int = DEFAULT_WINDOW_DAYS, offset_days: int = 0
 ) -> DailyIntakeEstimate:
     """Average daily protein intake (g/day) from confirmed consumption."""
 
-    return _estimate_daily_nutrient(session_id, "protein", "protein_g", window_days, offset_days)
+    return _estimate_daily_nutrient(user_id, "protein", "protein_g", window_days, offset_days)
 
 
 def estimate_daily_calcium_mg(
-    session_id: str, window_days: int = DEFAULT_WINDOW_DAYS, offset_days: int = 0
+    user_id: str, window_days: int = DEFAULT_WINDOW_DAYS, offset_days: int = 0
 ) -> DailyIntakeEstimate:
     """Average daily calcium intake (mg/day) from confirmed consumption."""
 
-    return _estimate_daily_nutrient(session_id, "calcium", "calcium_mg", window_days, offset_days)
+    return _estimate_daily_nutrient(user_id, "calcium", "calcium_mg", window_days, offset_days)
 
 
 def estimate_daily_calories_kcal(
-    session_id: str, window_days: int = DEFAULT_WINDOW_DAYS, offset_days: int = 0
+    user_id: str, window_days: int = DEFAULT_WINDOW_DAYS, offset_days: int = 0
 ) -> DailyIntakeEstimate:
     """Average daily calorie intake (kcal/day) from confirmed consumption."""
 
-    return _estimate_daily_nutrient(session_id, "calories", "calories_kcal", window_days, offset_days)
+    return _estimate_daily_nutrient(user_id, "calories", "calories_kcal", window_days, offset_days)
 
 
 def _parse_ts(value) -> datetime:

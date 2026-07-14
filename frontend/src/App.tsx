@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 import { AppShell, type StepId } from "@/components/AppShell";
 import { ConsentBanner } from "@/components/ConsentBanner";
-import { LandingStep } from "@/steps/LandingStep";
-import { AccountPickerStep } from "@/steps/AccountPickerStep";
+import { AuthScreen } from "@/steps/AuthScreen";
 import { OnboardingUploadStep } from "@/steps/OnboardingUploadStep";
 import {
   NotificationsStep,
@@ -16,50 +17,99 @@ import { DiaryStep } from "@/steps/DiaryStep";
 import { ChatOnboardingStep } from "@/steps/ChatOnboardingStep";
 import { ProfileSummary } from "@/steps/ProfileSummary";
 import { ResultsStep } from "@/steps/ResultsStep";
-import { deleteReceipt, deleteProfile, clearSession, ApiError } from "@/lib/api";
+import { getMyProfile, deleteReceipt, deleteProfile, ApiError } from "@/lib/api";
+import type { Profile } from "@/types/api";
 import { LanguageProvider, useLanguage, t, getStoredLanguage } from "@/lib/i18n";
 
 const RECEIPT_KEY = "nutriwise.receiptId";
-const PROFILE_KEY = "nutriwise.profileId";
 const CONSENT_KEY = "nutriwise.consent";
 
 function App() {
-  // Flow order (after the consent/disclaimer gate): onboarding -> upload -> results.
-  // "userProfile" (edit view of onboarding's answers) is a standalone nav
-  // destination, not part of that linear flow. "landing" is the demo's
-  // very first screen (see LandingStep.tsx) and is rendered outside the
-  // AppShell entirely below — it deliberately has no nav/footer, since
-  // the user hasn't started the app yet.
-  const [step, setStep] = useState<StepId>("landing");
+  // E1: the app is gated on a Supabase auth session. Unauthenticated ->
+  // AuthScreen (sign-up / login / age gate). Authenticated -> resolve the
+  // user's profile from the server and either resume onboarding (E1-S6) or
+  // land on the dashboard.
+  const [session, setSession] = useState<Session | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [bootstrapped, setBootstrapped] = useState(false);
+
+  const [step, setStep] = useState<StepId>("onboarding");
   const [receiptId, setReceiptId] = useState<string | null>(() =>
     localStorage.getItem(RECEIPT_KEY),
   );
-  const [profileId, setProfileId] = useState<string | null>(() =>
-    localStorage.getItem(PROFILE_KEY),
-  );
-  // Only used to personalize OnboardingUploadStep's greeting right after
-  // the chat — not persisted, so a page reload just falls back to the
-  // name-less greeting instead of an extra profile fetch.
+  const [profileId, setProfileId] = useState<string | null>(null);
+  // The incomplete profile to resume onboarding from (E1-S6), or null for
+  // a fresh walk-through.
+  const [resumeProfile, setResumeProfile] = useState<Profile | null>(null);
   const [profileName, setProfileName] = useState<string | null>(null);
+
   const [consented, setConsented] = useState<boolean>(
     () => localStorage.getItem(CONSENT_KEY) === "true",
   );
-  // Lifted here (not just local to NotificationsStep) so AppShell's bell
-  // dot reflects the same real unread state the Notifications page
-  // shows — see NotificationsStep.tsx's docstring on why a single
-  // source of truth matters for "mark all read" not getting silently
-  // undone by a later background refresh.
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
 
-  // Refreshes whenever the user lands on one of the main app pages —
-  // cheap, already-cached-elsewhere reads (see loadNotifications), so
-  // re-fetching on every nav is acceptable rather than trying to guess
-  // exactly when something might have changed.
+  // Persisted session (E1-S4): Supabase restores it from storage on load
+  // and refreshes tokens silently; we just mirror it into React state and
+  // react to sign-in / sign-out.
   useEffect(() => {
-    if (!consented) return;
-    if (step === "landing" || step === "accountPicker" || step === "onboarding") return;
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthReady(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      if (!s) {
+        // Signed out — drop everything tied to the previous account.
+        setBootstrapped(false);
+        setProfileId(null);
+        setResumeProfile(null);
+        setProfileName(null);
+        setReceiptId(null);
+        localStorage.removeItem(RECEIPT_KEY);
+        setNotifications([]);
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  // After sign-in, resolve the user's profile once and pick the entry step
+  // (E1-S6): complete -> dashboard; partial -> resume onboarding; none ->
+  // start onboarding.
+  useEffect(() => {
+    if (!session || bootstrapped) return;
+    let cancelled = false;
+    getMyProfile()
+      .then((p) => {
+        if (cancelled) return;
+        setBootstrapped(true);
+        if (p && p.profile_complete) {
+          setProfileId(p.profile_id);
+          setProfileName(p.name ?? null);
+          setStep("results");
+        } else if (p) {
+          setProfileId(p.profile_id);
+          setResumeProfile(p);
+          setStep("onboarding");
+        } else {
+          setStep("onboarding");
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setBootstrapped(true);
+        setStep("onboarding");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session, bootstrapped]);
+
+  // Refresh notifications on the main app pages (see NotificationsStep).
+  useEffect(() => {
+    if (!session || !consented) return;
+    if (step === "onboarding") return;
 
     let cancelled = false;
     setNotificationsLoading(true);
@@ -72,7 +122,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [step, profileId, consented]);
+  }, [step, profileId, consented, session]);
 
   function handleConsent() {
     localStorage.setItem(CONSENT_KEY, "true");
@@ -88,18 +138,12 @@ function App() {
   function handleProfileCreated(id: string, name: string | null) {
     setProfileId(id);
     setProfileName(name);
-    localStorage.setItem(PROFILE_KEY, id);
+    setResumeProfile(null);
     setStep("onboardingUpload");
   }
 
   async function handleDeleteData() {
     if (!receiptId && !profileId) return;
-    // Not inside a component render, so useLanguage()'s context isn't
-    // reachable here — getStoredLanguage() reads the same localStorage
-    // value LanguageProvider itself initializes from (see lib/i18n.tsx),
-    // so this native confirm dialog still matches the user's chosen
-    // language instead of always showing English for the app's one
-    // truly irreversible action.
     const lang = getStoredLanguage();
     if (!window.confirm(t("footer.deleteConfirm", lang))) {
       return;
@@ -107,12 +151,16 @@ function App() {
 
     try {
       await Promise.all([
-        receiptId ? deleteReceipt(receiptId).catch((e) => {
-          if (!(e instanceof ApiError && e.status === 404)) throw e;
-        }) : null,
-        profileId ? deleteProfile(profileId).catch((e) => {
-          if (!(e instanceof ApiError && e.status === 404)) throw e;
-        }) : null,
+        receiptId
+          ? deleteReceipt(receiptId).catch((e) => {
+              if (!(e instanceof ApiError && e.status === 404)) throw e;
+            })
+          : null,
+        profileId
+          ? deleteProfile(profileId).catch((e) => {
+              if (!(e instanceof ApiError && e.status === 404)) throw e;
+            })
+          : null,
       ]);
     } catch (e) {
       window.alert(e instanceof ApiError ? e.message : t("footer.deleteFailed", lang));
@@ -120,65 +168,42 @@ function App() {
     }
 
     localStorage.removeItem(RECEIPT_KEY);
-    localStorage.removeItem(PROFILE_KEY);
     setReceiptId(null);
     setProfileId(null);
+    setResumeProfile(null);
     setStep("onboarding");
   }
 
-  // Logout: ends this browser's session (see clearSession's docstring —
-  // there's no real auth, so "logging out" just drops the session_id
-  // and every locally-cached ID that belonged to it) and returns to the
-  // login page. Deliberately does NOT touch `consented` — that's an
-  // acknowledgment of this browser/device having seen the disclaimer,
-  // not something tied to a specific account, so a re-login shouldn't
-  // have to re-accept it.
-  function handleLogout() {
-    clearSession();
-    localStorage.removeItem(RECEIPT_KEY);
-    localStorage.removeItem(PROFILE_KEY);
-    setReceiptId(null);
-    setProfileId(null);
-    setProfileName(null);
-    setNotifications([]);
-    setStep("landing");
+  // Logout (E1-S4): end the Supabase session. onAuthStateChange then fires
+  // with a null session, resetting local state and rendering AuthScreen.
+  async function handleLogout() {
+    await supabase.auth.signOut();
   }
 
   function handleMarkAllNotificationsRead() {
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
   }
 
-  if (step === "landing") {
+  if (!authReady) {
     return (
       <LanguageProvider>
-        <LandingStep onRegister={() => setStep("onboarding")} onLogin={() => setStep("accountPicker")} />
+        <LoadingScreen />
       </LanguageProvider>
     );
   }
 
-  if (step === "accountPicker") {
+  if (!session) {
     return (
       <LanguageProvider>
-        <AccountPickerStep
-          onBack={() => setStep("landing")}
-          onResolved={({ profileId: resolvedProfileId }) => {
-            // Switching demo accounts means switching session_id — any
-            // receipt the previous account was reviewing belongs to a
-            // different session and would just 403 here, so drop it.
-            setReceiptId(null);
-            localStorage.removeItem(RECEIPT_KEY);
+        <AuthScreen />
+      </LanguageProvider>
+    );
+  }
 
-            if (resolvedProfileId) {
-              setProfileId(resolvedProfileId);
-              localStorage.setItem(PROFILE_KEY, resolvedProfileId);
-              setStep("results");
-            } else {
-              setProfileId(null);
-              localStorage.removeItem(PROFILE_KEY);
-              setStep("onboarding");
-            }
-          }}
-        />
+  if (!bootstrapped) {
+    return (
+      <LanguageProvider>
+        <LoadingScreen />
       </LanguageProvider>
     );
   }
@@ -207,6 +232,8 @@ function App() {
 
             {step === "onboarding" ? (
               <ChatOnboardingStep
+                resumeProfile={resumeProfile}
+                resumeProfileId={profileId}
                 onProfileCreated={handleProfileCreated}
                 onSkip={() => setStep("pantry")}
               />
@@ -214,12 +241,8 @@ function App() {
 
             {step === "onboardingUpload" ? (
               <OnboardingUploadStep
-                profileId={profileId}
                 profileName={profileName}
                 onUploaded={handleUploaded}
-                // Results/Next Cart need at least one receipt (409
-                // otherwise) — Pantry handles "nothing yet" gracefully
-                // (pantry.empty) and still nudges towards uploading.
                 onSkip={() => setStep("pantry")}
               />
             ) : null}
@@ -232,7 +255,6 @@ function App() {
               )
             ) : null}
 
-            {/* Flow: Disclaimer -> Onboarding -> Pantry (upload lives here now) -> Review -> Pantry. */}
             {step === "review" ? (
               receiptId ? (
                 <ReviewStep receiptId={receiptId} onContinue={() => setStep("pantry")} />
@@ -258,6 +280,15 @@ function App() {
         )}
       </AppShell>
     </LanguageProvider>
+  );
+}
+
+function LoadingScreen() {
+  const { t } = useLanguage();
+  return (
+    <section className="mx-auto flex min-h-[60vh] max-w-sm items-center justify-center px-6">
+      <p className="text-sm text-ink/50">{t("common.loading")}</p>
+    </section>
   );
 }
 

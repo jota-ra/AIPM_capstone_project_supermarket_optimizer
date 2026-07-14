@@ -37,18 +37,18 @@ UserProfileLike = Union[Profile, ProfileCreate]
 # cache collapses that pair (and rapid Refresh clicks) into one
 # computation without risking meaningfully stale data — nothing in this
 # app updates a session's receipts fast enough for 5 seconds to matter.
-# Keyed by (session_id, profile_id) since the personalized protein
+# Keyed by (user_id, profile_id) since the personalized protein
 # reference (weight/height/gender) depends on which profile was passed.
 _SNAPSHOT_CACHE_TTL_SECONDS = 5.0
 _snapshot_cache: Dict[Tuple[str, Optional[str]], Tuple[float, NutritionSnapshot]] = {}
 
 
-def invalidate_snapshot_cache(session_id: str) -> None:
+def invalidate_snapshot_cache(user_id: str) -> None:
     """Call after any write that changes a session's receipts (new
     upload, item correction) so the next snapshot reflects it immediately
     instead of waiting out the cache TTL."""
 
-    for key in [k for k in _snapshot_cache if k[0] == session_id]:
+    for key in [k for k in _snapshot_cache if k[0] == user_id]:
         _snapshot_cache.pop(key, None)
 
 
@@ -96,7 +96,7 @@ def build_snapshot(
 
 
 def build_snapshot_from_db(
-    session_id: str,
+    user_id: str,
     user_profile: Optional[UserProfileLike] = None,
 ) -> NutritionSnapshot:
     """
@@ -111,16 +111,16 @@ def build_snapshot_from_db(
     /next-cart's exclusion filtering) rather than fetching it again here.
     """
 
-    cache_key = (session_id, getattr(user_profile, "id", None))
+    cache_key = (user_id, getattr(user_profile, "id", None))
     cached = _snapshot_cache.get(cache_key)
     if cached is not None and (time.time() - cached[0]) < _SNAPSHOT_CACHE_TTL_SECONDS:
         return cached[1]
 
     # Imported here so the offline/folder paths don't require DB config.
-    from backend.app.db.supabase import get_receipt_items_by_session
+    from backend.app.db.supabase import get_receipt_items_by_user
     from backend.app.analytics.events import log_event
 
-    items = get_receipt_items_by_session(session_id)
+    items = get_receipt_items_by_user(user_id)
     receipts = len({it.get("receipt_id") for it in items if it.get("receipt_id")})
 
     # Bug fix (Story 9.1): match_rate was only ever logged by
@@ -133,7 +133,7 @@ def build_snapshot_from_db(
     # against. map_items() runs once; matched_products feeds the
     # snapshot and match_quality feeds the event, no redundant OFF calls.
     mapping = map_items(items)
-    log_event("match_rate", mapping.match_quality.model_dump(), session_id)
+    log_event("match_rate", mapping.match_quality.model_dump(), user_id)
     snapshot = assemble_snapshot(items, mapping.matched_products, receipts, user_profile)
 
     _snapshot_cache[cache_key] = (time.time(), snapshot)
@@ -144,7 +144,7 @@ def build_snapshot_from_all_receipts() -> NutritionSnapshot:
     """
     Dev/debug only: aggregate every receipt in the database regardless of
     session. NOT used by the API — real requests always go through
-    `build_snapshot_from_db(session_id)` so one session's data doesn't
+    `build_snapshot_from_db(user_id)` so one session's data doesn't
     bleed into another's. Kept for manual scripts that want to sanity
     check against everything that's been uploaded so far.
     """

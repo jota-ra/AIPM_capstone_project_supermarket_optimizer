@@ -13,7 +13,7 @@ class PantryItem(BaseModel):
     """
 
     id: str
-    session_id: str
+    user_id: str
     normalized_name: str
     quantity_available: float
     unit: Optional[str] = None
@@ -34,7 +34,7 @@ class ConsumptionEvent(BaseModel):
     """
 
     id: str
-    session_id: str
+    user_id: str
     normalized_name: str
     quantity_consumed: float
     consumed_at: str

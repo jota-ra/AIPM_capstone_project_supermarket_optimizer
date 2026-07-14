@@ -58,7 +58,7 @@ def _no_history_report(receipts_compared: int = 1, absolute_deltas: Optional[Lis
     )
 
 
-def compute_absolute_progress(session_id: str) -> List[DimensionDelta]:
+def compute_absolute_progress(user_id: str) -> List[DimensionDelta]:
     """
     This week's (last DEFAULT_WINDOW_DAYS) estimated daily intake vs. the
     week before it, per absolute nutrient — independent of receipt count,
@@ -70,8 +70,8 @@ def compute_absolute_progress(session_id: str) -> List[DimensionDelta]:
     current = {}
     previous = {}
     for dimension, estimate_fn in _ABSOLUTE_ESTIMATORS.items():
-        current[dimension] = estimate_fn(session_id).daily_estimate
-        previous[dimension] = estimate_fn(session_id, offset_days=DEFAULT_WINDOW_DAYS).daily_estimate
+        current[dimension] = estimate_fn(user_id).daily_estimate
+        previous[dimension] = estimate_fn(user_id, offset_days=DEFAULT_WINDOW_DAYS).daily_estimate
 
     return compute_absolute_deltas(before=previous, after=current)
 
@@ -106,16 +106,16 @@ def _addressed_gap_improved(deltas, addressed_gap: Optional[str]) -> Optional[bo
     return None
 
 
-def _last_recommended_gap(session_id: str, before_receipt_created_at: Optional[str]) -> Optional[str]:
+def _last_recommended_gap(user_id: str, before_receipt_created_at: Optional[str]) -> Optional[str]:
     """
     The `targets_gap` of the most recent "recommended" Next Cart shown
     before the receipt being compared, so we can say whether that
     specific recommendation actually landed.
     """
 
-    from backend.app.db.supabase import get_recommendations_by_session
+    from backend.app.db.supabase import get_recommendations_by_user
 
-    recommendations = get_recommendations_by_session(session_id)  # oldest-first
+    recommendations = get_recommendations_by_user(user_id)  # oldest-first
     for rec in reversed(recommendations):  # walk newest-first to find the most recent match
         if before_receipt_created_at and rec.get("created_at", "") >= before_receipt_created_at:
             continue
@@ -125,7 +125,7 @@ def _last_recommended_gap(session_id: str, before_receipt_created_at: Optional[s
     return None
 
 
-def compute_session_progress(session_id: str) -> ProgressReport:
+def compute_session_progress(user_id: str) -> ProgressReport:
     """
     Compare this session's newest receipt against the one right before
     it. Returns has_history=False (not an error) when there's only one
@@ -137,11 +137,11 @@ def compute_session_progress(session_id: str) -> ProgressReport:
     time, not from having a second receipt to compare against.
     """
 
-    from backend.app.db.supabase import get_receipts_by_session
+    from backend.app.db.supabase import get_receipts_by_user
 
-    absolute_deltas = compute_absolute_progress(session_id)
+    absolute_deltas = compute_absolute_progress(user_id)
 
-    receipts = get_receipts_by_session(session_id)  # newest-first (Task 8.4)
+    receipts = get_receipts_by_user(user_id)  # newest-first (Task 8.4)
     if len(receipts) < 2:
         return _no_history_report(receipts_compared=len(receipts), absolute_deltas=absolute_deltas)
 
@@ -153,7 +153,7 @@ def compute_session_progress(session_id: str) -> ProgressReport:
     delta = compute_nutrition_delta(before=previous_profile, after=current_profile)
     trend = _trend_from_deltas(delta.deltas)
 
-    addressed_gap = _last_recommended_gap(session_id, current_receipt.get("created_at"))
+    addressed_gap = _last_recommended_gap(user_id, current_receipt.get("created_at"))
     addressed_gap_improved = _addressed_gap_improved(delta.deltas, addressed_gap)
 
     return ProgressReport(

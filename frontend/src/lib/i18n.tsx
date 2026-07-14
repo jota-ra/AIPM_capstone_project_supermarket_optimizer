@@ -59,10 +59,11 @@ const STRINGS: Record<string, { en: string; de: string }> = {
     en: "NutriWise · estimated from your shopping habits, not actual intake",
     de: "NutriWise · geschätzt aus deinem Einkaufsverhalten, nicht dem tatsächlichen Verzehr",
   },
+  "common.loading": { en: "Loading…", de: "Wird geladen…" },
   "footer.deleteData": { en: "Delete or reset my data", de: "Daten löschen oder zurücksetzen" },
   "footer.deleteConfirm": {
-    en: "Delete the receipt and profile stored for this session? This can't be undone.",
-    de: "Kassenbon und Profil dieser Sitzung löschen? Das kann nicht rückgängig gemacht werden.",
+    en: "Delete the receipt and profile stored for your account? This can't be undone.",
+    de: "Kassenbon und Profil deines Kontos löschen? Das kann nicht rückgängig gemacht werden.",
   },
   "footer.deleteFailed": { en: "Could not delete your data.", de: "Daten konnten nicht gelöscht werden." },
   "review.uploadFirst": { en: "Upload a receipt first.", de: "Lade zuerst einen Kassenbon hoch." },

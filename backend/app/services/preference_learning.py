@@ -16,12 +16,12 @@ _SYMPTOM_PRIORITY_BOOST: a boost can reorder what's already there, it
 can't add a fact that isn't already computed elsewhere.
 """
 
-from backend.app.db.supabase import get_recommendations_by_session, get_feedback_by_session
+from backend.app.db.supabase import get_recommendations_by_user, get_feedback_by_user
 
 _SCORE_BY_RESPONSE = {"yes": 1, "no": -1, "maybe": 0}
 
 
-def item_preference_scores(session_id: str) -> dict:
+def item_preference_scores(user_id: str) -> dict:
     """
     Net feedback score per recommended item name for this session: +1
     per "yes", -1 per "no", "maybe" is neutral. Only items that were
@@ -29,7 +29,7 @@ def item_preference_scores(session_id: str) -> dict:
     feedback show up here — everything else is untouched (score 0).
     """
 
-    recommendations = get_recommendations_by_session(session_id) or []
+    recommendations = get_recommendations_by_user(user_id) or []
     item_by_recommendation_id = {
         row["id"]: row.get("payload", {}).get("item")
         for row in recommendations
@@ -37,7 +37,7 @@ def item_preference_scores(session_id: str) -> dict:
     }
 
     scores: dict = {}
-    for row in get_feedback_by_session(session_id) or []:
+    for row in get_feedback_by_user(user_id) or []:
         item = item_by_recommendation_id.get(row.get("recommendation_id"))
         delta = _SCORE_BY_RESPONSE.get(row.get("response"), 0)
         if item and delta:

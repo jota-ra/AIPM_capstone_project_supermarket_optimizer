@@ -16,12 +16,10 @@ type Mode = "image" | "text";
 // header), and it's the one place in the app where completing it always
 // means "continue the onboarding journey", never "revisit an existing one".
 export function OnboardingUploadStep({
-  profileId,
   profileName,
   onUploaded,
   onSkip,
 }: {
-  profileId: string | null;
   profileName?: string | null;
   onUploaded: (receiptId: string) => void;
   onSkip: () => void;
@@ -39,7 +37,7 @@ export function OnboardingUploadStep({
     setLoading(true);
     setError(null);
     try {
-      const res = await uploadReceiptFile(file, profileId ?? undefined);
+      const res = await uploadReceiptFile(file);
       setResult(res);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t("upload.uploadFailed"));
@@ -53,7 +51,7 @@ export function OnboardingUploadStep({
     setLoading(true);
     setError(null);
     try {
-      const res = await uploadReceiptText(pastedText, profileId ?? undefined);
+      const res = await uploadReceiptText(pastedText);
       setResult(res);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t("upload.uploadFailed"));

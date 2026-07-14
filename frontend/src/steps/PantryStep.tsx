@@ -215,10 +215,8 @@ function PantryRow({
 type UploadMode = "image" | "text";
 
 function UploadSection({
-  profileId,
   onUploaded,
 }: {
-  profileId: string | null;
   onUploaded: (receiptId: string) => void;
 }) {
   const [mode, setMode] = useState<UploadMode>("image");
@@ -234,7 +232,7 @@ function UploadSection({
     setLoading(true);
     setError(null);
     try {
-      const res = await uploadReceiptFile(file, profileId ?? undefined);
+      const res = await uploadReceiptFile(file);
       setResult(res);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t("upload.uploadFailed"));
@@ -248,7 +246,7 @@ function UploadSection({
     setLoading(true);
     setError(null);
     try {
-      const res = await uploadReceiptText(pastedText, profileId ?? undefined);
+      const res = await uploadReceiptText(pastedText);
       setResult(res);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t("upload.uploadFailed"));
@@ -533,7 +531,6 @@ export function PantryStep({
       ) : null}
 
       <UploadSection
-        profileId={profileId}
         onUploaded={(receiptId) => {
           onUploaded(receiptId);
           // The uploaded items land in the pantry once the review step

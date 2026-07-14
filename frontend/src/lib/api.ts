@@ -14,10 +14,9 @@ import type {
   ReceiptRow,
   UploadReceiptResponse,
 } from "@/types/api";
+import { supabase } from "@/lib/supabase";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
-const SESSION_KEY = "nutriwise.sessionId";
-const SESSION_HEADER = "X-Session-Id";
 
 export class ApiError extends Error {
   status: number;
@@ -28,39 +27,23 @@ export class ApiError extends Error {
   }
 }
 
-// --- Session (Story 8.3) -------------------------------------------------
+// --- Auth (E1) -----------------------------------------------------------
 //
-// No auth exists, so the "session" is just an opaque ID this browser
-// holds and sends back on every request. The backend mints one on the
-// first call that doesn't have it yet and returns it in the response
-// body; every response is checked for that field so callers never have
-// to think about sessions at all.
+// Every request carries the signed-in user's Supabase access token as
+// `Authorization: Bearer <jwt>`. The backend verifies it and scopes all
+// data by the user id (see backend/app/services/auth.py). This replaced
+// the old anonymous `X-Session-Id` model entirely — there is no
+// unauthenticated request path anymore; the app gates on a session before
+// any of these are called (see App.tsx).
 
-function getStoredSessionId(): string | null {
-  return localStorage.getItem(SESSION_KEY);
+async function authHeader(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-// Demo account picker (AccountPickerStep.tsx): switches which fixed
-// session_id every subsequent request is tagged with, so picking
-// "Jennifer" vs. "Stuart" resolves to that identity's own data instead
-// of whatever this browser last used. Every other read in this module
-// re-reads localStorage per call (see sessionHeaders() below), so this
-// takes effect immediately, no reload needed.
-export function setSessionId(sessionId: string): void {
-  localStorage.setItem(SESSION_KEY, sessionId);
-}
-
-// Logout (ProfileSummary.tsx): drops the stored session_id entirely, so
-// the very next request mints a fresh, anonymous one instead of reusing
-// this account's — the same "no real auth, session_id is the identity"
-// model as setSessionId above, just in reverse.
-export function clearSession(): void {
-  localStorage.removeItem(SESSION_KEY);
-}
-
-function sessionHeaders(): Record<string, string> {
-  const id = getStoredSessionId();
-  return id ? { [SESSION_HEADER]: id } : {};
+async function jsonHeaders(): Promise<Record<string, string>> {
+  return { "Content-Type": "application/json", ...(await authHeader()) };
 }
 
 async function handle<T>(res: Response): Promise<T> {
@@ -74,219 +57,194 @@ async function handle<T>(res: Response): Promise<T> {
     }
     throw new ApiError(res.status, detail);
   }
-  const body = await res.json();
-  if (body && typeof body === "object" && typeof body.session_id === "string") {
-    localStorage.setItem(SESSION_KEY, body.session_id);
-  }
-  return body as T;
+  return (await res.json()) as T;
 }
 
-// --- Epic 1: Receipts -------------------------------------------------
+// --- Receipts ------------------------------------------------------------
 
-export function uploadReceiptFile(file: File, profileId?: string): Promise<UploadReceiptResponse> {
+export async function uploadReceiptFile(file: File): Promise<UploadReceiptResponse> {
   const formData = new FormData();
   formData.append("file", file);
-  if (profileId) formData.append("user_id", profileId);
-  return fetch(`${API_BASE}/receipts`, {
+  // Note: no user_id in the body — the backend derives it from the token.
+  const res = await fetch(`${API_BASE}/receipts`, {
     method: "POST",
-    headers: sessionHeaders(),
+    headers: await authHeader(),
     body: formData,
-  }).then((res) => handle<UploadReceiptResponse>(res));
+  });
+  return handle<UploadReceiptResponse>(res);
 }
 
-export function uploadReceiptText(text: string, profileId?: string): Promise<UploadReceiptResponse> {
+export async function uploadReceiptText(text: string): Promise<UploadReceiptResponse> {
   const formData = new FormData();
   formData.append("text", text);
-  if (profileId) formData.append("user_id", profileId);
-  return fetch(`${API_BASE}/receipts`, {
+  const res = await fetch(`${API_BASE}/receipts`, {
     method: "POST",
-    headers: sessionHeaders(),
+    headers: await authHeader(),
     body: formData,
-  }).then((res) => handle<UploadReceiptResponse>(res));
+  });
+  return handle<UploadReceiptResponse>(res);
 }
 
-export function listReceipts(): Promise<{ session_id: string; receipts: ReceiptRow[] }> {
-  return fetch(`${API_BASE}/receipts`, { headers: sessionHeaders() }).then((res) =>
-    handle<{ session_id: string; receipts: ReceiptRow[] }>(res),
-  );
+export async function listReceipts(): Promise<{ user_id: string; receipts: ReceiptRow[] }> {
+  const res = await fetch(`${API_BASE}/receipts`, { headers: await authHeader() });
+  return handle<{ user_id: string; receipts: ReceiptRow[] }>(res);
 }
 
-export function getReceipt(receiptId: string): Promise<ReceiptDetailResponse> {
-  return fetch(`${API_BASE}/receipts/${receiptId}`).then((res) => handle<ReceiptDetailResponse>(res));
+export async function getReceipt(receiptId: string): Promise<ReceiptDetailResponse> {
+  const res = await fetch(`${API_BASE}/receipts/${receiptId}`, { headers: await authHeader() });
+  return handle<ReceiptDetailResponse>(res);
 }
 
-export function updateReceiptItem(
+export async function updateReceiptItem(
   receiptId: string,
   itemId: string,
   updates: ReceiptItemUpdate,
 ): Promise<{ receipt_id: string; item_id: string; updated: ReceiptItemUpdate }> {
-  return fetch(`${API_BASE}/receipts/${receiptId}/items/${itemId}`, {
+  const res = await fetch(`${API_BASE}/receipts/${receiptId}/items/${itemId}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: await jsonHeaders(),
     body: JSON.stringify(updates),
-  }).then((res) =>
-    handle<{ receipt_id: string; item_id: string; updated: ReceiptItemUpdate }>(res),
-  );
+  });
+  return handle<{ receipt_id: string; item_id: string; updated: ReceiptItemUpdate }>(res);
 }
 
-export function deleteReceipt(receiptId: string): Promise<{ receipt_id: string; deleted: boolean }> {
-  // Bug fix: this never sent the session header, so the backend's
-  // session-ownership check (added to close a cross-session-delete gap)
-  // saw a fresh random session on every call and always returned 403 —
-  // "Delete my data" was completely broken until this was added.
-  return fetch(`${API_BASE}/receipts/${receiptId}`, {
+export async function deleteReceipt(receiptId: string): Promise<{ receipt_id: string; deleted: boolean }> {
+  const res = await fetch(`${API_BASE}/receipts/${receiptId}`, {
     method: "DELETE",
-    headers: sessionHeaders(),
-  }).then((res) => handle<{ receipt_id: string; deleted: boolean }>(res));
+    headers: await authHeader(),
+  });
+  return handle<{ receipt_id: string; deleted: boolean }>(res);
 }
 
-// --- Epic 3: Profile ----------------------------------------------------
+// --- Profile (E1) --------------------------------------------------------
 
-export function createProfile(profile: ProfileCreate): Promise<Profile> {
-  return fetch(`${API_BASE}/profile`, {
+export async function createProfile(profile: ProfileCreate): Promise<Profile> {
+  const res = await fetch(`${API_BASE}/profile`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...sessionHeaders() },
+    headers: await jsonHeaders(),
     body: JSON.stringify(profile),
-  }).then((res) => handle<Profile>(res));
+  });
+  return handle<Profile>(res);
 }
 
-export function getProfile(profileId: string): Promise<Profile> {
-  return fetch(`${API_BASE}/profile/${profileId}`, { headers: sessionHeaders() }).then((res) =>
-    handle<Profile>(res),
-  );
+// The authenticated user's own profile, or null if they haven't onboarded
+// yet (E1-S6 resume). null (not an error) on 404.
+export async function getMyProfile(): Promise<Profile | null> {
+  const res = await fetch(`${API_BASE}/profile/me`, { headers: await authHeader() });
+  return res.status === 404 ? null : handle<Profile>(res);
 }
 
-export function updateProfile(profileId: string, updates: Partial<ProfileCreate>): Promise<Profile> {
-  return fetch(`${API_BASE}/profile/${profileId}`, {
+export async function getProfile(profileId: string): Promise<Profile> {
+  const res = await fetch(`${API_BASE}/profile/${profileId}`, { headers: await authHeader() });
+  return handle<Profile>(res);
+}
+
+export async function updateProfile(profileId: string, updates: Partial<ProfileCreate>): Promise<Profile> {
+  const res = await fetch(`${API_BASE}/profile/${profileId}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json", ...sessionHeaders() },
+    headers: await jsonHeaders(),
     body: JSON.stringify(updates),
-  }).then((res) => handle<Profile>(res));
+  });
+  return handle<Profile>(res);
 }
 
-// Demo account picker: does this (fixed, shared) session_id already have
-// a profile? null (not an error) means it hasn't onboarded yet.
-export function getProfileBySession(sessionId: string): Promise<Profile | null> {
-  return fetch(`${API_BASE}/profile/by-session/${sessionId}`, { headers: sessionHeaders() }).then(
-    (res) => (res.status === 404 ? null : handle<Profile>(res)),
-  );
-}
-
-export function deleteProfile(profileId: string): Promise<{ profile_id: string; deleted: boolean }> {
-  // Bug fix: same missing session header as deleteReceipt above.
-  return fetch(`${API_BASE}/profile/${profileId}`, {
+export async function deleteProfile(profileId: string): Promise<{ profile_id: string; deleted: boolean }> {
+  const res = await fetch(`${API_BASE}/profile/${profileId}`, {
     method: "DELETE",
-    headers: sessionHeaders(),
-  }).then((res) => handle<{ profile_id: string; deleted: boolean }>(res));
+    headers: await authHeader(),
+  });
+  return handle<{ profile_id: string; deleted: boolean }>(res);
 }
 
-// --- Epic 4: Nutrition snapshot ------------------------------------------
+// --- Nutrition snapshot --------------------------------------------------
 
-export function getNutritionSnapshot(profileId?: string): Promise<NutritionSnapshot> {
+export async function getNutritionSnapshot(profileId?: string): Promise<NutritionSnapshot> {
   const query = profileId ? `?profile_id=${encodeURIComponent(profileId)}` : "";
-  return fetch(`${API_BASE}/nutrition/snapshot${query}`, { headers: sessionHeaders() }).then((res) =>
-    handle<NutritionSnapshot>(res),
-  );
+  const res = await fetch(`${API_BASE}/nutrition/snapshot${query}`, { headers: await authHeader() });
+  return handle<NutritionSnapshot>(res);
 }
 
-// --- Pantry (Lager-Bestand) -----------------------------------------------
-//
-// Cumulative running stock, not a snapshot: every receipt upload adds to
-// it server-side, and it only shrinks via consume/remove below. See
-// backend services/pantry.py.
+// --- Pantry (Lager-Bestand) ----------------------------------------------
 
-export function getPantry(): Promise<PantryResponse> {
-  return fetch(`${API_BASE}/pantry`, { headers: sessionHeaders() }).then((res) =>
-    handle<PantryResponse>(res),
-  );
+export async function getPantry(): Promise<PantryResponse> {
+  const res = await fetch(`${API_BASE}/pantry`, { headers: await authHeader() });
+  return handle<PantryResponse>(res);
 }
 
-export function consumePantryItem(
+export async function consumePantryItem(
   normalizedName: string,
   quantity: number,
   consumedAt?: string,
-): Promise<{ session_id: string; normalized_name: string; consumed: number }> {
-  return fetch(`${API_BASE}/pantry/items/${encodeURIComponent(normalizedName)}/consume`, {
+): Promise<{ user_id: string; normalized_name: string; consumed: number }> {
+  const res = await fetch(`${API_BASE}/pantry/items/${encodeURIComponent(normalizedName)}/consume`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...sessionHeaders() },
+    headers: await jsonHeaders(),
     body: JSON.stringify({ quantity, consumed_at: consumedAt }),
-  }).then((res) =>
-    handle<{ session_id: string; normalized_name: string; consumed: number }>(res),
-  );
+  });
+  return handle<{ user_id: string; normalized_name: string; consumed: number }>(res);
 }
 
-// Tages-Log: log food that may or may not be in the pantry, for a given
-// day (retroactive logging supported via `consumedAt`). Matches an
-// existing pantry item by name if one exists (reduces stock like a
-// normal consume); otherwise logs a standalone entry — see backend
-// services/pantry.py's log_manual_consumption.
-export function logManualConsumption(
+export async function logManualConsumption(
   name: string,
   quantity: number,
   consumedAt?: string,
   unit?: string,
   category?: string,
-): Promise<{ session_id: string; name: string; logged: number; matched: boolean }> {
-  return fetch(`${API_BASE}/pantry/log`, {
+): Promise<{ user_id: string; name: string; logged: number; matched: boolean }> {
+  const res = await fetch(`${API_BASE}/pantry/log`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...sessionHeaders() },
+    headers: await jsonHeaders(),
     body: JSON.stringify({ name, quantity, unit, category, consumed_at: consumedAt }),
-  }).then((res) =>
-    handle<{ session_id: string; name: string; logged: number; matched: boolean }>(res),
-  );
+  });
+  return handle<{ user_id: string; name: string; logged: number; matched: boolean }>(res);
 }
 
-// Correct a pantry item's unit/category after the fact (Epic 12.3) — an
-// OCR mis-categorization would otherwise silently skew its shelf-life
-// estimate and gram-conversion. `category` must be one of the 8
-// canonical categories (see PANTRY_CATEGORIES in PantryStep.tsx).
-export function updatePantryItemMetadata(
+export async function updatePantryItemMetadata(
   normalizedName: string,
   fields: { unit?: string; category?: string },
-): Promise<{ session_id: string; normalized_name: string; item: PantryItem }> {
-  return fetch(`${API_BASE}/pantry/items/${encodeURIComponent(normalizedName)}`, {
+): Promise<{ user_id: string; normalized_name: string; item: PantryItem }> {
+  const res = await fetch(`${API_BASE}/pantry/items/${encodeURIComponent(normalizedName)}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json", ...sessionHeaders() },
+    headers: await jsonHeaders(),
     body: JSON.stringify(fields),
-  }).then((res) =>
-    handle<{ session_id: string; normalized_name: string; item: PantryItem }>(res),
-  );
+  });
+  return handle<{ user_id: string; normalized_name: string; item: PantryItem }>(res);
 }
 
-export function getConsumptionLogForDate(date: string): Promise<ConsumptionLogResponse> {
-  return fetch(`${API_BASE}/pantry/log?date=${encodeURIComponent(date)}`, {
-    headers: sessionHeaders(),
-  }).then((res) => handle<ConsumptionLogResponse>(res));
+export async function getConsumptionLogForDate(date: string): Promise<ConsumptionLogResponse> {
+  const res = await fetch(`${API_BASE}/pantry/log?date=${encodeURIComponent(date)}`, {
+    headers: await authHeader(),
+  });
+  return handle<ConsumptionLogResponse>(res);
 }
 
-export function removePantryItem(
+export async function removePantryItem(
   normalizedName: string,
   quantity: number,
-): Promise<{ session_id: string; normalized_name: string; removed: number }> {
-  return fetch(`${API_BASE}/pantry/items/${encodeURIComponent(normalizedName)}/remove`, {
+): Promise<{ user_id: string; normalized_name: string; removed: number }> {
+  const res = await fetch(`${API_BASE}/pantry/items/${encodeURIComponent(normalizedName)}/remove`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...sessionHeaders() },
+    headers: await jsonHeaders(),
     body: JSON.stringify({ quantity }),
-  }).then((res) =>
-    handle<{ session_id: string; normalized_name: string; removed: number }>(res),
-  );
+  });
+  return handle<{ user_id: string; normalized_name: string; removed: number }>(res);
 }
 
-// --- Epic 5: Next Cart ----------------------------------------------------
+// --- Next Cart -----------------------------------------------------------
 
-export function getNextCart(profileId?: string): Promise<NextCartRecommendation> {
+export async function getNextCart(profileId?: string): Promise<NextCartRecommendation> {
   const query = profileId ? `?profile_id=${encodeURIComponent(profileId)}` : "";
-  return fetch(`${API_BASE}/next-cart${query}`, { headers: sessionHeaders() }).then((res) =>
-    handle<NextCartRecommendation>(res),
-  );
+  const res = await fetch(`${API_BASE}/next-cart${query}`, { headers: await authHeader() });
+  return handle<NextCartRecommendation>(res);
 }
 
-// --- Epic 8: Feedback ------------------------------------------------------
+// --- Feedback ------------------------------------------------------------
 
-export function submitFeedback(feedback: FeedbackCreate): Promise<Feedback> {
-  return fetch(`${API_BASE}/feedback`, {
+export async function submitFeedback(feedback: FeedbackCreate): Promise<Feedback> {
+  const res = await fetch(`${API_BASE}/feedback`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...sessionHeaders() },
+    headers: await jsonHeaders(),
     body: JSON.stringify(feedback),
-  }).then((res) => handle<Feedback>(res));
+  });
+  return handle<Feedback>(res);
 }

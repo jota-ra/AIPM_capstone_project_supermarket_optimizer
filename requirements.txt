@@ -35,6 +35,13 @@ pydantic==2.13.4
 pydantic-settings==2.14.2
 
 # ==========================
+# Auth (E1) — verify Supabase user access tokens (JWT). The `[crypto]`
+# extra pulls in `cryptography`, required for the ES256/RS256 asymmetric
+# signing keys Supabase issues to signed-in users (see services/auth.py).
+# ==========================
+PyJWT[crypto]==2.10.1
+
+# ==========================
 # OpenFoodFacts nutrition lookups (Epic 2) are done via direct REST
 # calls through `requests` (see backend/app/services/off_api.py), not
 # the openfoodfacts SDK — no separate package needed.

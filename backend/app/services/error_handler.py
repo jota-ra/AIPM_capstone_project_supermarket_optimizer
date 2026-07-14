@@ -28,7 +28,7 @@ def pipeline_error(
     status_code: int,
     stage: str,
     message: str,
-    session_id: Optional[str] = None,
+    user_id: Optional[str] = None,
 ) -> HTTPException:
     """
     Build the HTTPException to raise for a pipeline failure, and record
@@ -36,5 +36,5 @@ def pipeline_error(
     recurring failure points are visible without reading server logs.
     """
 
-    log_event("pipeline_error", {"stage": stage, "message": message}, session_id)
+    log_event("pipeline_error", {"stage": stage, "message": message}, user_id)
     return HTTPException(status_code=status_code, detail=message)

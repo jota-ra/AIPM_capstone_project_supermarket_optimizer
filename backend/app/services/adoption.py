@@ -23,7 +23,7 @@ def _parse_timestamp(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
-def compute_session_adoption(session_id: str) -> AdoptionScore:
+def compute_session_adoption(user_id: str) -> AdoptionScore:
     """
     For every "recommended" Next Cart shown to this session, check
     whether its item shows up in any receipt uploaded strictly AFTER
@@ -32,13 +32,13 @@ def compute_session_adoption(session_id: str) -> AdoptionScore:
     """
 
     from backend.app.db.supabase import (
-        get_recommendations_by_session,
-        get_receipts_by_session,
+        get_recommendations_by_user,
+        get_receipts_by_user,
         get_receipt_items,
     )
 
-    recommendations = get_recommendations_by_session(session_id)
-    receipts = get_receipts_by_session(session_id)
+    recommendations = get_recommendations_by_user(user_id)
+    receipts = get_receipts_by_user(user_id)
 
     recommended_items: List[str] = []
     adopted_items: List[str] = []
@@ -68,7 +68,7 @@ def compute_session_adoption(session_id: str) -> AdoptionScore:
     )
 
 
-def compute_session_nutrition_delta(session_id: str) -> NutritionDelta:
+def compute_session_nutrition_delta(user_id: str) -> NutritionDelta:
     """
     "before" = nutrition profile from only the session's first receipt.
     "after" = nutrition profile from every receipt uploaded so far.
@@ -79,13 +79,13 @@ def compute_session_nutrition_delta(session_id: str) -> NutritionDelta:
     Raises ValueError if the session has no receipts yet.
     """
 
-    from backend.app.db.supabase import get_receipts_by_session, get_receipt_items
+    from backend.app.db.supabase import get_receipts_by_user, get_receipt_items
 
-    receipts = get_receipts_by_session(session_id)
+    receipts = get_receipts_by_user(user_id)
     if not receipts:
         raise ValueError("No receipts for this session yet.")
 
-    # get_receipts_by_session orders newest-first for display (Task 8.4);
+    # get_receipts_by_user orders newest-first for display (Task 8.4);
     # "before" needs the session's oldest receipt, so re-sort locally.
     receipts_oldest_first = sorted(receipts, key=lambda r: r["created_at"])
 

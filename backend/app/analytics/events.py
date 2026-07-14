@@ -18,12 +18,12 @@ from uuid import uuid4
 from backend.app.db.supabase import supabase
 
 
-def log_event(name: str, payload: Optional[dict] = None, session_id: Optional[str] = None) -> None:
+def log_event(name: str, payload: Optional[dict] = None, user_id: Optional[str] = None) -> None:
     record = {
         "id": str(uuid4()),
         "name": name,
         "payload": payload or {},
-        "session_id": session_id,
+        "user_id": user_id,
     }
     try:
         supabase.table("events").insert(record).execute()

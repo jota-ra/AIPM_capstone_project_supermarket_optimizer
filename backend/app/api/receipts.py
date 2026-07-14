@@ -9,7 +9,7 @@ from backend.app.services.receipt_parser import (
     scan_receipt_bytes,
     scan_receipt_text,
 )
-from backend.app.services.session import get_session_id
+from backend.app.services.auth import get_current_user
 from backend.app.services.error_handler import pipeline_error, PipelineStage
 from backend.app.analytics.events import log_event
 from backend.app.db.supabase import (
@@ -19,7 +19,7 @@ from backend.app.db.supabase import (
     get_receipt_items,
     update_receipt_item,
     delete_receipt,
-    get_receipts_by_session,
+    get_receipts_by_user,
     UNDEFINED_COLUMN_CODE,
 )
 from backend.app.db.receipt_items_repo import insert_receipt_items
@@ -38,8 +38,7 @@ router = APIRouter()
 async def upload_receipt(
     file: UploadFile | None = File(None),
     text: str | None = Form(None),
-    user_id: str | None = Form(None),
-    session_id: str = Depends(get_session_id),
+    user_id: str = Depends(get_current_user),
 ):
     """
     Create a receipt from either an uploaded image OR pasted text.
@@ -48,13 +47,9 @@ async def upload_receipt(
     endpoint: exactly one of `file` / `text` must be supplied. Both paths
     end up as the same structured, schema-validated receipt.
 
-    Tagged with `session_id` (Story 8.3) so it can be grouped with the
-    rest of this session's receipts (Task 8.4) instead of every receipt
-    in the database being treated as one shared basket.
-
-    Also tagged with the `user_id` (the profile id created earlier in the
-    flow) when provided, so receipts are attributed to the profile that
-    produced them.
+    Tagged with the authenticated `user_id` (E1) so it's grouped with the
+    rest of this user's receipts (Task 8.4) instead of every receipt in
+    the database being treated as one shared basket.
     """
 
     if file is None and not (text and text.strip()):
@@ -63,7 +58,7 @@ async def upload_receipt(
             detail="Provide either a receipt image ('file') or receipt text ('text').",
         )
 
-    log_event("upload_started", {"input_type": "image" if file is not None else "text"}, session_id)
+    log_event("upload_started", {"input_type": "image" if file is not None else "text"}, user_id)
     receipt_id = str(uuid4())
 
     if file is not None:
@@ -74,13 +69,13 @@ async def upload_receipt(
             filename=file.filename,
             content_type=file.content_type,
         )
-        create_receipt_row(receipt_id, file.filename, file.content_type, storage_path, session_id, user_id)
+        create_receipt_row(receipt_id, file.filename, file.content_type, storage_path, user_id)
         parsed = scan_receipt_bytes(file_bytes=file_bytes, filename=file.filename)
         input_type = "image"
     else:
         # Text fallback path (Story 1.2) — nothing to store in object storage
         storage_path = None
-        create_receipt_row(receipt_id, None, "text/plain", None, session_id, user_id)
+        create_receipt_row(receipt_id, None, "text/plain", None, user_id)
         parsed = scan_receipt_text(raw_text=text)
         input_type = "text"
 
@@ -91,7 +86,7 @@ async def upload_receipt(
             502,
             PipelineStage.PARSING,
             f"Receipt parsing failed: {parsed['error']}",
-            session_id,
+            user_id,
         )
 
     # Story 1.4: validate parser output against the structured schema
@@ -103,24 +98,24 @@ async def upload_receipt(
             502,
             PipelineStage.SCHEMA_VALIDATION,
             f"Parser output failed schema validation: {e.errors()}",
-            session_id,
+            user_id,
         )
 
     log_event(
         "parsing_success",
         {"items_count": validated.items_count, "scan_quality": validated.scan_quality},
-        session_id,
+        user_id,
     )
 
     update_receipt_with_parse(receipt_id, parsed)
     insert_receipt_items(receipt_id, parsed)
-    add_items_to_pantry(session_id, parsed.get("items", []))
-    invalidate_snapshot_cache(session_id)
-    log_event("upload_completed", {"receipt_id": receipt_id, "items_count": validated.items_count}, session_id)
+    add_items_to_pantry(user_id, parsed.get("items", []))
+    invalidate_snapshot_cache(user_id)
+    log_event("upload_completed", {"receipt_id": receipt_id, "items_count": validated.items_count}, user_id)
 
     return {
         "receipt_id": receipt_id,
-        "session_id": session_id,
+        "user_id": user_id,
         "input_type": input_type,
         "storage_path": storage_path,
         "parsed": validated.model_dump(),
@@ -128,32 +123,32 @@ async def upload_receipt(
 
 
 @router.get("/receipts")
-def list_receipts(session_id: str = Depends(get_session_id)):
+def list_receipts(user_id: str = Depends(get_current_user)):
     """
     List every receipt uploaded in this session (Task 8.4 — Receipt
     History Storage), newest first. A brand-new session (no X-Session-Id
     header sent yet) always returns an empty list, since nothing has
     been tagged with its freshly-minted ID yet.
 
-    Bug fix: this used to call get_receipts_by_session directly with no
+    Bug fix: this used to call get_receipts_by_user directly with no
     fallback, so it hard-500'd in any environment where the Epic 8
     migration hasn't run — unlike /nutrition/snapshot and /next-cart,
     which degrade gracefully in the same scenario via
-    get_receipt_items_by_session. An empty list here (rather than
+    get_receipt_items_by_user. An empty list here (rather than
     falling back to every receipt, like those two do) is the honest
     answer for "this session's history" — there's no history to show
     that isn't a lie until the environment is migrated.
     """
 
     try:
-        receipts = get_receipts_by_session(session_id)
+        receipts = get_receipts_by_user(user_id)
     except APIError as e:
         if e.code != UNDEFINED_COLUMN_CODE:
             raise
-        print("[api] 'receipts.session_id' column missing (migration pending?) — returning empty history")
+        print("[api] 'receipts.user_id' column missing (migration pending?) — returning empty history")
         receipts = []
 
-    return {"session_id": session_id, "receipts": receipts}
+    return {"user_id": user_id, "receipts": receipts}
 
 
 @router.get("/receipts/{receipt_id}")
@@ -202,7 +197,7 @@ def correct_receipt_item(
 
 
 @router.delete("/receipts/{receipt_id}")
-def erase_receipt(receipt_id: str, session_id: str = Depends(get_session_id)):
+def erase_receipt(receipt_id: str, user_id: str = Depends(get_current_user)):
     """
     Permanently delete a receipt, its items, and its uploaded image, if
     any (GDPR user-initiated erasure, Story 7.3). There's no soft-delete
@@ -212,7 +207,7 @@ def erase_receipt(receipt_id: str, session_id: str = Depends(get_session_id)):
     Restricted to the session that created the receipt (bug fix: this
     used to delete by receipt_id alone, so anyone who obtained an ID —
     it's echoed back in plaintext on every upload — could erase another
-    session's data). A row with no session_id on record (an environment
+    session's data). A row with no user_id on record (an environment
     that hasn't run the Epic 8 migration yet) is treated as unowned and
     still deletable, matching this codebase's other migration-window
     safety nets.
@@ -222,8 +217,8 @@ def erase_receipt(receipt_id: str, session_id: str = Depends(get_session_id)):
     if receipt is None:
         raise HTTPException(status_code=404, detail="Receipt not found.")
 
-    owner_session_id = receipt.get("session_id")
-    if owner_session_id is not None and owner_session_id != session_id:
+    owner_session_id = receipt.get("user_id")
+    if owner_session_id is not None and owner_session_id != user_id:
         raise HTTPException(status_code=403, detail="This receipt belongs to a different session.")
 
     storage_path = receipt.get("storage_path")
@@ -235,7 +230,7 @@ def erase_receipt(receipt_id: str, session_id: str = Depends(get_session_id)):
 
 
 @router.get("/receipts/{receipt_id}/mapping")
-def map_receipt_nutrition(receipt_id: str, session_id: str = Depends(get_session_id)):
+def map_receipt_nutrition(receipt_id: str, user_id: str = Depends(get_current_user)):
     """
     Map a receipt's items to nutrition data (Epic 2).
 
@@ -264,7 +259,7 @@ def map_receipt_nutrition(receipt_id: str, session_id: str = Depends(get_session
         )
 
     result = map_items(items)
-    log_event("match_rate", result.match_quality.model_dump(), session_id)
+    log_event("match_rate", result.match_quality.model_dump(), user_id)
     enriched_products = [
         {
             **product.model_dump(),
@@ -276,7 +271,7 @@ def map_receipt_nutrition(receipt_id: str, session_id: str = Depends(get_session
 
     return {
         "receipt_id": receipt_id,
-        "session_id": session_id,
+        "user_id": user_id,
         "matched_products": enriched_products,
         "match_quality": result.match_quality.model_dump(),
         "disclaimer": DISCLAIMER,

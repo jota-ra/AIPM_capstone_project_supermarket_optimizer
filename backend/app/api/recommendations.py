@@ -5,7 +5,7 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import ValidationError
 
-from backend.app.services.session import get_session_id
+from backend.app.services.auth import get_current_user
 from backend.app.analytics.events import log_event
 from backend.app.db.supabase import get_profile, create_recommendation_row
 from backend.app.models.profile import Profile
@@ -23,7 +23,7 @@ router = APIRouter()
 
 
 @router.get("/next-cart")
-def next_cart(profile_id: Optional[str] = None, session_id: str = Depends(get_session_id)):
+def next_cart(profile_id: Optional[str] = None, user_id: str = Depends(get_current_user)):
     """
     The single Next Cart recommendation (Epic 5), grounded in the
     aggregated gaps from Epic 4 across this session's saved receipts
@@ -61,7 +61,7 @@ def next_cart(profile_id: Optional[str] = None, session_id: str = Depends(get_se
     # Profile loaded first (not after, as before) so its gaps and the
     # recommendation below use the same personalized protein reference —
     # see nutrition_personalization.py — instead of two different ones.
-    snapshot = build_snapshot_from_db(session_id, user_profile=profile)
+    snapshot = build_snapshot_from_db(user_id, user_profile=profile)
     if snapshot.items_analyzed == 0:
         raise HTTPException(
             status_code=409,
@@ -73,30 +73,30 @@ def next_cart(profile_id: Optional[str] = None, session_id: str = Depends(get_se
     # based confidence here aren't on comparable scales, so density gaps
     # keep priority unless a Q6 symptom boosts iron specifically (see
     # _SYMPTOM_PRIORITY_BOOST in recommender.py).
-    absolute_gaps = detect_absolute_gaps(session_id, profile)
+    absolute_gaps = detect_absolute_gaps(user_id, profile)
     gaps = list(snapshot.gaps) + [gap_from_absolute(g) for g in absolute_gaps]
 
     recommendation = recommend_next_cart(
         gaps=gaps,
         profile=profile,
         confidence=snapshot.confidence,
-        session_id=session_id,
+        user_id=user_id,
     )
     # NutriWise Agent - modified: added for Progress Tracking (addendum).
     # has_history=False (not an error) when this session only has one
     # receipt so far, so Next Cart still works before any history exists.
-    recommendation.progress = compute_session_progress(session_id)
+    recommendation.progress = compute_session_progress(user_id)
 
     recommendation_id = str(uuid4())
     payload = recommendation.model_dump(mode="json")
-    create_recommendation_row(recommendation_id, session_id, payload)
+    create_recommendation_row(recommendation_id, user_id, payload)
     log_event(
         "recommendation_viewed",
         {"recommendation_id": recommendation_id, "status": payload["status"], "action_type": payload["action_type"]},
-        session_id,
+        user_id,
     )
 
-    pantry_items = get_pantry(session_id)
+    pantry_items = get_pantry(user_id)
 
     # "Cook with what you have": recipes buildable from the pantry that
     # also target the same gap the shopping recommendation above
@@ -113,7 +113,7 @@ def next_cart(profile_id: Optional[str] = None, session_id: str = Depends(get_se
     # "Use what you already have" — shown alongside (never instead of)
     # the purchase recommendation above, so the user can choose either
     # (docs/architektur_entscheidungen.md, ToDo 2).
-    pantry_match = find_pantry_match(gaps, pantry_items, profile, session_id=session_id)
+    pantry_match = find_pantry_match(gaps, pantry_items, profile, user_id=user_id)
 
     # Easy, low-effort/cheap/in-season swaps across every flagged gap —
     # a broader supplementary list alongside the one deliberate Next
@@ -151,7 +151,7 @@ def next_cart(profile_id: Optional[str] = None, session_id: str = Depends(get_se
 
     return {
         "recommendation_id": recommendation_id,
-        "session_id": session_id,
+        "user_id": user_id,
         **payload,
         "pantry_recipes": pantry_recipes,
         "easy_swaps": easy_swaps,
