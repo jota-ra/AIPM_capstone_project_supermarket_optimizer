@@ -149,6 +149,28 @@ const STRINGS: Record<string, { en: string; de: string }> = {
   "profile.userId": { en: "User ID", de: "Nutzer-ID" },
   "profile.logout": { en: "Log out", de: "Abmelden" },
 
+  // E7 analysis (ideal vs status-quo)
+  "analysis.title": { en: "Your nutrition score", de: "Dein Ernährungs-Score" },
+  "analysis.needProfile": {
+    en: "Complete your profile (sex, date of birth, height, weight) to unlock your personalized score.",
+    de: "Vervollständige dein Profil (Geschlecht, Geburtsdatum, Größe, Gewicht), um deinen persönlichen Score freizuschalten.",
+  },
+  "analysis.onTarget": { en: "On target — no notable gaps.", de: "Im Zielbereich — keine nennenswerten Lücken." },
+  "analysis.microsGated": {
+    en: "Score is based on calories & macros. Micronutrients are shown but not yet scored (pending dietitian sign-off).",
+    de: "Der Score basiert auf Kalorien & Makros. Mikronährstoffe werden angezeigt, aber noch nicht bewertet (vorbehaltlich diätologischer Freigabe).",
+  },
+  "analysis.macros": { en: "Calories & macros", de: "Kalorien & Makros" },
+  "analysis.micros": { en: "Micronutrients (not scored yet)", de: "Mikronährstoffe (noch nicht bewertet)" },
+  "analysis.grouping": { en: "Your items", de: "Deine Artikel" },
+  "analysis.band.high": { en: "High confidence", de: "Hohe Sicherheit" },
+  "analysis.band.medium": { en: "Medium confidence", de: "Mittlere Sicherheit" },
+  "analysis.band.low": { en: "Low confidence", de: "Geringe Sicherheit" },
+  "analysis.tier.healthy": { en: "Healthy", de: "Gesund" },
+  "analysis.tier.ok": { en: "OK", de: "OK" },
+  "analysis.tier.unhealthy": { en: "Unhealthy", de: "Ungesund" },
+  "analysis.tier.grey": { en: "Not enough data", de: "Zu wenig Daten" },
+
   // Household & consumption attribution (E6)
   "household.title": { en: "Household & eating", de: "Haushalt & Verzehr" },
   "household.body": {

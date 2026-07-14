@@ -15,6 +15,7 @@ import type {
   UploadReceiptResponse,
   ProductSearchResult,
   ItemMatchPick,
+  NutritionAnalysis,
 } from "@/types/api";
 import { supabase } from "@/lib/supabase";
 
@@ -170,6 +171,13 @@ export async function flagNoMatch(
     headers: await authHeader(),
   });
   return handle(res);
+}
+
+// E7: ideal-vs-status-quo gap analysis, health score, grouping, confidence.
+export async function getAnalysis(profileId?: string): Promise<NutritionAnalysis> {
+  const q = profileId ? `?profile_id=${encodeURIComponent(profileId)}` : "";
+  const res = await fetch(`${API_BASE}/nutrition/analysis${q}`, { headers: await authHeader() });
+  return handle<NutritionAnalysis>(res);
 }
 
 export async function listReceipts(): Promise<{ user_id: string; receipts: ReceiptRow[] }> {
