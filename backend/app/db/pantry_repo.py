@@ -4,7 +4,11 @@ from typing import Optional
 
 from postgrest.exceptions import APIError
 
-from backend.app.db.supabase import supabase, _MISSING_TABLE_CODE
+from backend.app.db.supabase import supabase, _MISSING_TABLE_CODE, UNDEFINED_COLUMN_CODE
+
+# An unmigrated environment can miss the table entirely OR just the
+# user_id column — both mean "no per-user pantry yet", degrade to empty.
+_MISSING_SCHEMA_CODES = {_MISSING_TABLE_CODE, UNDEFINED_COLUMN_CODE}
 
 _PANTRY_ITEMS_TABLE = "pantry_items"
 _CONSUMPTION_EVENTS_TABLE = "pantry_consumption_events"
@@ -27,9 +31,9 @@ def get_pantry_items_by_user(user_id: str):
             .execute()
         )
     except APIError as e:
-        if e.code != _MISSING_TABLE_CODE:
+        if e.code not in _MISSING_SCHEMA_CODES:
             raise
-        print(f"[db] '{_PANTRY_ITEMS_TABLE}' table missing (migration pending?) — returning empty pantry")
+        print(f"[db] '{_PANTRY_ITEMS_TABLE}' not migrated (missing table/column) — returning empty pantry")
         return []
     return result.data
 
@@ -60,7 +64,7 @@ def upsert_pantry_item_quantity(user_id: str, normalized_name: str, delta: float
         try:
             return supabase.table(_PANTRY_ITEMS_TABLE).insert(row).execute()
         except APIError as e:
-            if e.code != _MISSING_TABLE_CODE:
+            if e.code not in _MISSING_SCHEMA_CODES:
                 raise
             print(f"[db] '{_PANTRY_ITEMS_TABLE}' table missing (migration pending?) — pantry not persisted")
             return None
@@ -78,7 +82,7 @@ def upsert_pantry_item_quantity(user_id: str, normalized_name: str, delta: float
             .execute()
         )
     except APIError as e:
-        if e.code != _MISSING_TABLE_CODE:
+        if e.code not in _MISSING_SCHEMA_CODES:
             raise
         print(f"[db] '{_PANTRY_ITEMS_TABLE}' table missing (migration pending?) — pantry not persisted")
         return None
@@ -101,7 +105,7 @@ def update_pantry_item_fields(user_id: str, normalized_name: str, fields: dict):
             .execute()
         )
     except APIError as e:
-        if e.code != _MISSING_TABLE_CODE:
+        if e.code not in _MISSING_SCHEMA_CODES:
             raise
         print(f"[db] '{_PANTRY_ITEMS_TABLE}' table missing (migration pending?) — pantry not persisted")
         return None
@@ -127,7 +131,7 @@ def insert_consumption_event(
     try:
         return supabase.table(_CONSUMPTION_EVENTS_TABLE).insert(row).execute()
     except APIError as e:
-        if e.code != _MISSING_TABLE_CODE:
+        if e.code not in _MISSING_SCHEMA_CODES:
             raise
         print(f"[db] '{_CONSUMPTION_EVENTS_TABLE}' table missing (migration pending?) — consumption not persisted")
         return None
@@ -143,7 +147,7 @@ def get_consumption_events_by_user(user_id: str):
             .execute()
         )
     except APIError as e:
-        if e.code != _MISSING_TABLE_CODE:
+        if e.code not in _MISSING_SCHEMA_CODES:
             raise
         print(f"[db] '{_CONSUMPTION_EVENTS_TABLE}' table missing (migration pending?) — returning no consumption events")
         return []

@@ -143,6 +143,30 @@ def test_error_status_map():
     check("unknown code → 502 fallback", _PARSE_ERROR_STATUS.get("weird", 502), 502)
 
 
+def test_offline_text_parser():
+    print("E3 text fallback: offline regex parser (no Gemini)")
+    from backend.app.services.receipt_text_parser import parse_receipt_text_offline
+    txt = ("REWE Markt GmbH\n"
+           "Datum: 13.07.2026\n"
+           "Vollmilch 3,5% 1L    1,29\n"
+           "Bananen 1,0 kg       1,49\n"
+           "Bio Eier 10 Stk      2,99\n"
+           "Pfand                0,25\n"
+           "SUMME                5,77")
+    r = parse_receipt_text_offline(txt)
+    check("store detected", r["store"], "Rewe")
+    check("date parsed to ISO", r["date"], "2026-07-13")
+    check("3 food items (header/summe excluded)", r["items_count"], 3)
+    check("Pfand → non-food", any("Pfand" in n for n in r["non_food_items_ignored"]), True)
+    names = [i["name"] for i in r["items"]]
+    check("store header not an item", "REWE Markt GmbH" not in names, True)
+    milk = next(i for i in r["items"] if i["name"] == "Vollmilch")
+    check("price extracted", milk["price"], 1.29)
+    check("unit parsed (1L → l)", milk["unit"], "l")
+    eier = next(i for i in r["items"] if "Eier" in i["name"])
+    check("count unit (10 Stk → piece)", eier["unit"], "piece")
+
+
 def main():
     for fn in (
         test_unit_normalization,
@@ -150,6 +174,7 @@ def main():
         test_mock_parser,
         test_typed_errors,
         test_error_status_map,
+        test_offline_text_parser,
     ):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed")
