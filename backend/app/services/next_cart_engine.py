@@ -30,6 +30,7 @@ from backend.app.models.next_cart import (
     ActionType, RecommendationStatus,
 )
 from backend.app.services.exclusion_filter import check_candidate, ExclusionCandidate
+from backend.app.services.symptom_relevance import symptom_relevance
 
 _RECS_PATH = Path(__file__).resolve().parents[1] / "data" / "recommendations.json"
 with open(_RECS_PATH, encoding="utf-8") as _fh:
@@ -111,7 +112,9 @@ def build_next_cart(analysis: dict, profile) -> StructuredNextCart:
     seen_items = set()
 
     for gap in sorted(gaps, key=lambda g: -g["severity"]):
+        base = _NUTRIENT_BASE.get(gap["nutrient"], gap["nutrient"])
         gr = goal_relevance(goal, gap["nutrient"])
+        sr = symptom_relevance(profile, base)  # BR-S4; 1.0 without Level-2 consent
         for cand in _CANDIDATES.get(gap["key"], []):
             name = cand["item"]
             # BR-S6: exclusion filter BEFORE scoring
@@ -124,8 +127,8 @@ def build_next_cart(analysis: dict, profile) -> StructuredNextCart:
             if name in seen_items:
                 continue
             seen_items.add(name)
-            # BR-S1: severity × confidence × symptom(1.0) × goal
-            score = round(gap["severity"] * confidence_value * 1.0 * gr, 4)
+            # BR-S1: severity × confidence × symptom × goal
+            score = round(gap["severity"] * confidence_value * sr * gr, 4)
             scored.append(ScoredRecommendation(
                 item=name,
                 action_type=ActionType(cand.get("action_type", "add")),

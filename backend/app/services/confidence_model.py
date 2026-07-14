@@ -79,10 +79,12 @@ def snapshot_confidence(items: List[dict], matched: List[MatchedProduct], profil
             real += 1
     data_conf = (weighted / total_g) if total_g else 0.0
 
+    from backend.app.services.symptom_relevance import alcohol_discount
+
     cov = coverage_conf(len(matched))
     completeness = real / len(matched)
     ext = external_intake_discount(profile) if profile is not None else 1.0
-    alcohol = 1.0  # BR-C4: 0.85 if weekly+ — needs Level-2 (Epic 9); 1.0 for now
+    alcohol = alcohol_discount(profile)  # BR-C4: 0.85 if weekly+ (Level-2 consent)
 
     value = round(data_conf * cov * completeness * ext * alcohol, 3)
     return {

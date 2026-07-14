@@ -62,6 +62,10 @@ export function NextCartCard({ rec }: { rec: StructuredNextCart }) {
           </div>
         </div>
       ) : null}
+
+      {/* BR-P6 / E9-S4: recommendations can be symptom-driven — always
+          present the not-medical-advice / defer-to-professional line. */}
+      <p className="border-t border-black/5 pt-3 text-[11px] text-ink/40">{t("nextcart.notMedical")}</p>
     </Card>
   );
 }

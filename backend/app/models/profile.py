@@ -265,6 +265,31 @@ class ProfileCreate(BaseModel):
     days_to_shop: Optional[int] = Field(default=None, ge=1, le=60)
     home_cooked_frequency: Optional[HomeCookedFrequency] = None
 
+    # ── Level-2 functional layer (E9) ────────────────────────────────────
+    # Health data (GDPR Art. 9): only processed under explicit consent
+    # (BR-P1). The app is fully usable without any of this; absent/without
+    # consent, all symptom multipliers default to 1.0 (BR-S4).
+    consent_level2: Optional[bool] = None
+    consent_at: Optional[str] = None            # ISO timestamp
+    consent_text_version: Optional[str] = None  # which consent copy was shown
+    # Level-2 answers (BR-S4). Fixed option strings, validated in the UI:
+    #   bowel_frequency:  normal | less_than_3_per_week
+    #   bloating:         none | sometimes | often_daily
+    #   hunger:           normal | most_of_day
+    #   energy:           fine | afternoon_crash
+    #   sleep:            fine | poor
+    #   hydration:        enough | low
+    #   alcohol:          none | occasional | weekly_plus
+    #   muscle_soreness:  none | active_sore
+    l2_bowel_frequency: Optional[str] = None
+    l2_bloating: Optional[str] = None
+    l2_hunger: Optional[str] = None
+    l2_energy: Optional[str] = None
+    l2_sleep: Optional[str] = None
+    l2_hydration: Optional[str] = None
+    l2_alcohol: Optional[str] = None
+    l2_muscle_soreness: Optional[str] = None
+
     # E1-S6: false while the user is mid-walk-through, true once every
     # required step is answered (drives "resume vs. dashboard" on login).
     profile_complete: bool = False
@@ -320,7 +345,38 @@ class ProfileUpdate(BaseModel):
     receipts_complete: Optional[ReceiptsComplete] = None
     days_to_shop: Optional[int] = None
     home_cooked_frequency: Optional[HomeCookedFrequency] = None
+    # E9 Level-2
+    consent_level2: Optional[bool] = None
+    consent_at: Optional[str] = None
+    consent_text_version: Optional[str] = None
+    l2_bowel_frequency: Optional[str] = None
+    l2_bloating: Optional[str] = None
+    l2_hunger: Optional[str] = None
+    l2_energy: Optional[str] = None
+    l2_sleep: Optional[str] = None
+    l2_hydration: Optional[str] = None
+    l2_alcohol: Optional[str] = None
+    l2_muscle_soreness: Optional[str] = None
     profile_complete: Optional[bool] = None
+
+
+class Level2Submit(BaseModel):
+    """Level-2 submission (E9): explicit consent + the symptom answers.
+
+    `consent=False` records a decline (app stays fully usable, multipliers
+    stay 1.0). On `consent=True` the server stamps consent_at; answers are
+    only stored when consent is granted (BR-P1)."""
+
+    consent: bool
+    consent_text_version: str = "v1"
+    l2_bowel_frequency: Optional[str] = None
+    l2_bloating: Optional[str] = None
+    l2_hunger: Optional[str] = None
+    l2_energy: Optional[str] = None
+    l2_sleep: Optional[str] = None
+    l2_hydration: Optional[str] = None
+    l2_alcohol: Optional[str] = None
+    l2_muscle_soreness: Optional[str] = None
 
 
 class Profile(ProfileCreate):

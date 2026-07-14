@@ -15,6 +15,7 @@ import {
 } from "@/lib/api";
 import { AnalysisCard } from "@/steps/AnalysisCard";
 import { NextCartCard as StructuredNextCartCard } from "@/steps/NextCartCard";
+import { Level2Card } from "@/steps/Level2Card";
 import type {
   AbsoluteGap,
   Conflict,
@@ -527,6 +528,15 @@ export function ResultsStep({
   const [analysis, setAnalysis] = useState<NutritionAnalysis | null>(null);
   const [structuredCart, setStructuredCart] = useState<StructuredNextCart | null>(null);
   const [recommendation, setRecommendation] = useState<NextCartRecommendation | null>(null);
+  // E9 Level-2 non-blocking invite: hidden once consent is decided, or after
+  // two dismissals (R-L2TRIG). Dismissals persist per profile in localStorage.
+  const [level2Decided, setLevel2Decided] = useState(true);
+  const [showLevel2, setShowLevel2] = useState(false);
+  const _l2DismissKey = `nutriwise.l2dismiss.${profileId ?? "anon"}`;
+  const [level2Dismissed, setLevel2Dismissed] = useState<number>(() => {
+    try { return Number(localStorage.getItem(`nutriwise.l2dismiss.${profileId ?? "anon"}`)) || 0; }
+    catch { return 0; }
+  });
   const [profileName, setProfileName] = useState<string | null>(null);
   const [daysSinceLastConfirmation, setDaysSinceLastConfirmation] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -586,7 +596,12 @@ export function ResultsStep({
       // Best-effort: a stale/invalid profileId shouldn't break the
       // rest of the page, it just falls back to the name-less greeting.
       getProfile(profileId)
-        .then((p) => setProfileName(p.name ?? null))
+        .then((p) => {
+          setProfileName(p.name ?? null);
+          // E9 / R-L2TRIG: only invite when the user hasn't decided consent
+          // yet (null/undefined) — once granted or declined, never again.
+          setLevel2Decided(p.consent_level2 !== null && p.consent_level2 !== undefined);
+        })
         .catch(() => setProfileName(null));
     }
 
@@ -657,6 +672,36 @@ export function ResultsStep({
 
       {/* E8: structured Next-Cart (primary + alternatives + reduce). */}
       {structuredCart ? <StructuredNextCartCard rec={structuredCart} /> : null}
+
+      {/* E9 / R-L2TRIG: non-blocking Level-2 invitation, capped at 2 dismissals. */}
+      {showLevel2 && profileId ? (
+        <Level2Card
+          profileId={profileId}
+          onDone={() => { setShowLevel2(false); setLevel2Decided(true); load(); }}
+        />
+      ) : profileId && !level2Decided && level2Dismissed < 2 ? (
+        <div className="flex items-center justify-between gap-4 rounded-2xl bg-zinc-50 px-5 py-4 text-sm text-ink/70 ring-1 ring-black/5">
+          <div>
+            <p className="font-medium tracking-tight text-ink">{t("level2.inviteTitle")}</p>
+            <p className="mt-0.5 text-xs text-ink/55">{t("level2.inviteBody")}</p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button type="button" onClick={() => setShowLevel2(true)}
+              className="rounded-full bg-ink px-4 py-2 text-xs font-medium tracking-tight text-canvas">
+              {t("level2.inviteCta")}
+            </button>
+            <button type="button"
+              onClick={() => {
+                const n = level2Dismissed + 1;
+                setLevel2Dismissed(n);
+                try { localStorage.setItem(_l2DismissKey, String(n)); } catch { /* ignore */ }
+              }}
+              className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-medium tracking-tight text-ink/60 ring-1 ring-black/5">
+              {t("level2.inviteDismiss")}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {loading ? <p className="text-sm text-ink/50">{t("results.loading")}</p> : null}
 

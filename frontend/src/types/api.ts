@@ -231,7 +231,32 @@ export interface ProfileCreate {
   // E8 Next-Cart inputs
   days_to_shop?: number | null;
   home_cooked_frequency?: "rarely" | "sometimes" | "often" | "daily" | null;
+  // E9 Level-2 (health data — consent-gated)
+  consent_level2?: boolean | null;
+  consent_at?: string | null;
+  l2_bowel_frequency?: string | null;
+  l2_bloating?: string | null;
+  l2_hunger?: string | null;
+  l2_energy?: string | null;
+  l2_sleep?: string | null;
+  l2_hydration?: string | null;
+  l2_alcohol?: string | null;
+  l2_muscle_soreness?: string | null;
   profile_complete?: boolean;
+}
+
+// E9: Level-2 consent + symptom answers submission.
+export interface Level2Payload {
+  consent: boolean;
+  consent_text_version?: string;
+  l2_bowel_frequency?: string | null;
+  l2_bloating?: string | null;
+  l2_hunger?: string | null;
+  l2_energy?: string | null;
+  l2_sleep?: string | null;
+  l2_hydration?: string | null;
+  l2_alcohol?: string | null;
+  l2_muscle_soreness?: string | null;
 }
 
 // Personalized daily targets computed by the Ideal Profile Engine (E2),

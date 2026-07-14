@@ -11,7 +11,7 @@ from backend.app.db.supabase import (
     delete_profile,
     update_profile_row,
 )
-from backend.app.models.profile import ProfileCreate, ProfileUpdate, Profile
+from backend.app.models.profile import ProfileCreate, ProfileUpdate, Profile, Level2Submit
 
 router = APIRouter()
 
@@ -124,6 +124,43 @@ def edit_profile(
         row = get_profile(profile_id)
 
     return _profile_response(row)
+
+
+@router.post("/profile/{profile_id}/level2")
+def submit_level2(
+    profile_id: str,
+    submission: Level2Submit,
+    user_id: str = Depends(get_current_user),
+):
+    """
+    Record Level-2 health-data consent + symptom answers (E9-S1/S2).
+
+    Health data is GDPR Art. 9 special-category (BR-P1): the consent record
+    (bool + server-stamped timestamp + consent-text version) is stored, and
+    the symptom answers are persisted ONLY when consent is granted. A
+    decline records consent=false and stores no answers — the app stays
+    fully usable and all symptom multipliers stay 1.0 (BR-S4).
+    """
+
+    from datetime import datetime, timezone
+
+    row = get_profile(profile_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Profile not found.")
+    _assert_owner(row, user_id)
+
+    fields = {
+        "consent_level2": submission.consent,
+        "consent_at": datetime.now(timezone.utc).isoformat(),
+        "consent_text_version": submission.consent_text_version,
+    }
+    if submission.consent:
+        for f in ("l2_bowel_frequency", "l2_bloating", "l2_hunger", "l2_energy",
+                  "l2_sleep", "l2_hydration", "l2_alcohol", "l2_muscle_soreness"):
+            fields[f] = getattr(submission, f)
+
+    update_profile_row(profile_id, fields)
+    return _profile_response(get_profile(profile_id) or row)
 
 
 @router.delete("/profile/{profile_id}")
