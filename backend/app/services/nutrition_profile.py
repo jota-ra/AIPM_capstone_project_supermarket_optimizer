@@ -14,6 +14,7 @@ from typing import List
 
 from backend.app.models.nutrition import MatchedProduct, MatchType
 from backend.app.models.snapshot import NutritionProfile
+from backend.app.services.units import piece_weight_grams
 
 # Units we can convert to grams (volume treated as ~1 g/ml).
 _MASS_UNITS = {
@@ -23,18 +24,19 @@ _MASS_UNITS = {
     "l": 1000.0, "ltr": 1000.0, "liter": 1000.0, "litre": 1000.0,
 }
 
-# Fallback weight for pieces / unknown units ("Stk", "Stück", "x", None).
-_DEFAULT_PIECE_GRAMS = 100.0
+def grams_for(quantity, unit, category=None, name=None) -> float:
+    """Best-effort conversion of a receipt quantity+unit to grams.
 
-
-def grams_for(quantity, unit) -> float:
-    """Best-effort conversion of a receipt quantity+unit to grams."""
+    Mass/volume units convert directly; a "piece" (or any unknown unit)
+    uses the category-keyed piece-weight table from services/units.py
+    (E3-S3) instead of a single flat fallback, so counted goods like eggs
+    vs. loaves of bread get sensible per-piece weights."""
 
     q = quantity if isinstance(quantity, (int, float)) and quantity > 0 else 1.0
     u = (unit or "").strip().lower()
     if u in _MASS_UNITS:
         return q * _MASS_UNITS[u]
-    return q * _DEFAULT_PIECE_GRAMS
+    return q * piece_weight_grams(category, name)
 
 
 def build_profile(
@@ -59,7 +61,9 @@ def build_profile(
     items_fallback = 0
 
     for item, mp in zip(items, matched):
-        grams = grams_for(item.get("quantity"), item.get("unit"))
+        grams = grams_for(
+            item.get("quantity"), item.get("unit"), item.get("category"), item.get("name")
+        )
         factor = grams / 100.0
         total_grams += grams
 

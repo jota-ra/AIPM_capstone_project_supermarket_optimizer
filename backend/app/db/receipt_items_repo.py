@@ -33,9 +33,9 @@ def insert_receipt_items(receipt_id: str, parsed: dict):
             "category": item.get("category"),  # NEW
 
             # ─────────────────────────────
-            # Future enrichment fields
+            # Enrichment fields
             # ─────────────────────────────
-            "price": None,
+            "price": item.get("price"),  # E3-S2: per-item price (EUR), when legible
             "matched_product_id": None,
 
             # ─────────────────────────────

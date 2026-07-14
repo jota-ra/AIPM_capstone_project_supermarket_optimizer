@@ -149,6 +149,38 @@ const STRINGS: Record<string, { en: string; de: string }> = {
   "profile.userId": { en: "User ID", de: "Nutzer-ID" },
   "profile.logout": { en: "Log out", de: "Abmelden" },
 
+  // Ideal Profile Engine (E2) — daily targets card
+  "targets.title": { en: "Your daily targets", de: "Deine Tagesziele" },
+  "targets.body": {
+    en: "Personalized from your body and activity. Recomputed whenever you change your profile.",
+    de: "Personalisiert aus Körperdaten und Aktivität. Wird bei jeder Profiländerung neu berechnet.",
+  },
+  "targets.calories": { en: "Calories", de: "Kalorien" },
+  "targets.protein": { en: "Protein", de: "Protein" },
+  "targets.fat": { en: "Fat", de: "Fett" },
+  "targets.carbs": { en: "Carbs", de: "Kohlenhydrate" },
+  "targets.fiber": { en: "Fiber", de: "Ballaststoffe" },
+  "targets.kcal": { en: "kcal", de: "kcal" },
+  "targets.energyTitle": { en: "How your calories break down", de: "So setzen sich deine Kalorien zusammen" },
+  "targets.bmr": { en: "BMR", de: "Grundumsatz" },
+  "targets.neat": { en: "Daily movement", de: "Alltagsbewegung" },
+  "targets.eat": { en: "Exercise", de: "Sport" },
+  "targets.tef": { en: "Digestion", de: "Verdauung" },
+  "targets.tdee": { en: "Total (TDEE)", de: "Gesamt (TDEE)" },
+  "targets.microsTitle": { en: "Micronutrient targets", de: "Mikronährstoff-Ziele" },
+  "targets.microsNote": {
+    en: "Starter values from DGE reference intakes — pending dietitian sign-off.",
+    de: "Startwerte aus DGE-Referenzwerten — vorbehaltlich diätologischer Freigabe.",
+  },
+  "targets.constrained": {
+    en: "Your protein target alone meets your calorie goal, so fat is at its minimum and carbs are 0.",
+    de: "Dein Proteinziel erreicht allein schon dein Kalorienziel — Fett steht am Minimum und Kohlenhydrate bei 0.",
+  },
+  "targets.empty": {
+    en: "Add your sex, date of birth, height and weight below to see your personalized targets.",
+    de: "Ergänze unten Geschlecht, Geburtsdatum, Größe und Gewicht, um deine persönlichen Ziele zu sehen.",
+  },
+
   // Upload step
   "upload.step": { en: "Step 3 · Receipt", de: "Schritt 3 · Kassenbon" },
   "upload.title": { en: "Bring in a receipt.", de: "Lade einen Kassenbon hoch." },
@@ -163,15 +195,36 @@ const STRINGS: Record<string, { en: string; de: string }> = {
     en: "Drop a receipt photo here or click to upload",
     de: "Kassenbon-Foto hier ablegen oder klicken zum Hochladen",
   },
-  "upload.dropHint": { en: "JPG, PNG or WEBP", de: "JPG, PNG oder WEBP" },
+  "upload.dropHint": { en: "JPG, PNG, WEBP or PDF · several at once", de: "JPG, PNG, WEBP oder PDF · mehrere gleichzeitig" },
   "upload.pasteLabel": { en: "Paste receipt text", de: "Kassenbon-Text einfügen" },
   "upload.analyzing": { en: "Analyzing…", de: "Wird analysiert…" },
   "upload.analyzeButton": { en: "Analyze pasted receipt", de: "Eingefügten Kassenbon analysieren" },
   "upload.pasteInstead": { en: "Paste the receipt text instead →", de: "Stattdessen Text einfügen →" },
   "upload.uploadFailed": { en: "Upload failed.", de: "Hochladen fehlgeschlagen." },
+  // E3-S5 typed extraction errors
+  "upload.errRateLimited": {
+    en: "The scanner is rate-limited right now. Please try again in a little while.",
+    de: "Der Scanner ist gerade ausgelastet (Limit erreicht). Bitte versuche es in Kürze erneut.",
+  },
+  "upload.errUnavailable": {
+    en: "The scanning service is temporarily unavailable. Please try again later.",
+    de: "Der Scan-Dienst ist vorübergehend nicht erreichbar. Bitte später erneut versuchen.",
+  },
+  "upload.errInvalid": {
+    en: "We couldn't read any grocery items from this file. Try a clearer photo or paste the text.",
+    de: "Auf dieser Datei waren keine Artikel lesbar. Versuche ein klareres Foto oder füge den Text ein.",
+  },
   "upload.itemsSuffix": { en: "items", de: "Artikel" },
   "upload.uncertainTag": { en: "uncertain", de: "unsicher" },
   "upload.reviewButton": { en: "Review items →", de: "Artikel prüfen →" },
+  "upload.progress": { en: "Processing {done} of {total}…", de: "Verarbeite {done} von {total}…" },
+  "upload.multiDone": { en: "{ok} of {total} receipts processed", de: "{ok} von {total} Belegen verarbeitet" },
+  // E3-S6 data-sufficiency disclaimer
+  "upload.disclaimerTitle": { en: "How much data helps", de: "Wie viel Daten was bringen" },
+  "upload.disclaimerBody": {
+    en: "One receipt gives a first snapshot. A week of shopping sharpens your daily estimate; a few weeks makes trends and gaps reliable. The more receipts, the more confident the picture.",
+    de: "Ein Beleg liefert eine erste Momentaufnahme. Eine Woche Einkäufe schärft deine Tagesschätzung; einige Wochen machen Trends und Lücken belastbar. Je mehr Belege, desto sicherer das Bild.",
+  },
 
   // Onboarding baseline upload (OnboardingUploadStep.tsx) — deliberately
   // separate copy from the generic "upload" namespace above: this is the

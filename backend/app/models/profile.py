@@ -297,4 +297,10 @@ class IdealProfile(BaseModel):
     tef_kcal: int
     tdee_kcal: int
 
+    # BR-M3: True when protein alone (with fat already dropped to its
+    # 0.8 g/kg floor and carbs at 0) still meets/exceeds the calorie goal,
+    # so the macro split can't be satisfied and the conflict is surfaced
+    # rather than showing negative carbs.
+    constrained: bool = False
+
     notes: List[str] = Field(default_factory=list)
