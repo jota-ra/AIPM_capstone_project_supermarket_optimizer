@@ -155,6 +155,28 @@ class FormOfAddress(str, Enum):
     FORMAL_SIE = "formal_sie"
 
 
+class MealsOutside(str, Enum):
+    """How often the user eats outside the tracked groceries (E6). Feeds the
+    confidence discount (BR-C4) and the eating-occasion coverage midpoints
+    (BR-I6) — it NEVER scales intake (BR-I4)."""
+
+    NEVER = "never"
+    RARELY = "rarely"
+    SOMETIMES = "sometimes"
+    OFTEN = "often"
+    DAILY = "daily"
+
+
+class ReceiptsComplete(str, Enum):
+    """How much of the user's shopping the uploaded receipts cover (E6).
+    Confidence discount only (BR-C4)."""
+
+    ALL = "all"
+    MOST = "most"
+    SOME = "some"
+    FEW = "few"
+
+
 class ProfileCreate(BaseModel):
     """
     Input for the chat onboarding flow: language + name up front, then
@@ -219,6 +241,16 @@ class ProfileCreate(BaseModel):
     dislikes: List[str] = Field(default_factory=list)
     address: Optional[str] = None
 
+    # ── Status-quo attribution inputs (E6) ───────────────────────────────
+    # BR-I2 share: not shared → 100%; shared → 1/household_size (incl. user),
+    # optionally overridden by user_share. meals_outside / receipts_complete
+    # feed the confidence discount only (BR-C4/BR-I4), never intake.
+    groceries_shared: Optional[bool] = None
+    household_size: Optional[int] = Field(default=None, ge=1, le=20)
+    user_share: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    meals_outside: Optional[MealsOutside] = None
+    receipts_complete: Optional[ReceiptsComplete] = None
+
     # E1-S6: false while the user is mid-walk-through, true once every
     # required step is answered (drives "resume vs. dashboard" on login).
     profile_complete: bool = False
@@ -266,6 +298,12 @@ class ProfileUpdate(BaseModel):
     snacks_per_day: Optional[int] = None
     dislikes: Optional[List[str]] = None
     address: Optional[str] = None
+    # E6 status-quo attribution
+    groceries_shared: Optional[bool] = None
+    household_size: Optional[int] = None
+    user_share: Optional[float] = None
+    meals_outside: Optional[MealsOutside] = None
+    receipts_complete: Optional[ReceiptsComplete] = None
     profile_complete: Optional[bool] = None
 
 

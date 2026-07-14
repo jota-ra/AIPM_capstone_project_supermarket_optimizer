@@ -211,6 +211,105 @@ function TargetsCard({ ideal }: { ideal: IdealProfile | null | undefined }) {
   );
 }
 
+// E6-S1: household attribution + eating-outside inputs. Saved directly to
+// the profile; the backend turns them into user_share (BR-I2), the
+// confidence discount (BR-C4) and the eating-occasion coverage (BR-I6).
+function HouseholdCard({ profileId, profile }: { profileId: string; profile: Profile }) {
+  const { t } = useLanguage();
+  const [shared, setShared] = useState<boolean>(profile.groceries_shared ?? false);
+  const [size, setSize] = useState<string>(profile.household_size ? String(profile.household_size) : "");
+  const [mealsOutside, setMealsOutside] = useState<string>(profile.meals_outside ?? "");
+  const [receiptsComplete, setReceiptsComplete] = useState<string>(profile.receipts_complete ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    setSaved(false);
+    try {
+      await updateProfile(profileId, {
+        groceries_shared: shared,
+        household_size: shared && size ? Number(size) : null,
+        meals_outside: (mealsOutside || null) as ProfileCreate["meals_outside"],
+        receipts_complete: (receiptsComplete || null) as ProfileCreate["receipts_complete"],
+      });
+      setSaved(true);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const MO = ["never", "rarely", "sometimes", "often", "daily"] as const;
+  const RC = ["all", "most", "some", "few"] as const;
+
+  return (
+    <Card className="space-y-5">
+      <header className="space-y-1">
+        <p className="text-xs font-medium uppercase tracking-widest text-ink/40">{t("household.title")}</p>
+        <p className="max-w-[56ch] text-sm text-ink/60">{t("household.body")}</p>
+      </header>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={t("household.shared")}>
+          <div className="flex gap-2">
+            {[
+              { v: false, label: t("household.sharedNo") },
+              { v: true, label: t("household.sharedYes") },
+            ].map((o) => (
+              <button
+                key={String(o.v)}
+                type="button"
+                onClick={() => setShared(o.v)}
+                className={CHIP_CLS(shared === o.v)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </Field>
+
+        {shared ? (
+          <Field label={t("household.size")}>
+            <input
+              className={inputCls}
+              type="number"
+              min={1}
+              max={20}
+              value={size}
+              onChange={(e) => setSize(e.target.value)}
+            />
+          </Field>
+        ) : null}
+
+        <Field label={t("household.mealsOutside")}>
+          <select className={cn(inputCls, "appearance-none")} value={mealsOutside} onChange={(e) => setMealsOutside(e.target.value)}>
+            <option value="">—</option>
+            {MO.map((m) => (
+              <option key={m} value={m}>{t(`household.mo.${m}`)}</option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label={t("household.receiptsComplete")}>
+          <select className={cn(inputCls, "appearance-none")} value={receiptsComplete} onChange={(e) => setReceiptsComplete(e.target.value)}>
+            <option value="">—</option>
+            {RC.map((r) => (
+              <option key={r} value={r}>{t(`household.rc.${r}`)}</option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <PrimaryButton type="button" disabled={saving} onClick={save} className="w-auto px-8">
+          {saving ? t("profile.saving") : t("profile.save")}
+        </PrimaryButton>
+        {saved && !saving ? <span className="text-xs text-emerald-600">{t("profile.saved")}</span> : null}
+      </div>
+    </Card>
+  );
+}
+
 export function ProfileSummary({
   profileId,
   onLogout,
@@ -300,6 +399,7 @@ export function ProfileSummary({
       {profile && draft ? (
         <>
         <TargetsCard ideal={profile.ideal_profile} />
+        <HouseholdCard profileId={profileId} profile={profile} />
         <Card className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
             {gridSteps.map((step) => (

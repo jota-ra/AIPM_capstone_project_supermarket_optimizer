@@ -172,6 +172,12 @@ export interface ProfileCreate {
   snacks_per_day?: number | null;
   dislikes?: string[];
   address?: string | null;
+  // E6 status-quo attribution
+  groceries_shared?: boolean | null;
+  household_size?: number | null;
+  user_share?: number | null;
+  meals_outside?: "never" | "rarely" | "sometimes" | "often" | "daily" | null;
+  receipts_complete?: "all" | "most" | "some" | "few" | null;
   profile_complete?: boolean;
 }
 

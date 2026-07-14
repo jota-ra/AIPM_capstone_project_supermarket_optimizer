@@ -8,10 +8,23 @@ from backend.app.services.nutrition_snapshot import build_snapshot_from_db
 from backend.app.services.absolute_gap_detector import detect_absolute_gaps, has_sufficient_data
 from backend.app.services.health_score import compute_health_score
 from backend.app.services.conflict_detector import detect_conflicts
-from backend.app.db.supabase import get_profile
+from backend.app.db.supabase import get_profile, get_profile_by_user
 from backend.app.models.profile import Profile
 
 router = APIRouter()
+
+
+def _load_profile(profile_id: Optional[str], user_id: str) -> Optional[Profile]:
+    """Load a profile by id (or the caller's own), degrading to None on a
+    stale-schema row rather than 500-ing the request."""
+
+    row = get_profile(profile_id) if profile_id else get_profile_by_user(user_id)
+    if row is None:
+        return None
+    try:
+        return Profile.model_validate(row)
+    except ValidationError:
+        return None
 
 
 @router.get("/nutrition/snapshot")
@@ -77,3 +90,50 @@ def nutrition_snapshot(profile_id: Optional[str] = None, user_id: str = Depends(
         "health_score": health_score.model_dump(),
         "conflicts": [conflict.model_dump() for conflict in conflicts],
     }
+
+
+@router.get("/nutrition/status-quo")
+def nutrition_status_quo(profile_id: Optional[str] = None, user_id: str = Depends(get_current_user)):
+    """
+    Receipt-derived estimated daily intake per nutrient (Epic 6, BR-I1..I6):
+    Σ (item_nutrient × share × (1 − waste)) ÷ item_consumption_days, plus the
+    household attribution, eating-occasion coverage and confidence discount.
+
+    Distinct from /nutrition/snapshot (day-agnostic density) — this is the
+    absolute daily "status quo" Epic 7 will compare to the ideal profile.
+    """
+
+    from backend.app.db.supabase import get_receipt_items_by_user, get_receipts_by_user
+    from backend.app.services.nutrition_mapping import map_items
+    from backend.app.services.status_quo import build_status_quo
+    from datetime import date
+
+    items = get_receipt_items_by_user(user_id)
+    if not items:
+        raise HTTPException(status_code=409, detail="No receipt items found. Upload a receipt first.")
+
+    profile = _load_profile(profile_id, user_id)
+
+    # BR-T2 repeat-purchase windows: gather each product's purchase dates from
+    # this user's receipts (best-effort — falls back to category defaults).
+    purchase_dates_by_key: dict = {}
+    try:
+        receipt_date = {}
+        for r in get_receipts_by_user(user_id):
+            raw = r.get("purchase_date") or (r.get("raw_text") or {}).get("date") if isinstance(r.get("raw_text"), dict) else r.get("purchase_date")
+            if raw:
+                try:
+                    receipt_date[r.get("id")] = date.fromisoformat(str(raw)[:10])
+                except ValueError:
+                    pass
+        for it in items:
+            d = receipt_date.get(it.get("receipt_id"))
+            if d:
+                key = (it.get("normalized_name") or it.get("raw_name") or "").lower()
+                purchase_dates_by_key.setdefault(key, []).append(d)
+    except Exception:
+        purchase_dates_by_key = {}
+
+    matched = map_items(items).matched_products
+    status_quo = build_status_quo(items, matched, profile, purchase_dates_by_key)
+    return {"user_id": user_id, **status_quo.model_dump()}

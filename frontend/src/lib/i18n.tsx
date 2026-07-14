@@ -149,6 +149,28 @@ const STRINGS: Record<string, { en: string; de: string }> = {
   "profile.userId": { en: "User ID", de: "Nutzer-ID" },
   "profile.logout": { en: "Log out", de: "Abmelden" },
 
+  // Household & consumption attribution (E6)
+  "household.title": { en: "Household & eating", de: "Haushalt & Verzehr" },
+  "household.body": {
+    en: "Helps estimate how much of the groceries are actually yours, and how much of your eating the receipts capture.",
+    de: "Hilft zu schätzen, wie viel der Einkäufe wirklich deine sind und wie viel deines Essens die Belege erfassen.",
+  },
+  "household.shared": { en: "Groceries shared with others?", de: "Einkäufe mit anderen geteilt?" },
+  "household.sharedYes": { en: "Yes", de: "Ja" },
+  "household.sharedNo": { en: "No, just me", de: "Nein, nur ich" },
+  "household.size": { en: "People in household (incl. you)", de: "Personen im Haushalt (inkl. dir)" },
+  "household.mealsOutside": { en: "How often do you eat out?", de: "Wie oft isst du auswärts?" },
+  "household.receiptsComplete": { en: "How much of your shopping do these receipts cover?", de: "Wie viel deines Einkaufs decken diese Belege ab?" },
+  "household.mo.never": { en: "Never", de: "Nie" },
+  "household.mo.rarely": { en: "Rarely", de: "Selten" },
+  "household.mo.sometimes": { en: "Sometimes", de: "Manchmal" },
+  "household.mo.often": { en: "Often", de: "Oft" },
+  "household.mo.daily": { en: "Daily", de: "Täglich" },
+  "household.rc.all": { en: "All of it", de: "Alles" },
+  "household.rc.most": { en: "Most", de: "Das meiste" },
+  "household.rc.some": { en: "Some", de: "Einen Teil" },
+  "household.rc.few": { en: "Only a little", de: "Nur wenig" },
+
   // Ideal Profile Engine (E2) — daily targets card
   "targets.title": { en: "Your daily targets", de: "Deine Tagesziele" },
   "targets.body": {
