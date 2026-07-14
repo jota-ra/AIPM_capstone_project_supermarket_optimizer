@@ -139,7 +139,13 @@ async def upload_receipt(
 
     update_receipt_with_parse(receipt_id, parsed)
     insert_receipt_items(receipt_id, parsed)
-    add_items_to_pantry(user_id, parsed.get("items", []))
+    # Pantry sync is a side-effect of the upload — a schema gap in an
+    # unmigrated pantry_items table (e.g. missing user_id column) must not
+    # 500 the whole receipt (same non-fatal stance as storage, E3-S5).
+    try:
+        add_items_to_pantry(user_id, parsed.get("items", []))
+    except Exception as exc:
+        log_event("pantry_sync_failed", {"error": str(exc)}, user_id)
     invalidate_snapshot_cache(user_id)
     log_event("upload_completed", {"receipt_id": receipt_id, "items_count": validated.items_count}, user_id)
 
