@@ -17,6 +17,7 @@ import type {
   ItemMatchPick,
   NutritionAnalysis,
   StructuredNextCart,
+  Level2Payload,
 } from "@/types/api";
 import { supabase } from "@/lib/supabase";
 
@@ -186,6 +187,16 @@ export async function getRecommendations(profileId?: string): Promise<Structured
   const q = profileId ? `?profile_id=${encodeURIComponent(profileId)}` : "";
   const res = await fetch(`${API_BASE}/recommendations${q}`, { headers: await authHeader() });
   return handle<StructuredNextCart>(res);
+}
+
+// E9: record Level-2 health-data consent + symptom answers.
+export async function submitLevel2(profileId: string, payload: Level2Payload): Promise<Profile> {
+  const res = await fetch(`${API_BASE}/profile/${profileId}/level2`, {
+    method: "POST",
+    headers: await jsonHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handle<Profile>(res);
 }
 
 export async function listReceipts(): Promise<{ user_id: string; receipts: ReceiptRow[] }> {
