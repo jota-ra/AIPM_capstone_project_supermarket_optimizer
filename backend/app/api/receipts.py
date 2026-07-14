@@ -8,6 +8,9 @@ from backend.app.services.storage import upload_receipt_bytes, delete_receipt_by
 from backend.app.services.receipt_parser import (
     scan_receipt_bytes,
     scan_receipt_text,
+    ERROR_RATE_LIMITED,
+    ERROR_UNAVAILABLE,
+    ERROR_INVALID,
 )
 from backend.app.services.auth import get_current_user
 from backend.app.services.error_handler import pipeline_error, PipelineStage
@@ -32,6 +35,14 @@ from backend.app.services.source_labels import source_label
 from backend.app.nutrition_model import DISCLAIMER
 
 router = APIRouter()
+
+# E3-S5: map the parser's typed error codes to HTTP statuses. Anything
+# unrecognized falls back to 502 (a generic upstream-pipeline failure).
+_PARSE_ERROR_STATUS = {
+    ERROR_RATE_LIMITED: 429,   # retry later
+    ERROR_UNAVAILABLE: 503,    # service temporarily down
+    ERROR_INVALID: 422,        # not a parseable receipt / bad input
+}
 
 
 @router.post("/receipts")
@@ -62,13 +73,20 @@ async def upload_receipt(
     receipt_id = str(uuid4())
 
     if file is not None:
-        # Image path (Story 1.1)
+        # Image path (Story 1.1 / E3-S1)
         file_bytes = await file.read()
-        storage_path = upload_receipt_bytes(
-            file_bytes=file_bytes,
-            filename=file.filename,
-            content_type=file.content_type,
-        )
+        # E3-S5: storing the original image is best-effort — a storage
+        # outage must not lose a receipt we can still parse. On failure we
+        # log it, drop the stored copy, and continue with storage_path=None.
+        try:
+            storage_path = upload_receipt_bytes(
+                file_bytes=file_bytes,
+                filename=file.filename,
+                content_type=file.content_type,
+            )
+        except Exception as exc:  # storage/network — non-fatal
+            storage_path = None
+            log_event("storage_upload_failed", {"error": str(exc)}, user_id)
         create_receipt_row(receipt_id, file.filename, file.content_type, storage_path, user_id)
         parsed = scan_receipt_bytes(file_bytes=file_bytes, filename=file.filename)
         input_type = "image"
@@ -79,11 +97,12 @@ async def upload_receipt(
         parsed = scan_receipt_text(raw_text=text)
         input_type = "text"
 
-    # Parser reported a hard failure -> record it, surface it, don't crash downstream
+    # Parser reported a hard failure -> record it, surface it with the right
+    # HTTP status (E3-S5), don't crash downstream.
     if isinstance(parsed, dict) and parsed.get("error"):
         update_receipt_with_parse(receipt_id, parsed)
         raise pipeline_error(
-            502,
+            _PARSE_ERROR_STATUS.get(parsed.get("error_code"), 502),
             PipelineStage.PARSING,
             f"Receipt parsing failed: {parsed['error']}",
             user_id,
@@ -98,6 +117,16 @@ async def upload_receipt(
             502,
             PipelineStage.SCHEMA_VALIDATION,
             f"Parser output failed schema validation: {e.errors()}",
+            user_id,
+        )
+
+    # E3-S5: a scan that yields no food line items is an "invalid image"
+    # (nothing to analyze) — surfaced as 422, not a false success.
+    if not validated.items:
+        raise pipeline_error(
+            422,
+            PipelineStage.PARSING,
+            "No parseable grocery items were found on this receipt.",
             user_id,
         )
 

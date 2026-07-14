@@ -16,7 +16,11 @@ import type {
 } from "@/types/api";
 import { supabase } from "@/lib/supabase";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+// Strip any trailing slash(es): every call below builds URLs as
+// `${API_BASE}/path`, so a base like "http://localhost:8000/" (a common
+// .env slip) would otherwise produce "http://localhost:8000//path", which
+// Starlette does not match against "/path" → a bare 404 "Not Found".
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 
 export class ApiError extends Error {
   status: number;
@@ -83,6 +87,45 @@ export async function uploadReceiptText(text: string): Promise<UploadReceiptResp
     body: formData,
   });
   return handle<UploadReceiptResponse>(res);
+}
+
+// E3-S5: map a failed upload to a localized message key based on the typed
+// HTTP status the backend now returns (429 rate-limited / 503 unavailable /
+// 422 invalid image), falling back to the generic upload-failed copy.
+export function receiptErrorKey(e: unknown): string {
+  if (e instanceof ApiError) {
+    if (e.status === 429) return "upload.errRateLimited";
+    if (e.status === 503) return "upload.errUnavailable";
+    if (e.status === 422) return "upload.errInvalid";
+  }
+  return "upload.uploadFailed";
+}
+
+export interface MultiUploadResult {
+  file: string;
+  ok: boolean;
+  response?: UploadReceiptResponse;
+  errorKey?: string;
+}
+
+// E3-S1: "each uploaded file is one receipt". Uploads run sequentially so
+// each file becomes its own independent receipt and one failure never sinks
+// the rest — the caller gets a per-file result to report.
+export async function uploadReceiptFiles(
+  files: File[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<MultiUploadResult[]> {
+  const results: MultiUploadResult[] = [];
+  for (let i = 0; i < files.length; i++) {
+    try {
+      const response = await uploadReceiptFile(files[i]);
+      results.push({ file: files[i].name, ok: true, response });
+    } catch (e) {
+      results.push({ file: files[i].name, ok: false, errorKey: receiptErrorKey(e) });
+    }
+    onProgress?.(i + 1, files.length);
+  }
+  return results;
 }
 
 export async function listReceipts(): Promise<{ user_id: string; receipts: ReceiptRow[] }> {

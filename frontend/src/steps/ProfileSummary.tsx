@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage, type Lang } from "@/lib/i18n";
 import { getProfile, updateProfile, ApiError } from "@/lib/api";
 import { STEPS, type StepDef } from "@/steps/ChatOnboardingStep";
-import type { Profile, ProfileCreate } from "@/types/api";
+import type { IdealProfile, Profile, ProfileCreate } from "@/types/api";
 
 // "My Profile" — a single editable form for everything onboarding
 // (ChatOnboardingStep) collected, styled as one grid instead of the
@@ -114,6 +114,103 @@ function MultiChips({
   );
 }
 
+// Human-readable names + display units for the 10 starter micronutrients
+// the Ideal Profile Engine emits (keys like "iron_mg", "vitamin_d_ug").
+const MICRO_META: Record<string, { unit: string; label: { en: string; de: string } }> = {
+  iron_mg: { unit: "mg", label: { en: "Iron", de: "Eisen" } },
+  calcium_mg: { unit: "mg", label: { en: "Calcium", de: "Calcium" } },
+  magnesium_mg: { unit: "mg", label: { en: "Magnesium", de: "Magnesium" } },
+  zinc_mg: { unit: "mg", label: { en: "Zinc", de: "Zink" } },
+  vitamin_c_mg: { unit: "mg", label: { en: "Vitamin C", de: "Vitamin C" } },
+  vitamin_d_ug: { unit: "µg", label: { en: "Vitamin D", de: "Vitamin D" } },
+  vitamin_b12_ug: { unit: "µg", label: { en: "Vitamin B12", de: "Vitamin B12" } },
+  folate_ug: { unit: "µg", label: { en: "Folate", de: "Folat" } },
+  potassium_mg: { unit: "mg", label: { en: "Potassium", de: "Kalium" } },
+  iodine_ug: { unit: "µg", label: { en: "Iodine", de: "Jod" } },
+};
+
+function Stat({ label, value, unit, big }: { label: string; value: number; unit: string; big?: boolean }) {
+  return (
+    <div className="rounded-xl bg-zinc-50 px-4 py-3 ring-1 ring-black/5">
+      <p className="text-xs font-medium uppercase tracking-widest text-ink/40">{label}</p>
+      <p className={cn("mt-1 font-medium tracking-tight text-ink", big ? "text-2xl" : "text-lg")}>
+        {value}
+        <span className="ml-1 text-sm font-normal text-ink/50">{unit}</span>
+      </p>
+    </div>
+  );
+}
+
+// E2 — daily targets computed by the Ideal Profile Engine, attached to the
+// profile response once the Level-1 biometrics are present. Read-only:
+// editing the inputs below and saving recomputes these on the next load.
+function TargetsCard({ ideal }: { ideal: IdealProfile | null | undefined }) {
+  const { t, language } = useLanguage();
+  const micros = ideal ? Object.entries(ideal.micronutrients) : [];
+
+  return (
+    <Card className="space-y-6">
+      <header className="space-y-1">
+        <p className="text-xs font-medium uppercase tracking-widest text-ink/40">{t("targets.title")}</p>
+        <p className="max-w-[56ch] text-sm text-ink/60">{t("targets.body")}</p>
+      </header>
+
+      {!ideal ? (
+        <p className="rounded-xl bg-zinc-50 px-4 py-3 text-sm text-ink/60 ring-1 ring-black/5">
+          {t("targets.empty")}
+        </p>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <Stat label={t("targets.calories")} value={ideal.calories_kcal} unit={t("targets.kcal")} big />
+            <Stat label={t("targets.protein")} value={ideal.protein_g} unit="g" big />
+            <Stat label={t("targets.fat")} value={ideal.fat_g} unit="g" big />
+            <Stat label={t("targets.carbs")} value={ideal.carbs_g} unit="g" big />
+            <Stat label={t("targets.fiber")} value={ideal.fiber_g} unit="g" big />
+          </div>
+
+          {ideal.constrained ? (
+            <div className="rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-800 ring-1 ring-amber-200">
+              {t("targets.constrained")}
+            </div>
+          ) : null}
+
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-widest text-ink/40">{t("targets.energyTitle")}</p>
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              <Stat label={t("targets.bmr")} value={ideal.bmr_kcal} unit={t("targets.kcal")} />
+              <Stat label={t("targets.neat")} value={ideal.neat_kcal} unit={t("targets.kcal")} />
+              <Stat label={t("targets.eat")} value={ideal.eat_kcal} unit={t("targets.kcal")} />
+              <Stat label={t("targets.tef")} value={ideal.tef_kcal} unit={t("targets.kcal")} />
+              <Stat label={t("targets.tdee")} value={ideal.tdee_kcal} unit={t("targets.kcal")} />
+            </div>
+          </div>
+
+          {micros.length ? (
+            <div className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-widest text-ink/40">{t("targets.microsTitle")}</p>
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {micros.map(([key, value]) => {
+                  const meta = MICRO_META[key];
+                  return (
+                    <Stat
+                      key={key}
+                      label={meta ? meta.label[language] : key}
+                      value={value}
+                      unit={meta ? meta.unit : ""}
+                    />
+                  );
+                })}
+              </div>
+              <p className="text-xs text-ink/50">{t("targets.microsNote")}</p>
+            </div>
+          ) : null}
+        </>
+      )}
+    </Card>
+  );
+}
+
 export function ProfileSummary({
   profileId,
   onLogout,
@@ -201,6 +298,8 @@ export function ProfileSummary({
       {!profile && !loadError ? <p className="text-sm text-ink/50">{t("profile.loading")}</p> : null}
 
       {profile && draft ? (
+        <>
+        <TargetsCard ideal={profile.ideal_profile} />
         <Card className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
             {gridSteps.map((step) => (
@@ -272,6 +371,7 @@ export function ProfileSummary({
             {saveError ? <p className="text-xs text-red-600">{saveError}</p> : null}
           </div>
         </Card>
+        </>
       ) : null}
     </section>
   );

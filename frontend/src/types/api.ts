@@ -5,13 +5,15 @@ export interface ParsedReceiptItem {
   name: string;
   original_text?: string | null;
   quantity: number;
-  unit?: string | null;
+  unit?: string | null; // canonical enum: g | kg | ml | l | piece (E3-S3)
+  price?: number | null; // per-item price in EUR, when legible (E3-S2)
   category: string;
   uncertain: boolean;
 }
 
 export interface ParsedReceipt {
   store: string;
+  date?: string | null; // purchase date, ISO "YYYY-MM-DD" (E3-S2)
   scan_quality: string;
   items: ParsedReceiptItem[];
   non_food_items_ignored: string[];
@@ -167,6 +169,9 @@ export interface IdealProfile {
   eat_kcal: number;
   tef_kcal: number;
   tdee_kcal: number;
+  // BR-M3: protein alone meets/exceeds the calorie goal, so the macro
+  // split can't be satisfied (fat at its floor, carbs at 0).
+  constrained?: boolean;
   notes: string[];
 }
 

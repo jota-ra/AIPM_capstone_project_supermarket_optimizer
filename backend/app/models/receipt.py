@@ -17,6 +17,7 @@ class ReceiptItem(BaseModel):
     original_text: Optional[str] = None
     quantity: float
     unit: Optional[str] = None
+    price: Optional[float] = None
     category: str
     uncertain: bool
 
@@ -31,6 +32,7 @@ class ParsedReceipt(BaseModel):
     """
 
     store: str
+    date: Optional[str] = None  # purchase date, ISO "YYYY-MM-DD" (E3-S2)
     scan_quality: str
     items: List[ReceiptItem]
     non_food_items_ignored: List[str] = Field(default_factory=list)

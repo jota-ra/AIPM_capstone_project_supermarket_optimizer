@@ -42,13 +42,21 @@ _EAT_KCAL = {
     ExerciseFrequency.FIVE_SIX: 400,
     ExerciseFrequency.DAILY_ATHLETE: 600,
 }
-# ── BR-E6 goal → calorie adjustment. Keyed on the app-wide Goal enum
-# (the chat-onboarding values, models/profile.py): only the two goals with
-# an explicit energy direction shift TDEE; the rest are maintenance.
+# ── BR-E6 goal → calorie adjustment ──────────────────────────────────────
+# BR-E6 defines four goals (lose −15%, maintain 0, build +10%, aggressive
+# gain +15%). The app's Goal enum (models/profile.py) is a different, 6-value
+# set from the chat onboarding, so we map it onto BR-E6's energy directions:
+#   LOSE_WEIGHT_GRADUALLY → −15%  (BR-E6 "lose fat")
+#   BUILD_MUSCLE          → +10%  (BR-E6 "build muscle")
+#   MORE_ENERGY / EAT_BALANCED / BETTER_FOCUS / BETTER_SLEEP → 0% (maintain)
+# BR-E6's "aggressive gain" (+15%) has no counterpart in the app's goal set —
+# the onboarding never offers it, so it is intentionally unreachable here
+# rather than mapped to an arbitrary existing goal. Revisit if onboarding
+# adds an aggressive-gain option.
 _GOAL_ADJ = {
     Goal.LOSE_WEIGHT_GRADUALLY: -0.15,
     Goal.BUILD_MUSCLE: 0.10,
-    # MORE_ENERGY / EAT_BALANCED / BETTER_FOCUS / BETTER_SLEEP → 0.0 via .get default
+    # everything else → 0.0 (maintenance) via .get default
 }
 # ── BR-M1 protein g/kg ───────────────────────────────────────────────────
 _PROTEIN_BY_EXERCISE = {
@@ -123,24 +131,48 @@ def compute_ideal_profile(profile: ProfileCreate) -> Optional[IdealProfile]:
     weight = float(profile.weight_kg)
     notes: list[str] = []
 
-    # Energy (BR-E1..E6)
-    bmr = _bmr(profile.sex, weight, float(profile.height_cm), age)
+    # Energy (BR-E1..E6). BR-Gen2 says round only for display, but the
+    # additive TDEE chain is defined on whole-kcal component values: the
+    # "TDEE is additive" acceptance scenario sums BMR 1782 + NEAT 178 +
+    # EAT 250 + TEF 221 = 2431. Rounding each component to whole kcal
+    # before summing reproduces that worked example exactly (2431), whereas
+    # carrying full float precision through the sum yields 2431.8 → 2432.
+    bmr = round(_bmr(profile.sex, weight, float(profile.height_cm), age))
     movement = profile.daily_movement or DailyMovement.MOSTLY_SITTING
     exercise = profile.exercise_frequency or ExerciseFrequency.NONE
-    neat = bmr * _NEAT_PCT[movement]
-    eat = float(_EAT_KCAL[exercise])
-    tef = 0.10 * (bmr + neat + eat)
+    neat = round(bmr * _NEAT_PCT[movement])
+    eat = _EAT_KCAL[exercise]
+    tef = round(0.10 * (bmr + neat + eat))
     tdee = bmr + neat + eat + tef
-    calories = tdee * (1 + _GOAL_ADJ.get(profile.goal, 0.0))
+    calories = round(tdee * (1 + _GOAL_ADJ.get(profile.goal, 0.0)))
 
     # Macros (BR-M1..M4, M6)
     protein_g = max(_PROTEIN_BY_EXERCISE[exercise], _PROTEIN_BY_GOAL.get(profile.goal, 1.2)) * weight
-    fat_g = max(0.30 * calories / KCAL_PER_G["fat"], 0.8 * weight)
-    remaining = calories - protein_g * KCAL_PER_G["protein"] - fat_g * KCAL_PER_G["fat"]
-    carbs_g = max(0.0, remaining / KCAL_PER_G["carb"])
+    protein_kcal = protein_g * KCAL_PER_G["protein"]
+
+    # BR-M2 fat = max(30% kcal, 0.8 g/kg). BR-M3: if protein + this fat
+    # already meet/exceed the target, hold protein fixed and drop fat toward
+    # its 0.8 g/kg floor to make room, floor carbs at 0; only if protein +
+    # floor-fat *still* exceed the target flag the profile "constrained"
+    # rather than emit negative carbs.
+    fat_floor_g = 0.8 * weight
+    fat_g = max(0.30 * calories / KCAL_PER_G["fat"], fat_floor_g)
+    remaining = calories - protein_kcal - fat_g * KCAL_PER_G["fat"]
+    constrained = False
     if remaining < 0:
-        notes.append("Targets are constrained: protein + minimum fat meet your calorie goal, so carbs are at 0.")
+        fat_g = fat_floor_g
+        remaining = calories - protein_kcal - fat_g * KCAL_PER_G["fat"]
+        if remaining < 0:
+            constrained = True
+            remaining = 0.0
+    carbs_g = remaining / KCAL_PER_G["carb"]
     fiber_g = 14.0 * calories / 1000.0
+
+    if constrained:
+        notes.append(
+            "Targets are constrained: your protein target alone meets or exceeds "
+            "your calorie goal, so fat is held at its 0.8 g/kg minimum and carbs are 0."
+        )
 
     micros = _micros(profile.sex, age, profile.pregnancy_status)
     notes.append("Micronutrient targets are DGE starter values pending dietitian verification.")
@@ -152,10 +184,11 @@ def compute_ideal_profile(profile: ProfileCreate) -> Optional[IdealProfile]:
         carbs_g=round(carbs_g),
         fiber_g=round(fiber_g),
         micronutrients=micros,
-        bmr_kcal=round(bmr),
-        neat_kcal=round(neat),
-        eat_kcal=round(eat),
-        tef_kcal=round(tef),
-        tdee_kcal=round(tdee),
+        bmr_kcal=bmr,
+        neat_kcal=neat,
+        eat_kcal=eat,
+        tef_kcal=tef,
+        tdee_kcal=tdee,
+        constrained=constrained,
         notes=notes,
     )

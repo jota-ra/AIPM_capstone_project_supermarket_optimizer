@@ -96,10 +96,21 @@ def get_receipts_by_user(user_id: str):
 
 
 def update_receipt_with_parse(receipt_id, parsed_data: dict):
-    return supabase.table("receipts").update({
+    # `raw_text` keeps the full parsed JSON (store/date/items all live here,
+    # so nothing is lost even on an unmigrated DB). `store`/`purchase_date`
+    # are additionally promoted to dedicated columns for querying (E3-S2,
+    # trends in E7) via the tolerant update, which drops them silently where
+    # those columns don't exist yet.
+    fields = {
         "raw_text": parsed_data,
         "status": "processed",
-    }).eq("id", receipt_id).execute()
+    }
+    if isinstance(parsed_data, dict):
+        if parsed_data.get("store"):
+            fields["store"] = parsed_data["store"]
+        if parsed_data.get("date"):
+            fields["purchase_date"] = parsed_data["date"]
+    return _update_tolerant("receipts", receipt_id, fields)
 
 
 def get_receipt(receipt_id):

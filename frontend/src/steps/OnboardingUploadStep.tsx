@@ -2,8 +2,10 @@ import { useRef, useState } from "react";
 import { Card, PrimaryButton, SectionLabel, inputCls } from "@/components/AppShell";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n";
-import { uploadReceiptFile, uploadReceiptText, ApiError } from "@/lib/api";
+import { uploadReceiptFiles, uploadReceiptText, receiptErrorKey, ApiError } from "@/lib/api";
 import type { UploadReceiptResponse } from "@/types/api";
+
+const ACCEPT = "image/jpeg,image/png,image/webp,application/pdf";
 
 type Mode = "image" | "text";
 
