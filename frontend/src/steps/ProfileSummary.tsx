@@ -220,6 +220,8 @@ function HouseholdCard({ profileId, profile }: { profileId: string; profile: Pro
   const [size, setSize] = useState<string>(profile.household_size ? String(profile.household_size) : "");
   const [mealsOutside, setMealsOutside] = useState<string>(profile.meals_outside ?? "");
   const [receiptsComplete, setReceiptsComplete] = useState<string>(profile.receipts_complete ?? "");
+  const [daysToShop, setDaysToShop] = useState<string>(profile.days_to_shop ? String(profile.days_to_shop) : "");
+  const [homeCooked, setHomeCooked] = useState<string>(profile.home_cooked_frequency ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -232,6 +234,8 @@ function HouseholdCard({ profileId, profile }: { profileId: string; profile: Pro
         household_size: shared && size ? Number(size) : null,
         meals_outside: (mealsOutside || null) as ProfileCreate["meals_outside"],
         receipts_complete: (receiptsComplete || null) as ProfileCreate["receipts_complete"],
+        days_to_shop: daysToShop ? Number(daysToShop) : null,
+        home_cooked_frequency: (homeCooked || null) as ProfileCreate["home_cooked_frequency"],
       });
       setSaved(true);
     } finally {
@@ -241,6 +245,7 @@ function HouseholdCard({ profileId, profile }: { profileId: string; profile: Pro
 
   const MO = ["never", "rarely", "sometimes", "often", "daily"] as const;
   const RC = ["all", "most", "some", "few"] as const;
+  const HC = ["rarely", "sometimes", "often", "daily"] as const;
 
   return (
     <Card className="space-y-5">
@@ -295,6 +300,19 @@ function HouseholdCard({ profileId, profile }: { profileId: string; profile: Pro
             <option value="">—</option>
             {RC.map((r) => (
               <option key={r} value={r}>{t(`household.rc.${r}`)}</option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label={t("household.daysToShop")}>
+          <input className={inputCls} type="number" min={1} max={60} value={daysToShop} onChange={(e) => setDaysToShop(e.target.value)} />
+        </Field>
+
+        <Field label={t("household.homeCooked")}>
+          <select className={cn(inputCls, "appearance-none")} value={homeCooked} onChange={(e) => setHomeCooked(e.target.value)}>
+            <option value="">—</option>
+            {HC.map((h) => (
+              <option key={h} value={h}>{t(`household.hc.${h}`)}</option>
             ))}
           </select>
         </Field>

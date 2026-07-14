@@ -9,10 +9,12 @@ import {
   getProfile,
   getPantry,
   getAnalysis,
+  getRecommendations,
   submitFeedback,
   ApiError,
 } from "@/lib/api";
 import { AnalysisCard } from "@/steps/AnalysisCard";
+import { NextCartCard as StructuredNextCartCard } from "@/steps/NextCartCard";
 import type {
   AbsoluteGap,
   Conflict,
@@ -23,6 +25,7 @@ import type {
   NextCartRecommendation,
   NutritionSnapshot,
   NutritionAnalysis,
+  StructuredNextCart,
   ProgressReport,
 } from "@/types/api";
 
@@ -522,6 +525,7 @@ export function ResultsStep({
 }) {
   const [snapshot, setSnapshot] = useState<NutritionSnapshot | null>(null);
   const [analysis, setAnalysis] = useState<NutritionAnalysis | null>(null);
+  const [structuredCart, setStructuredCart] = useState<StructuredNextCart | null>(null);
   const [recommendation, setRecommendation] = useState<NextCartRecommendation | null>(null);
   const [profileName, setProfileName] = useState<string | null>(null);
   const [daysSinceLastConfirmation, setDaysSinceLastConfirmation] = useState<number | null>(null);
@@ -551,15 +555,17 @@ export function ResultsStep({
     // shouldn't also block the independent pantry fetch (the reminder
     // banner should still work) or the profile name fetch (the greeting
     // should still be personalized) below.
-    const [snapResult, recResult, pantryResult, analysisResult] = await Promise.allSettled([
+    const [snapResult, recResult, pantryResult, analysisResult, cartResult] = await Promise.allSettled([
       getNutritionSnapshot(profileId ?? undefined),
       getNextCart(profileId ?? undefined),
       getPantry(),
       getAnalysis(profileId ?? undefined),
+      getRecommendations(profileId ?? undefined),
     ]);
 
     setSnapshot(snapResult.status === "fulfilled" ? snapResult.value : null);
     setAnalysis(analysisResult.status === "fulfilled" ? analysisResult.value : null);
+    setStructuredCart(cartResult.status === "fulfilled" ? cartResult.value : null);
     setRecommendation(recResult.status === "fulfilled" ? recResult.value : null);
     setDaysSinceLastConfirmation(
       pantryResult.status === "fulfilled" ? pantryResult.value.days_since_last_confirmation : null,
@@ -648,6 +654,9 @@ export function ResultsStep({
 
       {/* E7: ideal-vs-status-quo score, closeness bars, grouping. */}
       {analysis ? <AnalysisCard analysis={analysis} /> : null}
+
+      {/* E8: structured Next-Cart (primary + alternatives + reduce). */}
+      {structuredCart ? <StructuredNextCartCard rec={structuredCart} /> : null}
 
       {loading ? <p className="text-sm text-ink/50">{t("results.loading")}</p> : null}
 

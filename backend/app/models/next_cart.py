@@ -74,6 +74,32 @@ class EvaluatedCandidate(BaseModel):
     reason: Optional[str] = None  # set when blocked
 
 
+class ScoredRecommendation(BaseModel):
+    """One scored Next-Cart suggestion (E8, BR-S1)."""
+
+    item: str
+    action_type: ActionType
+    targets_gap: str            # e.g. "protein:low"
+    score: float
+    severity: float
+    goal_relevance: float
+    rationale: Optional[str] = None
+
+
+class StructuredNextCart(BaseModel):
+    """E8 output structure (BR-S1): 1 primary + ≤2 alternatives + ≤2 reduce,
+    or a no-suitable / no-gaps state."""
+
+    status: RecommendationStatus
+    primary: Optional[ScoredRecommendation] = None
+    alternatives: List[ScoredRecommendation] = Field(default_factory=list)  # ≤2
+    reduce: List[str] = Field(default_factory=list)                          # ≤2 red-tier item names
+    message: str
+    confidence: ConfidenceLevel
+    evaluated_candidates: List[EvaluatedCandidate] = Field(default_factory=list)
+    disclaimer: str = DISCLAIMER
+
+
 class NextCartRecommendation(BaseModel):
     """
     Output Formatter (Task 5.3): the single, UI-ready Next Cart result.

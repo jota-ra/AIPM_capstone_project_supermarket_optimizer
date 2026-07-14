@@ -171,6 +171,20 @@ const STRINGS: Record<string, { en: string; de: string }> = {
   "analysis.tier.unhealthy": { en: "Unhealthy", de: "Ungesund" },
   "analysis.tier.grey": { en: "Not enough data", de: "Zu wenig Daten" },
 
+  // E8 Next-Cart
+  "nextcart.title": { en: "Your next cart", de: "Dein nächster Einkauf" },
+  "nextcart.primary": { en: "Top pick", de: "Top-Empfehlung" },
+  "nextcart.alternatives": { en: "Alternatives", de: "Alternativen" },
+  "nextcart.reduce": { en: "Consider reducing", de: "Weniger davon" },
+  "nextcart.noGaps": { en: "Your basket looks balanced — nothing to add right now.", de: "Dein Korb wirkt ausgewogen — momentan nichts zu ergänzen." },
+  "nextcart.noSuitable": { en: "No suitable recommendation — every candidate conflicts with your profile.", de: "Keine passende Empfehlung — alle Kandidaten widersprechen deinem Profil." },
+  "household.daysToShop": { en: "Days until your next shop", de: "Tage bis zum nächsten Einkauf" },
+  "household.homeCooked": { en: "How often do you cook at home?", de: "Wie oft kochst du zu Hause?" },
+  "household.hc.rarely": { en: "Rarely", de: "Selten" },
+  "household.hc.sometimes": { en: "Sometimes", de: "Manchmal" },
+  "household.hc.often": { en: "Often", de: "Oft" },
+  "household.hc.daily": { en: "Daily", de: "Täglich" },
+
   // Household & consumption attribution (E6)
   "household.title": { en: "Household & eating", de: "Haushalt & Verzehr" },
   "household.body": {

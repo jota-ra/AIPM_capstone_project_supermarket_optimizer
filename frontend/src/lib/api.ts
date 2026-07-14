@@ -16,6 +16,7 @@ import type {
   ProductSearchResult,
   ItemMatchPick,
   NutritionAnalysis,
+  StructuredNextCart,
 } from "@/types/api";
 import { supabase } from "@/lib/supabase";
 
@@ -178,6 +179,13 @@ export async function getAnalysis(profileId?: string): Promise<NutritionAnalysis
   const q = profileId ? `?profile_id=${encodeURIComponent(profileId)}` : "";
   const res = await fetch(`${API_BASE}/nutrition/analysis${q}`, { headers: await authHeader() });
   return handle<NutritionAnalysis>(res);
+}
+
+// E8: structured Next-Cart recommendations (1 primary + ≤2 alternatives + ≤2 reduce).
+export async function getRecommendations(profileId?: string): Promise<StructuredNextCart> {
+  const q = profileId ? `?profile_id=${encodeURIComponent(profileId)}` : "";
+  const res = await fetch(`${API_BASE}/recommendations${q}`, { headers: await authHeader() });
+  return handle<StructuredNextCart>(res);
 }
 
 export async function listReceipts(): Promise<{ user_id: string; receipts: ReceiptRow[] }> {

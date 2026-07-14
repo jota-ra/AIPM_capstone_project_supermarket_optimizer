@@ -177,6 +177,16 @@ class ReceiptsComplete(str, Enum):
     FEW = "few"
 
 
+class HomeCookedFrequency(str, Enum):
+    """How often the user cooks at home (E8-S4 / FR-10.1). Lets Next-Cart
+    lean toward ready-to-eat vs cook-from-scratch suggestions."""
+
+    RARELY = "rarely"
+    SOMETIMES = "sometimes"
+    OFTEN = "often"
+    DAILY = "daily"
+
+
 class ProfileCreate(BaseModel):
     """
     Input for the chat onboarding flow: language + name up front, then
@@ -251,6 +261,10 @@ class ProfileCreate(BaseModel):
     meals_outside: Optional[MealsOutside] = None
     receipts_complete: Optional[ReceiptsComplete] = None
 
+    # ── Next-Cart inputs (E8-S4 / FR-10.1) ───────────────────────────────
+    days_to_shop: Optional[int] = Field(default=None, ge=1, le=60)
+    home_cooked_frequency: Optional[HomeCookedFrequency] = None
+
     # E1-S6: false while the user is mid-walk-through, true once every
     # required step is answered (drives "resume vs. dashboard" on login).
     profile_complete: bool = False
@@ -304,6 +318,8 @@ class ProfileUpdate(BaseModel):
     user_share: Optional[float] = None
     meals_outside: Optional[MealsOutside] = None
     receipts_complete: Optional[ReceiptsComplete] = None
+    days_to_shop: Optional[int] = None
+    home_cooked_frequency: Optional[HomeCookedFrequency] = None
     profile_complete: Optional[bool] = None
 
 

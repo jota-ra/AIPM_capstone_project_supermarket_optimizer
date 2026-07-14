@@ -90,6 +90,27 @@ export interface NutritionAnalysis {
   coverage: { total_occasions: number; tracked_occasions: number; untracked_share: number };
 }
 
+// E8: structured Next-Cart recommendation.
+export interface ScoredRecommendation {
+  item: string;
+  action_type: "add" | "replace" | "reduce" | "none";
+  targets_gap: string;
+  score: number;
+  severity: number;
+  goal_relevance: number;
+  rationale?: string | null;
+}
+
+export interface StructuredNextCart {
+  status: "recommended" | "no_gaps" | "no_suitable_candidate";
+  primary: ScoredRecommendation | null;
+  alternatives: ScoredRecommendation[];
+  reduce: string[];
+  message: string;
+  confidence: string;
+  disclaimer: string;
+}
+
 // E5-S2: a candidate from the OFF or BLS manual search (nutrition-bearing only).
 export interface ProductSearchResult {
   source: "off" | "bls";
@@ -207,6 +228,9 @@ export interface ProfileCreate {
   user_share?: number | null;
   meals_outside?: "never" | "rarely" | "sometimes" | "often" | "daily" | null;
   receipts_complete?: "all" | "most" | "some" | "few" | null;
+  // E8 Next-Cart inputs
+  days_to_shop?: number | null;
+  home_cooked_frequency?: "rarely" | "sometimes" | "often" | "daily" | null;
   profile_complete?: boolean;
 }
 

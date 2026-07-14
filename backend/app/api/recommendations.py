@@ -22,6 +22,47 @@ from backend.app.services.nutri_coach import generate_coach_message
 router = APIRouter()
 
 
+@router.get("/recommendations")
+def structured_recommendations(profile_id: Optional[str] = None, user_id: str = Depends(get_current_user)):
+    """
+    Epic 8 Next-Cart engine: candidates scored against the E7 analysis
+    (severity × confidence × symptom × goal, BR-S1), filtered by
+    diet/allergies/dislikes before scoring (BR-S6), returned as 1 primary +
+    ≤2 alternatives + ≤2 reduce (BR-S1). Additive to the legacy /next-cart.
+    """
+
+    from backend.app.db.supabase import get_receipt_items_by_user, get_profile_by_user
+    from backend.app.services.nutrition_mapping import map_items
+    from backend.app.services.status_quo import build_status_quo
+    from backend.app.services.confidence_model import snapshot_confidence
+    from backend.app.services.gap_engine import build_analysis
+    from backend.app.services.grouping import group_products
+    from backend.app.services.ideal_profile import compute_ideal_profile
+    from backend.app.services.next_cart_engine import build_next_cart
+
+    items = get_receipt_items_by_user(user_id)
+    if not items:
+        raise HTTPException(status_code=409, detail="No receipt items found. Upload a receipt first.")
+
+    row = get_profile(profile_id) if profile_id else get_profile_by_user(user_id)
+    profile = None
+    if row is not None:
+        try:
+            profile = Profile.model_validate(row)
+        except ValidationError:
+            profile = None
+    profile = profile or default_profile()
+
+    matched = map_items(items).matched_products
+    status_quo = build_status_quo(items, matched, profile)
+    confidence = snapshot_confidence(items, matched, profile)
+    analysis = build_analysis(compute_ideal_profile(profile), status_quo.daily_intake, confidence)
+    analysis["grouping"] = group_products(matched)
+
+    result = build_next_cart(analysis, profile)
+    return {"user_id": user_id, **result.model_dump()}
+
+
 @router.get("/next-cart")
 def next_cart(profile_id: Optional[str] = None, user_id: str = Depends(get_current_user)):
     """
