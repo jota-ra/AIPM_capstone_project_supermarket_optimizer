@@ -229,18 +229,19 @@ def scan_receipt_text(
     max_retries: int = 3,
 ) -> dict:
     """
-    Parses pasted receipt text and returns the same structured JSON as
-    scan_receipt_bytes.
+    Parses pasted receipt text into the same structured schema as
+    scan_receipt_bytes — but fully OFFLINE (deterministic regex, no Gemini),
+    so the "paste text" fallback always works regardless of API quota/keys
+    (E3). `max_retries` is accepted for call-site symmetry but unused here.
 
-    This is the fallback path (Story 1.2): OCR on receipt photos is
-    unreliable, so users can paste raw receipt text instead and still
-    reach analysis through the exact same schema.
+    The image path still uses the vision model; only this text path is
+    offline. In mock mode it returns the shared fixture for deterministic
+    end-to-end tests.
     """
 
-    contents = [
-        "Extract all grocery items from this German supermarket receipt.\n\n"
-        "RECEIPT TEXT:\n"
-        f"{raw_text}",
-    ]
+    if MOCK_MODE:
+        return _load_mock()
 
-    return _extract_items(contents, max_retries=max_retries)
+    from backend.app.services.receipt_text_parser import parse_receipt_text_offline
+
+    return _normalize_parsed(parse_receipt_text_offline(raw_text))
