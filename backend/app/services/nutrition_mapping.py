@@ -24,7 +24,7 @@ from backend.app.analytics.match_quality import compute_match_quality
 # build_bls_off_dataset.py and other callers import it from here.
 _item_name = resolver._item_name
 
-_MACRO_FIELDS = ("protein_g", "fiber_g", "sugar_g", "calories_kcal")
+_MACRO_FIELDS = ("protein_g", "fat_g", "carbs_g", "saturated_fat_g", "fiber_g", "sugar_g", "calories_kcal")
 
 
 def map_item(item: dict) -> MatchedProduct:

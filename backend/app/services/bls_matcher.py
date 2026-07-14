@@ -44,7 +44,10 @@ _COL_NAME_DE = 1
 _COL_NAME_EN = 2
 _COL_KCAL = 6      # ENERCC Energie (Kilokalorien) [kcal/100g]
 _COL_PROTEIN = 12  # PROT625 Protein (Nx6,25) [g/100g]
+_COL_FAT = 15      # FAT Fett [g/100g]
+_COL_CARB = 18     # CHO Kohlenhydrate, verfügbar [g/100g]
 _COL_FIBER = 21    # FIBT Ballaststoffe, gesamt [g/100g]
+_COL_SATFAT = 246  # FASAT Fettsäuren, gesättigt, gesamt [g/100g]
 _COL_SUGAR = 219   # SUGAR Zucker (Mono- und Disaccharide) [g/100g]
 
 # Micronutrient columns (E4-S1). Keys mirror IdealProfile.micronutrients
@@ -70,6 +73,9 @@ class BlsRecord(TypedDict):
     name_de: str
     name_en: str
     protein_g: Optional[float]
+    fat_g: Optional[float]
+    carbs_g: Optional[float]
+    saturated_fat_g: Optional[float]
     fiber_g: Optional[float]
     sugar_g: Optional[float]
     calories_kcal: Optional[float]
@@ -114,6 +120,9 @@ def _build_cache() -> List[BlsRecord]:
             "name_de": str(name_de).strip(),
             "name_en": str(row[_COL_NAME_EN] or "").strip(),
             "protein_g": _num(row[_COL_PROTEIN]),
+            "fat_g": _num(row[_COL_FAT]),
+            "carbs_g": _num(row[_COL_CARB]),
+            "saturated_fat_g": _num(row[_COL_SATFAT]),
             "fiber_g": _num(row[_COL_FIBER]),
             "sugar_g": _num(row[_COL_SUGAR]),
             "calories_kcal": _num(row[_COL_KCAL]),
@@ -284,6 +293,9 @@ def record_nutrition(rec: BlsRecord) -> dict:
 
     return {
         "protein_g": rec.get("protein_g"),
+        "fat_g": rec.get("fat_g"),
+        "carbs_g": rec.get("carbs_g"),
+        "saturated_fat_g": rec.get("saturated_fat_g"),
         "fiber_g": rec.get("fiber_g"),
         "sugar_g": rec.get("sugar_g"),
         "calories_kcal": rec.get("calories_kcal"),

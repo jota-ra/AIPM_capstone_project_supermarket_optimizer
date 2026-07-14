@@ -37,7 +37,7 @@ _GENERIC_CONFIDENCE_CAP = 0.7
 
 # Macro fields borrowed wholesale from BLS in the bridge (NOVA excluded —
 # it always stays OFF's).
-_MACRO_FIELDS = ("protein_g", "fiber_g", "sugar_g", "calories_kcal")
+_MACRO_FIELDS = ("protein_g", "fat_g", "carbs_g", "saturated_fat_g", "fiber_g", "sugar_g", "calories_kcal")
 
 # Per-distinct-product bridge cache (BR-MT7 / E4-S6): the OFF→BLS decision
 # is deterministic for a given (off_id, name), so compute it once.
@@ -210,7 +210,8 @@ def _bls_whole_food(item_name: str, category: Optional[str]) -> Optional[Matched
         nutrition_conf=1.0,
         data_source="BLS (whole food)",
         nutrition=NutritionValues(
-            protein_g=bnut["protein_g"], fiber_g=bnut["fiber_g"],
+            protein_g=bnut["protein_g"], fat_g=bnut.get("fat_g"), carbs_g=bnut.get("carbs_g"),
+            saturated_fat_g=bnut.get("saturated_fat_g"), fiber_g=bnut["fiber_g"],
             sugar_g=bnut["sugar_g"], calories_kcal=bnut["calories_kcal"],
             processed_score=None,  # NOVA absent for BLS-only (BR-G6 handles it)
             iron_mg=bnut["micros"].get("iron_mg"),

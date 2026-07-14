@@ -61,6 +61,35 @@ export interface ReceiptItemUpdate {
   category?: string;
 }
 
+// E7: gap detection, health score, grouping & confidence.
+export interface AnalysisBar {
+  nutrient: string;
+  kind: "target" | "ceiling";
+  intake: number | null;
+  reference: number | null;
+  bar_pct: number | null;
+  closeness: number | null;
+  in_score: boolean;
+  weight: number;
+}
+
+export interface GroupedItem {
+  name: string;
+  nova: number | null;
+  sugar_g: number | null;
+}
+
+export interface NutritionAnalysis {
+  has_ideal_profile: boolean;
+  score: number | null;
+  confidence: { value: number; band: string };
+  bars: AnalysisBar[];
+  on_target: boolean;
+  micros_gated: boolean;
+  grouping: Record<string, GroupedItem[]>;
+  coverage: { total_occasions: number; tracked_occasions: number; untracked_share: number };
+}
+
 // E5-S2: a candidate from the OFF or BLS manual search (nutrition-bearing only).
 export interface ProductSearchResult {
   source: "off" | "bls";

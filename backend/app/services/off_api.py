@@ -153,6 +153,9 @@ def extract_nutrition(product: dict) -> NutritionValues:
     calcium_g = _to_float(nutriments.get("calcium_100g"))
     return NutritionValues(
         protein_g=_to_float(nutriments.get("proteins_100g")),
+        fat_g=_to_float(nutriments.get("fat_100g")),
+        carbs_g=_to_float(nutriments.get("carbohydrates_100g")),
+        saturated_fat_g=_to_float(nutriments.get("saturated-fat_100g")),
         fiber_g=_to_float(nutriments.get("fiber_100g")),
         sugar_g=_to_float(nutriments.get("sugars_100g")),
         calories_kcal=_to_float(nutriments.get("energy-kcal_100g")),

@@ -36,6 +36,9 @@ class NutritionValues(BaseModel):
     """
 
     protein_g: Optional[float] = None
+    fat_g: Optional[float] = None
+    carbs_g: Optional[float] = None
+    saturated_fat_g: Optional[float] = None  # ceiling nutrient (BR-HS2)
     fiber_g: Optional[float] = None
     sugar_g: Optional[float] = None
     calories_kcal: Optional[float] = None

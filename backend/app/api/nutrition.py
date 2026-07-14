@@ -137,3 +137,50 @@ def nutrition_status_quo(profile_id: Optional[str] = None, user_id: str = Depend
     matched = map_items(items).matched_products
     status_quo = build_status_quo(items, matched, profile, purchase_dates_by_key)
     return {"user_id": user_id, **status_quo.model_dump()}
+
+
+@router.get("/nutrition/analysis")
+def nutrition_analysis(profile_id: Optional[str] = None, user_id: str = Depends(get_current_user)):
+    """
+    Epic 7: gap detection, health score, item grouping and the unified
+    confidence model — the ideal profile (E2) compared against the
+    receipt-derived status-quo (E6).
+
+    Returns per-nutrient bars with closeness (BR-HS2), one 0–100 score as a
+    weighted mean of the scored dimensions with the micro group gated at
+    weight 0 until Q1 (BR-HS3), the snapshot confidence band shown alongside
+    it (BR-HS4/BR-C), and the 3-tier item grouping (BR-G). Additive: the
+    density snapshot at /nutrition/snapshot is unchanged.
+    """
+
+    from backend.app.db.supabase import get_receipt_items_by_user
+    from backend.app.services.nutrition_mapping import map_items
+    from backend.app.services.status_quo import build_status_quo
+    from backend.app.services.confidence_model import snapshot_confidence
+    from backend.app.services.gap_engine import build_analysis
+    from backend.app.services.grouping import group_products
+    from backend.app.services.ideal_profile import compute_ideal_profile
+
+    items = get_receipt_items_by_user(user_id)
+    if not items:
+        raise HTTPException(status_code=409, detail="No receipt items found. Upload a receipt first.")
+
+    profile = _load_profile(profile_id, user_id)
+    ideal = compute_ideal_profile(profile) if profile is not None else None
+
+    matched = map_items(items).matched_products
+    status_quo = build_status_quo(items, matched, profile)
+    confidence = snapshot_confidence(items, matched, profile)
+    analysis = build_analysis(ideal, status_quo.daily_intake, confidence)
+    grouping = group_products(matched)
+
+    return {
+        "user_id": user_id,
+        "has_ideal_profile": ideal is not None,
+        "ideal_profile": ideal.model_dump() if ideal is not None else None,
+        "status_quo": status_quo.model_dump(),
+        "confidence": confidence,
+        **analysis,
+        "grouping": grouping,
+        "coverage": status_quo.coverage,
+    }

@@ -25,7 +25,7 @@ from backend.app.models.nutrition import MatchedProduct
 from backend.app.services.nutrition_profile import grams_for
 from backend.app.services import consumption_timeframe as ctf
 
-_MACRO_FIELDS = ("protein_g", "fiber_g", "sugar_g", "calories_kcal")
+_MACRO_FIELDS = ("protein_g", "fat_g", "carbs_g", "saturated_fat_g", "fiber_g", "sugar_g", "calories_kcal")
 
 # BR-I6 untracked-occasion share + BR-C4 meals-outside confidence discount.
 _MEALS_OUTSIDE = {
