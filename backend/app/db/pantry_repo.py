@@ -64,7 +64,7 @@ def upsert_pantry_item_quantity(user_id: str, normalized_name: str, delta: float
         try:
             return supabase.table(_PANTRY_ITEMS_TABLE).insert(row).execute()
         except APIError as e:
-            if e.code != _MISSING_TABLE_CODE:
+            if e.code not in _MISSING_SCHEMA_CODES:
                 raise
             print(f"[db] '{_PANTRY_ITEMS_TABLE}' table missing (migration pending?) — pantry not persisted")
             return None
@@ -82,7 +82,7 @@ def upsert_pantry_item_quantity(user_id: str, normalized_name: str, delta: float
             .execute()
         )
     except APIError as e:
-        if e.code != _MISSING_TABLE_CODE:
+        if e.code not in _MISSING_SCHEMA_CODES:
             raise
         print(f"[db] '{_PANTRY_ITEMS_TABLE}' table missing (migration pending?) — pantry not persisted")
         return None
@@ -105,7 +105,7 @@ def update_pantry_item_fields(user_id: str, normalized_name: str, fields: dict):
             .execute()
         )
     except APIError as e:
-        if e.code != _MISSING_TABLE_CODE:
+        if e.code not in _MISSING_SCHEMA_CODES:
             raise
         print(f"[db] '{_PANTRY_ITEMS_TABLE}' table missing (migration pending?) — pantry not persisted")
         return None
@@ -131,7 +131,7 @@ def insert_consumption_event(
     try:
         return supabase.table(_CONSUMPTION_EVENTS_TABLE).insert(row).execute()
     except APIError as e:
-        if e.code != _MISSING_TABLE_CODE:
+        if e.code not in _MISSING_SCHEMA_CODES:
             raise
         print(f"[db] '{_CONSUMPTION_EVENTS_TABLE}' table missing (migration pending?) — consumption not persisted")
         return None
@@ -147,7 +147,7 @@ def get_consumption_events_by_user(user_id: str):
             .execute()
         )
     except APIError as e:
-        if e.code != _MISSING_TABLE_CODE:
+        if e.code not in _MISSING_SCHEMA_CODES:
             raise
         print(f"[db] '{_CONSUMPTION_EVENTS_TABLE}' table missing (migration pending?) — returning no consumption events")
         return []
