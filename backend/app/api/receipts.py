@@ -303,5 +303,6 @@ def map_receipt_nutrition(receipt_id: str, user_id: str = Depends(get_current_us
         "user_id": user_id,
         "matched_products": enriched_products,
         "match_quality": result.match_quality.model_dump(),
+        "nutrition_totals": result.nutrition_totals,  # E4-S6
         "disclaimer": DISCLAIMER,
     }

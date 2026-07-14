@@ -14,8 +14,12 @@ from backend.app.models.nutrition import MatchedProduct, MatchType, MatchQuality
 def compute_match_quality(products: List[MatchedProduct]) -> MatchQuality:
     total = len(products)
 
+    # LEARNED (Tier-0) and BLS (whole-food identity) are real identity
+    # matches too, alongside OFF EXACT/FUZZY — only the category estimate
+    # is a "fallback" and NONE is a true miss.
     matched = sum(
-        1 for p in products if p.match_type in (MatchType.EXACT, MatchType.FUZZY)
+        1 for p in products
+        if p.match_type in (MatchType.LEARNED, MatchType.EXACT, MatchType.FUZZY, MatchType.BLS)
     )
     fallback = sum(1 for p in products if p.match_type == MatchType.FALLBACK)
     failed = sum(1 for p in products if p.match_type == MatchType.NONE)

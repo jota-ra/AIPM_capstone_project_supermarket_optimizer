@@ -10,77 +10,59 @@ Item dicts are the shape stored in `receipt_items` (normalized_name,
 category, ...) or the parser item shape (name, category). Both are handled.
 """
 
-from typing import List
+from typing import List, Dict
 
 from backend.app.models.nutrition import (
     MatchedProduct,
-    MatchType,
     ReceiptMapping,
 )
-from backend.app.services import matcher, fallback_categories, base_terms
+from backend.app.services import resolver
+from backend.app.services.nutrition_profile import grams_for
 from backend.app.analytics.match_quality import compute_match_quality
 
-# Generalised (head-noun) matches are less precise than a direct hit, so
-# their confidence is capped to keep the trust layer honest.
-_GENERIC_CONFIDENCE_CAP = 0.7
+# Public re-export: the item-name helper lives in the resolver now, but
+# build_bls_off_dataset.py and other callers import it from here.
+_item_name = resolver._item_name
 
-
-def _item_name(item: dict) -> str:
-    """Prefer the normalized/cleaned name, fall back to the raw name."""
-
-    return (
-        item.get("normalized_name")
-        or item.get("name")
-        or item.get("raw_name")
-        or ""
-    ).strip()
+_MACRO_FIELDS = ("protein_g", "fiber_g", "sugar_g", "calories_kcal")
 
 
 def map_item(item: dict) -> MatchedProduct:
-    """Resolve a single item to nutrition data: OFF match, else fallback."""
+    """Resolve a single item to nutrition data via the tiered resolver
+    (Epic 4): Tier-0 learned → OFF (+BLS bridge) → BLS whole-food →
+    category fallback."""
 
-    name = _item_name(item)
-    category = item.get("category")
+    return resolver.resolve_item(item)
 
-    if not name:
-        return MatchedProduct(
-            parsed_item_name="",
-            match_type=MatchType.NONE,
-            confidence=0.0,
-            data_source="none",
-            nutrition=None,
-        )
 
-    # Tier 1: match on the full normalized name.
-    matched = matcher.match_product(name)
-    if matched is not None:
-        return matched
+def compute_receipt_totals(items: List[dict], matched: List[MatchedProduct]) -> Dict[str, float]:
+    """E4-S6: absolute per-receipt nutrient totals, each item's per-100g
+    values scaled by its purchased grams. Micros are summed under their
+    own keys alongside the macros/kcal."""
 
-    # Tier 2: reduce a specific compound to its head noun and retry
-    # ("Rispentomaten" -> "Tomate"), so we get real product nutrition
-    # instead of a broad category estimate.
-    generic = base_terms.generic_term(name)
-    if generic:
-        generic_match = matcher.match_product(generic, prefer_low_processed=True)
-        if generic_match is not None:
-            generic_match.parsed_item_name = name
-            generic_match.match_type = MatchType.FUZZY
-            generic_match.confidence = round(
-                min(generic_match.confidence, _GENERIC_CONFIDENCE_CAP), 3
-            )
-            generic_match.data_source = f"OpenFoodFacts (generic: {generic})"
-            return generic_match
-
-    # Tier 3: no confident OFF match -> category-based approximation.
-    return fallback_categories.fallback_nutrition(name, category)
+    totals: Dict[str, float] = {}
+    for item, mp in zip(items, matched):
+        if mp.nutrition is None:
+            continue
+        grams = grams_for(item.get("quantity"), item.get("unit"), item.get("category"), _item_name(item))
+        factor = grams / 100.0
+        for f in _MACRO_FIELDS:
+            v = getattr(mp.nutrition, f)
+            if v is not None:
+                totals[f] = round(totals.get(f, 0.0) + v * factor, 2)
+        for k, v in (mp.nutrition.micros or {}).items():
+            totals[k] = round(totals.get(k, 0.0) + v * factor, 2)
+    return totals
 
 
 def map_items(items: List[dict]) -> ReceiptMapping:
-    """Map every item and attach aggregate match-quality metrics."""
+    """Map every item, attach aggregate match-quality metrics and the
+    per-receipt nutrition totals (E4-S6)."""
 
     matched_products = [map_item(item) for item in items]
     match_quality = compute_match_quality(matched_products)
     return ReceiptMapping(
         matched_products=matched_products,
         match_quality=match_quality,
+        nutrition_totals=compute_receipt_totals(items, matched_products),
     )

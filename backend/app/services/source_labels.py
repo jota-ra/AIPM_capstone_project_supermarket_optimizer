@@ -14,6 +14,11 @@ def source_label(product: MatchedProduct) -> str:
     if product.match_type == MatchType.FALLBACK:
         category = product.fallback_category or "general"
         return f"Estimated from category: {category}"
+    if product.match_type == MatchType.LEARNED:
+        return "Verified match (learned from corrections)"
+    if product.match_type == MatchType.BLS:
+        return product.data_source or "BLS (German food composition table)"
     if product.match_type in (MatchType.EXACT, MatchType.FUZZY):
+        # data_source already reflects OFF, or "OpenFoodFacts + BLS bridge (…)"
         return product.data_source or "OpenFoodFacts"
     return "No matching nutrition data"

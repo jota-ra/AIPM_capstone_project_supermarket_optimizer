@@ -28,6 +28,22 @@ def _tokens(s: str) -> list:
     return [t for t in _TOKEN_RE.findall(s.lower()) if len(t) >= 3]
 
 
+def full_ratio(query: str, candidate: str) -> float:
+    """
+    Plain whole-string SequenceMatcher ratio (0..1), case-insensitive.
+
+    Unlike token_similarity this does NOT reward token containment, so it
+    is the stricter metric the acceptance criteria use to gate the "exact"
+    label (BR-MT1 / E4-S2: exact only when the whole-string ratio ≥ 0.90).
+    """
+
+    q = (query or "").strip().lower()
+    c = (candidate or "").strip().lower()
+    if not q or not c:
+        return 0.0
+    return SequenceMatcher(None, q, c).ratio()
+
+
 def token_similarity(query: str, candidate: str) -> float:
     """
     Similarity between two names (0..1). Takes the best of a full-string

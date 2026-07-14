@@ -46,3 +46,10 @@ PyJWT[crypto]==2.10.1
 # calls through `requests` (see backend/app/services/off_api.py), not
 # the openfoodfacts SDK — no separate package needed.
 # ==========================
+
+# ==========================
+# BLS 4.0 food-composition table (Epic 4). openpyxl parses the xlsx once
+# to build backend/app/services/_bls_cache.json; only needed to (re)build
+# that cache — the app runs from the cached JSON at runtime.
+# ==========================
+openpyxl==3.1.5
