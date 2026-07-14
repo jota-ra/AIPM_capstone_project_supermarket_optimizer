@@ -429,10 +429,21 @@ function UploadSection({
 // the overview reads as "what kind of food do I have" instead of one
 // long alphabetical list — each group is a native <details> section,
 // expanded by default, collapsible per category.
+//
+// Any category outside the known set (e.g. a legacy German category, or a
+// value the mapper didn't canonicalize) falls into "other" so NO pantry
+// item is ever silently hidden from the overview.
+const _KNOWN_CATEGORIES = new Set<string>(PANTRY_CATEGORIES);
+
+function _bucketOf(category: string | null | undefined): (typeof PANTRY_CATEGORIES)[number] {
+  const c = category ?? "other";
+  return (_KNOWN_CATEGORIES.has(c) ? c : "other") as (typeof PANTRY_CATEGORIES)[number];
+}
+
 function groupByCategory(items: PantryItem[]): { category: (typeof PANTRY_CATEGORIES)[number]; items: PantryItem[] }[] {
   return PANTRY_CATEGORIES.map((category) => ({
     category,
-    items: items.filter((item) => (item.category ?? "other") === category),
+    items: items.filter((item) => _bucketOf(item.category) === category),
   })).filter((group) => group.items.length > 0);
 }
 
