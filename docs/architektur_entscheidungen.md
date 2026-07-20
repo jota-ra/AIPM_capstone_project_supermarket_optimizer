@@ -239,7 +239,7 @@ Algorithmus" überverkaufen.
 
 ## Epics 11–14 (entwicklungsbereit)
 
-Format wie im übrigen Projekt (`deprecated/roadmap_consolidated.md`): Epic → User
+Format wie im übrigen Projekt: Epic → User
 Story → Atomic Tasks (Component/Input/Output/Success/Test). Jede Story ist
 so beschrieben, dass ein Entwickler sie ohne Rückfrage umsetzen kann.
 

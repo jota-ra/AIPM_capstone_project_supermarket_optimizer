@@ -18,8 +18,8 @@ def _insert_tolerant(table: str, record: dict):
     and retrying.
 
     SAFETY NET, kept intentionally (not a "remove me" shim): the prod
-    Supabase instance has run the Epic 8 migration in
-    deprecated/roadmap_consolidated.md, but any other environment (a teammate's
+    Supabase instance has run the Epic 8 migration (backend/db/migrations/),
+    but any other environment (a teammate's
     local DB, a fresh clone, a future re-deploy) that hasn't yet would
     otherwise hard-500 on every receipt/profile write instead of Epic
     1/3's already-shipped flows degrading gracefully. It only ever

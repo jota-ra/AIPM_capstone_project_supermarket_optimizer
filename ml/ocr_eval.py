@@ -2,8 +2,8 @@
 OCR quality eval on the REAL receipt corpus (not the synthetic notebook image).
 
 Runs the *production* extractor (backend/app/services/local_extractor.py) over
-every real receipt file in receipts/ and measures how well the raw OCR text
-recovers the hand-labelled line items in receipts/receipts_queries.json. This is
+every real receipt file in data/receipts/ and measures how well the raw OCR text
+recovers the hand-labelled line items in data/receipts/receipts_queries.json. This is
 OCR *recall* — the ceiling for everything downstream (matching, nutrition). It
 says nothing about the structured parser or the matching quality itself.
 
@@ -37,8 +37,8 @@ from pathlib import Path
 from rapidfuzz import fuzz
 
 ROOT = Path(__file__).resolve().parents[1]
-RECEIPTS_DIR = ROOT / "receipts"
-LABELS = ROOT / "receipts" / "receipts_queries.json"
+RECEIPTS_DIR = ROOT / "data" / "receipts"
+LABELS = ROOT / "data" / "receipts" / "receipts_queries.json"
 RAW_DIR = ROOT / "ml" / "ocr_raw_text"
 OUT = ROOT / "ml" / "ocr_eval_results.json"
 

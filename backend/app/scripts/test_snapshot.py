@@ -9,7 +9,7 @@ Usage (run from the repo root):
     python -m backend.app.scripts.test_snapshot
 
     # Re-scan every receipt image in a folder (needs GEMINI_API_KEY)
-    python -m backend.app.scripts.test_snapshot --folder receipts
+    python -m backend.app.scripts.test_snapshot --folder data/receipts
 
     # Aggregate ALL receipts stored in the DB (needs Supabase config)
     python -m backend.app.scripts.test_snapshot --db

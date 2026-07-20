@@ -40,7 +40,7 @@ Or open `embedding_reranker.ipynb` in Jupyter / VS Code and run all cells.
 
 - `../bls_off_judgments.json` — 76 items, 227 occurrences, 3-LLM judge panel. Provides the **gold standard**
   (the judge-confirmed correct BLS match per receipt line).
-- `../BLS_data/BLS_4_0_Daten_2025_DE.xlsx` — 7140 BLS food names = the candidate corpus.
+- `../data/BLS_4_0_Daten_2025_DE.xlsx` — 7140 BLS food names = the candidate corpus.
 
 **Gold set** = the 45 items whose BLS verdict was `correct` or `partially_correct`. For these we know the
 correct answer, so we can measure retrieval accuracy.
@@ -64,7 +64,7 @@ token traps (`Cola`→`Colabier`) and food-domain nuance, but helps on true syno
 
 ## Extended gold set & tiered matching (Step 2)
 
-The 45 curated pairs were extended to the **real receipts** (`../receipts/receipts_queries.json`, 180 line
+The 45 curated pairs were extended to the **real receipts** (`../data/receipts/receipts_queries.json`, 180 line
 items). Each unique query was matched against the **full 7,140-name corpus** (not the ranker's own shortlist,
 so recall is not inflated), LLM-judged, then human spot-checked.
 
@@ -82,7 +82,7 @@ data is good for *identifying* a product but weaker than BLS for *precise nutrit
 ## OCR recall (upstream of matching)
 
 Matching can only match text OCR actually recovered, so `ocr_eval.py` measures
-that ceiling against the real receipt files in `../receipts/`.
+that ceiling against the real receipt files in `../data/receipts/`.
 
 ```bash
 .venv/bin/python3 ml/ocr_eval.py

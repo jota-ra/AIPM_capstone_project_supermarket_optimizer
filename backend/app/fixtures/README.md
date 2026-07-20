@@ -1,7 +1,6 @@
 # Fixtures
 
-Test data for the receipt pipeline (Task 1.5) and the Day-1 contracts in
-`deprecated/sprint_plan_3weeks.md`.
+Test data for the receipt pipeline (Task 1.5) and the Day-1 contracts.
 
 - `receipts/clean_receipt.txt` — a well-formatted German receipt, for the
   text-fallback path (`POST /receipts` with `text=`).
@@ -20,7 +19,7 @@ Test data for the receipt pipeline (Task 1.5) and the Day-1 contracts in
   realistic low-fiber gap taken from a real aggregated-receipts run.
   Consumed by the Epic 5 recommender. Validates against `Gap` in
   `models/snapshot.py`. Regenerate with realistic data via
-  `python -m backend.app.scripts.test_snapshot --folder receipts`.
+  `python -m backend.app.scripts.test_snapshot --folder data/receipts`.
 
 TODO (team): add real photo samples `receipts/clean_receipt.jpg` and
 `receipts/messy_receipt.jpg` for the image path — those can't be generated

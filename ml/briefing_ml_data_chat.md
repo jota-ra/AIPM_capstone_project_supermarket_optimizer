@@ -107,7 +107,7 @@ Matches"** (User-Bestätigungen), nicht über gekaufte DBs.
 | `ml/README.md` | Muss |
 | `receipts/NutriWise_receipts.xlsx` | Muss |
 | `bls_off_judgments.json` (die echten 45) | Muss |
-| `BLS_data/BLS_4_0_Daten_2025_DE.xlsx` (Korpus, Spalte `Lebensmittelbezeichnung`) | Muss |
+| `data/BLS_4_0_Daten_2025_DE.xlsx` (Korpus, Spalte `Lebensmittelbezeichnung`) | Muss |
 | `receipts/Groceries_dataset.csv`, `receipts/Instacart …_Products.csv` | Optional (Kurz-EDA) |
 | `projekt_briefing_neuer_chat.md` (Gesamt-Produktkontext) | Optional |
 

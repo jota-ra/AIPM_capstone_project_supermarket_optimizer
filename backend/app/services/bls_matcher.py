@@ -2,7 +2,7 @@
 BLS (Bundeslebensmittelschlüssel) local matcher — Epic 4 nutrition source.
 
 Matches against the German federal food-composition database (BLS 4.0,
-`BLS_data/BLS_4_0_Daten_2025_DE.xlsx`, ~7,140 generic food entries). Used
+`data/BLS_4_0_Daten_2025_DE.xlsx`, ~7,140 generic food entries). Used
 by the tiered resolver (services/resolver.py) both as a whole-food
 identity fallback (E4-S3) and as the OFF→BLS nutrition bridge that borrows
 BLS's near-complete macros + micronutrients (E4-S4).
@@ -32,7 +32,7 @@ except ModuleNotFoundError:  # only needed to (re)build the cache, not at runtim
 from backend.app.services.matcher import EXACT_THRESHOLD, FUZZY_THRESHOLD
 from backend.app.services.text_similarity import token_similarity, full_ratio
 
-_XLSX_PATH = Path(__file__).resolve().parents[3] / "BLS_data" / "BLS_4_0_Daten_2025_DE.xlsx"
+_XLSX_PATH = Path(__file__).resolve().parents[3] / "data" / "BLS_4_0_Daten_2025_DE.xlsx"
 _CACHE_PATH = Path(__file__).parent / "_bls_cache.json"
 _SHEET_NAME = "BLS_4_0_Daten_2025_DE"
 

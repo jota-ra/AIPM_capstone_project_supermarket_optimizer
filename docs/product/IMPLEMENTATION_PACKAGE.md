@@ -13,7 +13,7 @@
 | User Stories (65) | `user_stories.md` |
 | Atomic Tasks (207) | `engineering_tasks.md` |
 | Source of record (raw decisions) | `naehrbert_v2.md` |
-| OFF-vs-BLS matching evidence | `matching_investigations.ipynb`, `bls_off_judgments.json` |
+| OFF-vs-BLS matching evidence | `ml/matching_investigations.ipynb`, `ml/bls_off_judgments.json` |
 
 ---
 
