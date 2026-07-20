@@ -44,7 +44,7 @@ CH = lambda n: os.path.join(SCRATCH, n)
 TOTAL_PAGES = 13   # main slides (title..thanks); backup slide is unnumbered
 
 # ---------------------------------------------------- data (EDA + old baseline)
-d = json.load(open(os.path.join(ROOT, "bls_off_judgments.json")))
+d = json.load(open(os.path.join(ROOT, "ml", "bls_off_judgments.json")))
 N = len(d)
 off = collections.Counter(x["off_verdict"] for x in d)
 bls = collections.Counter(x["bls_verdict"] for x in d)

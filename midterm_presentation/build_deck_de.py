@@ -25,7 +25,7 @@ OUTDIR  = os.path.join(ROOT, "midterm_presentation")
 CH = lambda n: os.path.join(SCRATCH, n)
 
 # ---------------------------------------------------- data
-d = json.load(open(os.path.join(ROOT, "bls_off_judgments.json")))
+d = json.load(open(os.path.join(ROOT, "ml", "bls_off_judgments.json")))
 N = len(d)
 off = collections.Counter(x["off_verdict"] for x in d)
 bls = collections.Counter(x["bls_verdict"] for x in d)
