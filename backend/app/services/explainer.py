@@ -12,26 +12,16 @@ rule for recommendation logic.
 
 from typing import Union
 
-from backend.app.models.profile import Goal, DietaryPattern, ProfileCreate, Profile
+from backend.app.models.profile import DietaryPattern, ProfileCreate, Profile
 from backend.app.models.snapshot import Gap
+from backend.app.services import i18n
 
 ProfileLike = Union[Profile, ProfileCreate]
 
-GOAL_PHRASES = {
-    Goal.BUILD_MUSCLE: "you're focused on building muscle and strength",
-    Goal.MORE_ENERGY: "you're aiming for more energy and less fatigue",
-    Goal.LOSE_WEIGHT_GRADUALLY: "you're working on losing weight gradually",
-    Goal.EAT_BALANCED: "you want to eat more balanced and healthy",
-    Goal.BETTER_FOCUS: "you're aiming for better focus and mental clarity",
-    Goal.BETTER_SLEEP: "you're working on better sleep and recovery",
-}
 
-_GAP_VERB = {"low": "low in", "high": "high in"}
-
-
-def generate_explanation(gap: Gap, candidate: dict, profile: ProfileLike) -> str:
+def generate_explanation(gap: Gap, candidate: dict, profile: ProfileLike, lang: str = "en") -> str:
     """
-    Build a 2-3 sentence, profile-aware explanation.
+    Build a 2-3 sentence, profile-aware explanation (localized, E13).
 
     `candidate` is one row from data/recommendations.json (must have
     `item`, `action_type`, `rationale`). Short enough to read in seconds
@@ -39,20 +29,25 @@ def generate_explanation(gap: Gap, candidate: dict, profile: ProfileLike) -> str
     diet, never a generic claim.
     """
 
-    goal_phrase = GOAL_PHRASES.get(profile.goal, "your goals")
-    gap_verb = _GAP_VERB.get(gap.status.value, gap.status.value)
+    goal_key = f"expl.goal.{getattr(profile.goal, 'value', profile.goal)}"
+    goal_phrase = i18n.t(lang, goal_key)
+    if goal_phrase == goal_key:  # no phrase for this goal → neutral fallback
+        goal_phrase = "you want to eat well" if i18n._norm(lang) == "en" else "du dich gut ernähren möchtest"
+    gap_verb = i18n.t(lang, f"expl.gap_verb.{gap.status.value}")
 
     sentences = [
-        f"Because {goal_phrase} and your basket is currently {gap_verb} "
-        f"{gap.dimension}, we suggest you {candidate['action_type']} "
-        f"{candidate['item']}.",
-        candidate["rationale"],
+        i18n.t(
+            lang, "expl.sentence",
+            goal_phrase=goal_phrase,
+            gap_verb=gap_verb,
+            nutrient=i18n.nutrient(lang, gap.dimension),
+            action=candidate["action_type"],
+            item=candidate["item"],
+        ),
+        i18n.rationale_for(candidate, lang),
     ]
 
     if profile.dietary_pattern != DietaryPattern.NO_SPECIFIC_DIET:
-        sentences.append(
-            f"This fits your {profile.dietary_pattern.value} diet — nothing "
-            "here conflicts with it."
-        )
+        sentences.append(i18n.t(lang, "expl.diet_fit", diet=profile.dietary_pattern.value))
 
     return " ".join(sentences)

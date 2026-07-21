@@ -96,3 +96,34 @@ def generic_term(name: str) -> Optional[str]:
         return None
 
     return best_canonical
+
+
+def whole_food_term(name: str) -> Optional[str]:
+    """
+    Like `generic_term`, but also returns the canonical base food when the
+    name *is* the base term itself ("Banane", "Tomaten") — not only for
+    compounds. Used by the BLS whole-food tier (E4-S3) to decide whether an
+    item is a whole/raw food at all and, if so, its head noun for the
+    head-noun-agreement gate. Returns None for non-produce (e.g. yoghurt).
+    """
+
+    name_l = (name or "").strip().lower()
+    if not name_l:
+        return None
+
+    best_canonical = None
+    best_end = -1
+    best_len = -1
+    for stem, canonical in _STEMS:
+        pos = name_l.rfind(stem)
+        if pos < 0:
+            continue
+        end = pos + len(stem)
+        if len(name_l) - end > _MAX_TAIL:
+            continue
+        if end > best_end or (end == best_end and len(stem) > best_len):
+            best_end = end
+            best_len = len(stem)
+            best_canonical = canonical
+
+    return best_canonical

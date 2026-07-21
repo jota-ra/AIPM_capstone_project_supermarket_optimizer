@@ -1,0 +1,113 @@
+*** eBon ***
+NETTO
+Filiale 7761
+Kottbusser Damm 1
+10967 Berlin
+WWW.NETTO-ONLINE.DE
+EUR
+Beste Ernte Kichererbsen 265g
+0,59
+B
+Beste Ernte Kidneybohnen 255g
+0,69
+B
+Irische Butter Kerrygold 250g
+1,49
+B
+Bio BB Feta 200g
+2,69
+B
+Bio Paprika Mix 400g
+1,99
+B
+Minigurken 750g
+1,99
+B
+Minipflaumen Tomaten 500g
+1,99
+B
+1,266 kg x
+1,29 EUR/kg
+Bananen Lose MT
+1,63
+B
+Lauchzwiebeln
+0,55
+B
+0,182 kg x
+2,99 EUR/kg
+Apfel Pink Lady Lose
+0,54
+B
+SUMME [10]
+14,15
+----------
+SUMME
+14,15
+€
+Kartenzahlung EUR
+14,15
+-K-U-N-D-E-N-B-E-L-E-G-
+ 
+Terminal-ID :   65482709
+TA-Nr 175683    BNr 7202
+ 
+     Kartenzahlung
+       kontaktlos
+       Visa Debit
+ 
+  EUR 14,15
+PAN     ############9825
+Karte 0
+EMV-AID   A0000000031010
+VU-Nr         4556409584
+Genehmigungs-Nr   405620
+Datum 07.07.26 18:01 Uhr
+========================
+*** Zahlung erfolgt ***
+========================
+AS-Proc-Code = 00 075 00
+Capt.-Ref.= 0000
+APPROVED
+ 
+MWST
+BRUTTO
+NETTO
+B
+7%
+0,93
+14,15
+13,22
+------------------------------------------
+Versäumte Ersparnis
+PAYBACK
+7 Punkte
+------------------------------------------
+Lassen Sie sich künftig keine
+Rabatte entgehen und nutzen Sie
+Netto plus App und PAYBACK
+TSE Transaktionsnummer.:1024432
+Seriennr. Kasse:NTO-000-07761-3
+Prüfwert:QpDC+8Ptwm+Gd7lNw/GV6xk4znD/eDds
+2wZNYHlN3/uzsAQ1mDHP3ySc6VOLmNNinBU3eALPj
+nSS8IaAUISCz8FQ83vauprWBOaO7DDGGk9eW26fwT
+Tlb7otDFMJqnZG
+Signaturzähler:2052869
+TSE-Start:2026-07-07T16:01:13.000Z
+TSE-Stop : 2026-07-07T16:01:55.000Z
+TSE-Seriennr.:477562DEB8075AFD79E22B38ED7
+6C493539CC226CA954D6B5509E4CD20193307
+Steuer-Nr.DE133822409
+Montag-Samstag 7:00-22:00 Uhr
+Datum
+Uhrzeit
+Filiale
+Pos
+Bed
+Bon-Nr.
+07.07.26
+18:01
+0007761
+003
+4066848 0147
+(1/1) 

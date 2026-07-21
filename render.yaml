@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: nutriwise-backend
+    # Docker runtime (not native Python): local receipt OCR needs the system
+    # `tesseract` binary + German model, installed via the Dockerfile.
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      # Still used by the nutrition coach (not for receipts).
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false

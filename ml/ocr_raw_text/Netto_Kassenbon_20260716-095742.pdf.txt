@@ -1,0 +1,90 @@
+*** eBon ***
+NETTO
+Filiale 7761
+Kottbusser Damm 1
+10967 Berlin
+WWW.NETTO-ONLINE.DE
+EUR
+GT Toast sort. 250g
+1,29
+B
+GW Hummus Pikant 200 G
+0,99
+B
+1,404 kg x
+1,29 EUR/kg
+Bananen Lose MT
+1,81
+B
+SUMME [3]
+4,09
+----------
+SUMME
+4,09
+€
+Kartenzahlung EUR
+4,09
+-K-U-N-D-E-N-B-E-L-E-G-
+ 
+Terminal-ID :   65482706
+TA-Nr 697904    BNr 7320
+ 
+     Kartenzahlung
+       kontaktlos
+       Visa Debit
+ 
+  EUR 4,09
+PAN     ############9825
+Karte 0
+EMV-AID   A0000000031010
+VU-Nr         4556409584
+Genehmigungs-Nr   003584
+Datum 16.07.26 09:57 Uhr
+========================
+*** Zahlung erfolgt ***
+========================
+AS-Proc-Code = 00 075 00
+Capt.-Ref.= 0000
+APPROVED
+ 
+MWST
+BRUTTO
+NETTO
+B
+7%
+0,27
+4,09
+3,82
+------------------------------------------
+Versäumte Ersparnis
+PAYBACK
+2 Punkte
+------------------------------------------
+Lassen Sie sich künftig keine
+Rabatte entgehen und nutzen Sie
+Netto plus App und PAYBACK
+TSE Transaktionsnummer.:1036223
+Seriennr. Kasse:NTO-000-07761-2
+Prüfwert:IKDD15g2lAyOPIZpOJEywLcMZucQ6LNT
+T4aKJ9UkX7RBd73Kze30Zt0Sh9syvvtdk/oUdEIWo
+07G+QSkSObM/S/KbApD2J2IIBg6FSG0JpzbEYg/Yn
+cepo9WElmTbsf1
+Signaturzähler:2076495
+TSE-Start:2026-07-16T07:57:45.000Z
+TSE-Stop : 2026-07-16T07:58:10.000Z
+TSE-Seriennr.:477562DEB8075AFD79E22B38ED7
+6C493539CC226CA954D6B5509E4CD20193307
+Steuer-Nr.DE133822409
+Montag-Samstag 7:00-22:00 Uhr
+Datum
+Uhrzeit
+Filiale
+Pos
+Bed
+Bon-Nr.
+16.07.26
+09:57
+0007761
+002
+7631989 0771
+(1/1) 

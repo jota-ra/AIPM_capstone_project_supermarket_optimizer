@@ -1,0 +1,385 @@
+{
+  "threshold": 80,
+  "low_recall_cutoff": 0.6,
+  "mean_recall": 0.9711538461538461,
+  "low_recall_files": [
+    "IMG_1981.JPG"
+  ],
+  "files": [
+    {
+      "file": "2026.06.30_23001961862026063034796.jpg.png",
+      "ocr_error": null,
+      "matched_receipt": 15,
+      "recall": 1.0,
+      "found": [
+        "Banane Fair Bio",
+        "Zwiebeln weiß",
+        "Bioland Zucchini",
+        "Petersilie",
+        "Bio Limetten",
+        "Weidemilch 3,8%",
+        "Exquisa fitlineNatur",
+        "Bio-Eier OKT 10er",
+        "Bio Müsli Schoko Kn.",
+        "Lava Bar Cookie",
+        "Dinkelschnitte",
+        "Walnusskerne",
+        "Bio Cashewkerne",
+        "Rinderhackfleisch 5%",
+        "Puten-Geschnetzeltes"
+      ],
+      "missed": []
+    },
+    {
+      "file": "IMG_1928.JPG",
+      "ocr_error": null,
+      "matched_receipt": 1,
+      "recall": 1.0,
+      "found": [
+        "LINSEN MIT SG"
+      ],
+      "missed": []
+    },
+    {
+      "file": "IMG_1929.JPG",
+      "ocr_error": null,
+      "matched_receipt": 14,
+      "recall": 1.0,
+      "found": [
+        "Miracel Whip",
+        "Frischfi.erm.BED",
+        "Lang.Cremiss.Eis",
+        "Harry Sonntag",
+        "THUER.METT/HACKEP.",
+        "GURKEN",
+        "Vand.Mai Gouda"
+      ],
+      "missed": []
+    },
+    {
+      "file": "IMG_1930.JPG",
+      "ocr_error": null,
+      "matched_receipt": 13,
+      "recall": 1.0,
+      "found": [
+        "RISPENTOMATEN KG-WARE",
+        "CHAMPIGNONS WEISS 400G"
+      ],
+      "missed": []
+    },
+    {
+      "file": "IMG_1931.JPG",
+      "ocr_error": null,
+      "matched_receipt": 12,
+      "recall": 1.0,
+      "found": [
+        "ÖSTERREICHISCHER BERGK",
+        "TK DR. OETKER OFENFR.",
+        "BIO OLIVENÖL"
+      ],
+      "missed": []
+    },
+    {
+      "file": "IMG_1932.JPG",
+      "ocr_error": null,
+      "matched_receipt": 11,
+      "recall": 1.0,
+      "found": [
+        "Plattpfirsiche",
+        "Salatherzen Roma",
+        "PORREE",
+        "Cocktailrispe",
+        "Gurken Stück"
+      ],
+      "missed": []
+    },
+    {
+      "file": "IMG_1933.JPG",
+      "ocr_error": null,
+      "matched_receipt": 10,
+      "recall": 1.0,
+      "found": [
+        "RUCOLA",
+        "RADIESCHEN",
+        "LAUCHZWIEBELN",
+        "KOHLRABI",
+        "BRÜHEN IM GLAS",
+        "KOKOSNUSSMILCH",
+        "FLAMMKUCHENTEIG",
+        "PAPRIKA MIX",
+        "REISNUDELN 200G",
+        "HIRTENKÄSE",
+        "SPAN. GRÜNE/GESCHW.OLI"
+      ],
+      "missed": []
+    },
+    {
+      "file": "IMG_1934.JPG",
+      "ocr_error": null,
+      "matched_receipt": 9,
+      "recall": 1.0,
+      "found": [
+        "LAUCHZWIEBELN",
+        "RADIESCHEN",
+        "FELDSALAT",
+        "CHAMPIGNONS GROSS",
+        "GEBÄCKSTANGEN",
+        "OSTFR. TEEMISCHUNG LOS"
+      ],
+      "missed": []
+    },
+    {
+      "file": "IMG_1936.JPG",
+      "ocr_error": null,
+      "matched_receipt": 7,
+      "recall": 1.0,
+      "found": [
+        "Bulgur Rote Beete"
+      ],
+      "missed": []
+    },
+    {
+      "file": "IMG_1937.PNG",
+      "ocr_error": null,
+      "matched_receipt": 7,
+      "recall": 1.0,
+      "found": [
+        "Bulgur Rote Beete"
+      ],
+      "missed": []
+    },
+    {
+      "file": "IMG_1977.JPG",
+      "ocr_error": null,
+      "matched_receipt": 1,
+      "recall": 1.0,
+      "found": [
+        "LINSEN MIT SG"
+      ],
+      "missed": []
+    },
+    {
+      "file": "IMG_1978.JPG",
+      "ocr_error": null,
+      "matched_receipt": 27,
+      "recall": 1.0,
+      "found": [
+        "Nektarinen 1 kg",
+        "Paprika Mix 500g",
+        "Zwiebeln rot 1kg",
+        "Bratpaprika 200g",
+        "Kartoffeln 2,5kg",
+        "Tomaten Rispen kg"
+      ],
+      "missed": []
+    },
+    {
+      "file": "IMG_1979.JPG",
+      "ocr_error": null,
+      "matched_receipt": 26,
+      "recall": 0.75,
+      "found": [
+        "Milka Nussini Riegel 31,5g",
+        "Weihenstephan Butter 250g",
+        "GL Weidemilch 1,5% 1L"
+      ],
+      "missed": [
+        "Vilsa Medium MW 12x1L"
+      ]
+    },
+    {
+      "file": "IMG_1980.JPG",
+      "ocr_error": null,
+      "matched_receipt": 25,
+      "recall": 1.0,
+      "found": [
+        "Thueringer Mett",
+        "E.Regio.Rucola",
+        "Frischfi.erm.BED",
+        "Huizer Gouda",
+        "RADIESCHEN",
+        "ZE Kiwis Gold"
+      ],
+      "missed": []
+    },
+    {
+      "file": "IMG_1981.JPG",
+      "ocr_error": null,
+      "matched_receipt": 23,
+      "recall": 0.5,
+      "found": [
+        "Zott Sahnejogh. sort. 140g"
+      ],
+      "missed": [
+        "Orig. Thuer. Rostbratwurst 500g"
+      ]
+    },
+    {
+      "file": "Netto_Kassenbon_20260702-191137.pdf",
+      "ocr_error": null,
+      "matched_receipt": 5,
+      "recall": 1.0,
+      "found": [
+        "Apfel rot süß",
+        "Avocado vorger.",
+        "Bio Limetten"
+      ],
+      "missed": []
+    },
+    {
+      "file": "Netto_Kassenbon_20260707-180115.pdf",
+      "ocr_error": null,
+      "matched_receipt": 7,
+      "recall": 1.0,
+      "found": [
+        "Bulgur Rote Beete"
+      ],
+      "missed": []
+    },
+    {
+      "file": "Netto_Kassenbon_20260709-172131.pdf",
+      "ocr_error": null,
+      "matched_receipt": 7,
+      "recall": 1.0,
+      "found": [
+        "Bulgur Rote Beete"
+      ],
+      "missed": []
+    },
+    {
+      "file": "Netto_Kassenbon_20260713-170620.pdf",
+      "ocr_error": null,
+      "matched_receipt": 7,
+      "recall": 1.0,
+      "found": [
+        "Bulgur Rote Beete"
+      ],
+      "missed": []
+    },
+    {
+      "file": "Netto_Kassenbon_20260714-133412.pdf",
+      "ocr_error": null,
+      "matched_receipt": 7,
+      "recall": 1.0,
+      "found": [
+        "Bulgur Rote Beete"
+      ],
+      "missed": []
+    },
+    {
+      "file": "Netto_Kassenbon_20260716-095742.pdf",
+      "ocr_error": null,
+      "matched_receipt": 7,
+      "recall": 1.0,
+      "found": [
+        "Bulgur Rote Beete"
+      ],
+      "missed": []
+    },
+    {
+      "file": "WhatsApp Image 2026-07-05 at 11.02.48.jpeg",
+      "ocr_error": null,
+      "matched_receipt": 6,
+      "recall": 1.0,
+      "found": [
+        "Lieken Urkorn Fitnessbrot 500g",
+        "Bio Paprika Mix 400g",
+        "Suesskartoffeln",
+        "Avocado vorgereift ST",
+        "SB JB-Roastbeef ca.280g QS"
+      ],
+      "missed": []
+    },
+    {
+      "file": "WhatsApp Image 2026-07-16 at 13.05.02.jpeg",
+      "ocr_error": null,
+      "matched_receipt": 5,
+      "recall": 1.0,
+      "found": [
+        "Apfel rot süß",
+        "Avocado vorger.",
+        "Bio Limetten"
+      ],
+      "missed": []
+    },
+    {
+      "file": "WhatsApp Image 2026-07-16 at 13.05.29.jpeg",
+      "ocr_error": null,
+      "matched_receipt": 4,
+      "recall": 1.0,
+      "found": [
+        "Banane lose",
+        "Lachsfilet mit Haut",
+        "Kohl Spitz",
+        "Apfel grün",
+        "Staudensellerie",
+        "Avocado vorger.",
+        "Bio Birnen 500g",
+        "Bio Dattelcherrytom.",
+        "Bio Broccoli",
+        "Spinat",
+        "Bioland Speisek",
+        "Knoblauch",
+        "Blumenkohl",
+        "Bio Gurken",
+        "Zwiebeln rot",
+        "Raclette-Käse",
+        "Bioland Tofu natur",
+        "Schott.Räucherlachs",
+        "Bio Griech. Feta",
+        "Griech. Joghurt 2%",
+        "Kräuterbutter",
+        "Hummus Ras el-Hanout",
+        "Spreewälder Gurken",
+        "Oro d.P stück.Tomate",
+        "Don Papa Baroko 40%",
+        "Harry KörnerSandwich",
+        "Cashewkerne 200g",
+        "Hähnchen-Brustfilet"
+      ],
+      "missed": []
+    },
+    {
+      "file": "WhatsApp Image 2026-07-16 at 13.05.48.jpeg",
+      "ocr_error": null,
+      "matched_receipt": 3,
+      "recall": 1.0,
+      "found": [
+        "Auberginen",
+        "Kartoffeln Süß",
+        "Bananen Fairtra.",
+        "Avocado vorger.",
+        "Zitronen Bio",
+        "Speisekartoffeln",
+        "Broccoli",
+        "Bio Zucchini",
+        "Blumenkohl",
+        "Bio Paprika rot",
+        "Bioland Tofu gerä.",
+        "Bioland Tofu natur",
+        "Speisequark 0%",
+        "Frischkäse 20%",
+        "Bioland Schlagsahne",
+        "Griech. Joghurt 2%",
+        "Bio-Eier OKT 10er",
+        "Kidney Bohnen",
+        "Kichererbsen",
+        "Dinkelsandwich",
+        "XXL Lachsfilet",
+        "Hähn.Minutenschnitz."
+      ],
+      "missed": []
+    },
+    {
+      "file": "WhatsApp Image 2026-07-16 at 13.07.58.jpeg",
+      "ocr_error": null,
+      "matched_receipt": 2,
+      "recall": 1.0,
+      "found": [
+        "SALATGURKE",
+        "CHILI MIX TRI."
+      ],
+      "missed": []
+    }
+  ]
+}

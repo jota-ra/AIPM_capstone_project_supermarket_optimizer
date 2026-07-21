@@ -33,7 +33,7 @@ CASES = [
     (
         "vegan profile blocks dairy (roadmap's Greek yogurt example)",
         ProfileCreate(
-            goal="eat_balanced",
+            goal="maintain",
             age_range="25-35",
             activity_level="moderately_active",
             dietary_pattern="vegan",
@@ -43,7 +43,7 @@ CASES = [
     (
         "vegetarian profile allows dairy",
         ProfileCreate(
-            goal="eat_balanced",
+            goal="maintain",
             age_range="25-35",
             activity_level="moderately_active",
             dietary_pattern="vegetarian",
@@ -53,7 +53,7 @@ CASES = [
     (
         "free-text exclusion blocks by name match",
         ProfileCreate(
-            goal="eat_balanced",
+            goal="maintain",
             age_range="25-35",
             activity_level="moderately_active",
             dietary_pattern="omnivore",

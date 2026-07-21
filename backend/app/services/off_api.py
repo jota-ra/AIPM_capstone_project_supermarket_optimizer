@@ -29,6 +29,14 @@ DEFAULT_PAGE_SIZE = 5
 # Fields we ask OFF to return, keeps the payload small.
 _FIELDS = "code,product_name,product_name_de,brands,nutriments,nova_group"
 
+# OFF reports iron and calcium as grams per 100g (like all its "_100g"
+# nutrient fields); the rest of this app works in mg (see
+# NutritionValues.iron_mg/calcium_mg and the RDA-style mg/day references
+# in nutrient_requirements.py). Note: "nutriments" is already requested
+# in full above, so iron_100g/calcium_100g come back with it — no
+# separate field needed in _FIELDS.
+_G_TO_MG = 1000
+
 _CACHE_PATH = Path(__file__).parent / "_off_cache.json"
 
 
@@ -141,12 +149,19 @@ def extract_nutrition(product: dict) -> NutritionValues:
     """Pull the MVP nutrition dimensions out of an OFF product dict."""
 
     nutriments = product.get("nutriments", {}) or {}
+    iron_g = _to_float(nutriments.get("iron_100g"))
+    calcium_g = _to_float(nutriments.get("calcium_100g"))
     return NutritionValues(
         protein_g=_to_float(nutriments.get("proteins_100g")),
+        fat_g=_to_float(nutriments.get("fat_100g")),
+        carbs_g=_to_float(nutriments.get("carbohydrates_100g")),
+        saturated_fat_g=_to_float(nutriments.get("saturated-fat_100g")),
         fiber_g=_to_float(nutriments.get("fiber_100g")),
         sugar_g=_to_float(nutriments.get("sugars_100g")),
         calories_kcal=_to_float(nutriments.get("energy-kcal_100g")),
         processed_score=_to_float(product.get("nova_group")),
+        iron_mg=iron_g * _G_TO_MG if iron_g is not None else None,
+        calcium_mg=calcium_g * _G_TO_MG if calcium_g is not None else None,
     )
 
 

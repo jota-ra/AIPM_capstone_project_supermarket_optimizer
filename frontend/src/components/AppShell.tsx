@@ -1,18 +1,53 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n";
+import { Footer } from "@/components/Footer";
+import { Logo } from "@/components/Logo";
 
-export type StepId = "upload" | "review" | "onboarding" | "userProfile" | "results";
+export type StepId =
+  | "landing"
+  | "accountPicker"
+  | "onboardingUpload"
+  | "review"
+  | "onboarding"
+  | "userProfile"
+  | "pantry"
+  | "diary"
+  | "results"
+  | "notifications";
 
-// Flow order: Disclaimer (consent gate) -> Onboarding -> Upload -> Review -> Results.
-// "User Profile" is a standalone settings-style page (edit what onboarding
-// collected), not part of that linear flow — reachable from the nav at any time.
-const NAV: { id: StepId; labelKey: string }[] = [
-  { id: "onboarding", labelKey: "nav.onboarding" },
-  { id: "userProfile", labelKey: "nav.userProfile" },
-  { id: "upload", labelKey: "nav.upload" },
-  { id: "review", labelKey: "nav.review" },
-  { id: "results", labelKey: "nav.results" },
+// Menu restructure (see docs/architektur_entscheidungen.md): three main
+// destinations instead of five.
+// - "results" ("Insights" / "Analyse") absorbed the old standalone
+//   Dashboard mockup — greeting, inactivity reminder, trend/recipes —
+//   so it's both the daily home and the detailed report, not two
+//   separate pages that repeated the same coach insight.
+// - "pantry" ("My Pantry" / "Vorrat") absorbed Upload — adding a new
+//   receipt is now an action inside the inventory page, not its own
+//   destination.
+// - "diary" ("My Day" / "Tag", DiaryStep.tsx) is the split-out
+//   day-by-day confirmation flow that used to live inside the old
+//   combined Pantry page — day navigation, what you logged, and
+//   picking from the pantry to mark as eaten.
+//
+// "Upload" and "Review" are still real, reachable steps (Pantry embeds
+// the upload UI; a successful upload still flows through Review before
+// landing back on Pantry) — just not permanent nav pills anymore, since
+// they're transient actions, not destinations you'd browse back into.
+//
+// "Onboarding" is deliberately NOT a permanent nav destination either:
+// it's a one-time, situational flow (new account setup), not something a
+// returning user should ever tap into by accident. It's still reachable
+// via its own entry points (Landing's "Register", the empty-profile
+// nudge on My Profile).
+//
+// "userProfile" also isn't in this list — same treatment as Notifications
+// below: an icon-only button off to the side, not a "section" tab you
+// browse through. Both are account-level, not app-flow destinations.
+const NAV: { id: StepId; labelKey: string; icon: string }[] = [
+  { id: "results", labelKey: "nav.results", icon: "📊" },
+  { id: "pantry", labelKey: "nav.pantry", icon: "🧺" },
+  { id: "diary", labelKey: "nav.diary", icon: "📅" },
 ];
 
 export function AppShell({
@@ -20,56 +55,144 @@ export function AppShell({
   onNavigate,
   onDeleteData,
   canDeleteData,
+  hasUnreadNotifications,
+  restrictNav,
   children,
 }: {
   step: StepId;
   onNavigate: (step: StepId) => void;
   onDeleteData?: () => void;
   canDeleteData?: boolean;
+  hasUnreadNotifications?: boolean;
+  // True whenever the caller (App.tsx) has decided navigation must be
+  // locked down — the onboarding chat/upload steps always set this, and
+  // so does the "review" step while the baseline-upload gate (E1) is
+  // still active (reviewing a receipt mid-gate must not be a back door
+  // into Insights/Pantry/Diary before the 50-item target is reached).
+  // App.tsx is the single source of truth for this — AppShell never
+  // guesses it from `step` alone.
+  restrictNav: boolean;
   children: ReactNode;
 }) {
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
+  // While restricted, both the tab nav AND the brand/logo link (which
+  // would otherwise jump straight to "results") are hidden/inert — a
+  // language toggle takes its place instead, same pill pattern as
+  // LandingStep's header, since the chat no longer asks a language
+  // question itself (removed: language is chosen once, on the landing
+  // page, and stays changeable from here).
+  const langToggle = (
+    <div className="flex shrink-0 gap-1 rounded-full bg-surface p-1 text-xs ring-1 ring-black/5">
+      {(["en", "de"] as const).map((lng) => (
+        <button
+          key={lng}
+          type="button"
+          onClick={() => setLanguage(lng)}
+          className={cn(
+            "rounded-full px-2.5 py-1 font-medium uppercase tracking-widest transition-colors",
+            language === lng ? "bg-ink text-canvas" : "text-ink/50 hover:text-ink",
+          )}
+        >
+          {lng}
+        </button>
+      ))}
+    </div>
+  );
   return (
     <div className="min-h-screen bg-canvas font-sans text-ink antialiased selection:bg-ink/10">
-      <nav className="mx-auto flex max-w-3xl items-center justify-between px-6 py-8">
-        <button
-          type="button"
-          onClick={() => onNavigate("onboarding")}
-          className="flex items-center gap-3"
-        >
-          <span className="size-5 rounded-full bg-ink" />
-          <span className="text-sm font-medium tracking-tight">NutriWise</span>
-        </button>
-        <div className="hidden gap-1 rounded-full bg-surface p-1 ring-1 ring-black/5 sm:flex">
-          {NAV.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onNavigate(item.id)}
-              className={cn(
-                "rounded-full px-3 py-1.5 text-xs font-medium tracking-tight transition-colors",
-                step === item.id ? "bg-ink text-canvas" : "text-ink/55 hover:text-ink",
-              )}
-            >
-              {t(item.labelKey)}
-            </button>
-          ))}
+      <nav className="mx-auto flex max-w-3xl items-center gap-3 px-6 py-6">
+        {/* Bug fix: this used to always be a button to "results", even
+            during onboarding/the upload gate — a back door into Insights
+            before a profile or the 50-item baseline even existed. Now
+            it's inert (no onClick, not a <button>) while restricted. */}
+        {restrictNav ? (
+          <span className="flex shrink-0 items-center gap-3">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+              <Logo className="size-3.5" />
+            </span>
+            <span className="text-sm font-medium tracking-tight">NutriWise</span>
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onNavigate("results")}
+            className="flex shrink-0 items-center gap-3"
+          >
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+              <Logo className="size-3.5" />
+            </span>
+            <span className="text-sm font-medium tracking-tight">NutriWise</span>
+          </button>
+        )}
+        {/* Bug fix: the tab list used to be `hidden sm:flex` — on any
+            viewport narrower than the `sm` breakpoint there was no nav
+            at all, only the logo. Now it always renders and scrolls
+            horizontally instead of disappearing, so it's never a dead
+            end on mobile. The language toggle stays visible everywhere
+            (previously only shown during onboarding — outside it there
+            was no way to change language at all once past the chat). */}
+        <div className="flex flex-1 items-center justify-end gap-2 overflow-x-auto">
+          {!restrictNav ? (
+            <>
+              <div className="flex shrink-0 gap-1 rounded-full bg-surface p-1 ring-1 ring-black/5">
+                {NAV.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onNavigate(item.id)}
+                    className={cn(
+                      "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium tracking-tight transition-colors",
+                      step === item.id ? "bg-ink text-canvas" : "text-ink/55 hover:text-ink",
+                    )}
+                  >
+                    <span aria-hidden>{item.icon}</span>
+                    {t(item.labelKey)}
+                  </button>
+                ))}
+              </div>
+              {/* Notifications + Profile — icon-only, deliberately
+                  separate from the main tab pill group: neither is a
+                  "section" of the app you browse through, they're
+                  account-level destinations (same convention as most
+                  apps: a bell/avatar sits off to the side, not inside
+                  the primary nav). The unread dot reflects App.tsx's
+                  real notification state (see NotificationsStep.tsx),
+                  not a hardcoded placeholder — it only shows when
+                  something's actually unread. */}
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onNavigate("notifications")}
+                  aria-label={t("nav.notifications")}
+                  className={cn(
+                    "relative flex size-8 shrink-0 items-center justify-center rounded-full ring-1 ring-black/5 transition-colors",
+                    step === "notifications" ? "bg-ink text-canvas" : "bg-surface text-ink/55 hover:text-ink",
+                  )}
+                >
+                  <span aria-hidden>🔔</span>
+                  {hasUnreadNotifications ? (
+                    <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-red-500" />
+                  ) : null}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate("userProfile")}
+                  aria-label={t("nav.userProfile")}
+                  className={cn(
+                    "flex size-8 shrink-0 items-center justify-center rounded-full ring-1 ring-black/5 transition-colors",
+                    step === "userProfile" ? "bg-ink text-canvas" : "bg-surface text-ink/55 hover:text-ink",
+                  )}
+                >
+                  <span aria-hidden>👤</span>
+                </button>
+              </div>
+            </>
+          ) : null}
+          {langToggle}
         </div>
       </nav>
       <main className="mx-auto max-w-3xl">{children}</main>
-      <footer className="mx-auto max-w-3xl space-y-3 px-6 py-12 text-[11px] uppercase tracking-widest text-ink/35">
-        <p>{t("footer.tagline")}</p>
-        {onDeleteData ? (
-          <button
-            type="button"
-            onClick={onDeleteData}
-            disabled={!canDeleteData}
-            className="normal-case tracking-normal text-ink/50 underline decoration-ink/20 underline-offset-2 hover:text-ink disabled:cursor-not-allowed disabled:text-ink/25 disabled:no-underline"
-          >
-            {t("footer.deleteData")}
-          </button>
-        ) : null}
-      </footer>
+      <Footer onDeleteData={onDeleteData} canDeleteData={canDeleteData} />
     </div>
   );
 }

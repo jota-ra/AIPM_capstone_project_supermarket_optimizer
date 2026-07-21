@@ -17,6 +17,7 @@ class ReceiptItem(BaseModel):
     original_text: Optional[str] = None
     quantity: float
     unit: Optional[str] = None
+    price: Optional[float] = None
     category: str
     uncertain: bool
 
@@ -31,11 +32,27 @@ class ParsedReceipt(BaseModel):
     """
 
     store: str
+    date: Optional[str] = None  # purchase date, ISO "YYYY-MM-DD" (E3-S2)
     scan_quality: str
     items: List[ReceiptItem]
     non_food_items_ignored: List[str] = Field(default_factory=list)
     items_count: int
     error: Optional[str] = None
+
+
+class ReceiptItemMatch(BaseModel):
+    """
+    A user's manual product pick for a receipt item (E5-S3). Sent from the
+    review search UI when the user selects an OFF or BLS candidate; the item
+    is repointed to it and a verified-match vote is written (R-WRITE).
+    """
+
+    source: str  # "off" | "bls"
+    matched_name: str
+    off_id: Optional[str] = None
+    bls_code: Optional[str] = None
+    nova: Optional[float] = None
+    nutrition: Optional[dict] = None
 
 
 class ReceiptItemUpdate(BaseModel):

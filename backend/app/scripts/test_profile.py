@@ -17,7 +17,7 @@ from backend.app.models.profile import ProfileCreate
 
 EXAMPLES = [
     {
-        "goal": "eat_balanced",
+        "goal": "maintain",
         "age_range": "25-35",
         "activity_level": "moderately_active",
         "dietary_pattern": "omnivore",
@@ -32,7 +32,7 @@ EXAMPLES = [
 ]
 
 INVALID_EXAMPLE = {
-    "goal": "eat_balanced",
+    "goal": "maintain",
     "age_range": "25-35",
     "activity_level": "extremely_active",  # not a real ActivityLevel value
     "dietary_pattern": "omnivore",

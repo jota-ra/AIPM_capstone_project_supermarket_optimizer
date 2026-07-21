@@ -1,0 +1,51 @@
+name: ocr-recall
+
+# Regression guard for OCR item recall — the ceiling for everything downstream
+# (matching, nutrition). Runs the PRODUCTION extractor
+# (backend/app/services/local_extractor.py) over the real receipts in
+# data/receipts/ and fails if mean item recall drops below the floor.
+# See ml/ocr_eval.py and ml/README.md ("OCR recall") for the why + how-to-fix.
+#
+# Only fires when something that can move OCR recall changes, so unrelated PRs
+# don't pay the (Tesseract) runtime.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/app/services/local_extractor.py"
+      - "ml/ocr_eval.py"
+      - "data/receipts/**"
+      - "requirements.txt"
+      - ".github/workflows/ocr-recall.yml"
+  workflow_dispatch: {}
+
+jobs:
+  ocr-recall:
+    name: OCR recall stays high
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Tesseract + German model
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-deu
+
+      - name: Install Python OCR dependencies
+        # The extractor's deps live in requirements.txt (pymupdf, pytesseract,
+        # pillow, opencv-python-headless, numpy). ocr_eval.py also needs
+        # rapidfuzz (declared in ml/requirements-ml.txt, but we pull just that
+        # one to avoid the heavy sentence-transformers/torch stack).
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt rapidfuzz
+
+      - name: OCR recall regression guard
+        # Floor is well below the current ~97% mean recall so normal Tesseract
+        # version drift in CI won't flake it, but a real regression (e.g. the
+        # orientation fix breaking) trips it. Raise it as recall improves.
+        run: python ml/ocr_eval.py --min-recall 0.80

@@ -22,6 +22,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from backend.app.models.profile import DietaryPattern, Profile, ProfileCreate
+from backend.app.services import i18n
 
 # Dietary pattern -> tags it excludes.
 # NO_SPECIFIC_DIET and the soft styles (HIGH_PROTEIN, LOW_CARB_KETO,
@@ -97,7 +98,7 @@ def _match_free_text_list(
 
 
 def check_candidate(
-    profile: "Profile | ProfileCreate", candidate: ExclusionCandidate
+    profile: "Profile | ProfileCreate", candidate: ExclusionCandidate, lang: str = "en"
 ) -> ExclusionResult:
     """
     Decide whether `candidate` may be recommended to this profile.
@@ -119,7 +120,7 @@ def check_candidate(
             allowed=False,
             blocked_by=tag,
             blocked_by_type="diet",
-            reason=f"'{candidate.name}' conflicts with a {profile.dietary_pattern.value} diet ({tag}).",
+            reason=i18n.t(lang, "excl.diet", name=candidate.name, diet=profile.dietary_pattern.value, tag=tag),
             alternate_suggestion=ALTERNATE_SUGGESTIONS.get(tag),
         )
 
@@ -129,7 +130,7 @@ def check_candidate(
             allowed=False,
             blocked_by=allergy_hit,
             blocked_by_type="allergy",
-            reason=f"'{candidate.name}' may contain '{allergy_hit}', which you've marked as an allergy.",
+            reason=i18n.t(lang, "excl.allergy", name=candidate.name, allergen=allergy_hit),
             alternate_suggestion=ALTERNATE_SUGGESTIONS.get(allergy_hit),
         )
 
@@ -139,7 +140,7 @@ def check_candidate(
             allowed=False,
             blocked_by=exclusion_hit,
             blocked_by_type="dislike",
-            reason=f"'{candidate.name}' matches your excluded item '{exclusion_hit}'.",
+            reason=i18n.t(lang, "excl.dislike", name=candidate.name, item=exclusion_hit),
             alternate_suggestion=ALTERNATE_SUGGESTIONS.get(exclusion_hit),
         )
 

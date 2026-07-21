@@ -56,6 +56,12 @@ class ProgressReport(BaseModel):
     addressed_gap_improved: Optional[bool] = None
     message: str
     disclaimer: str
+    # Bedarf-vs-Ist analog of `deltas` above (iron/protein/calcium daily
+    # intake this week vs. the week before) — independent of receipt
+    # count, since it's built from confirmed ConsumptionEvents rather
+    # than receipts. [] entries have dimension/direction "unknown" when
+    # a window has no confirmed consumption, same convention as `deltas`.
+    absolute_deltas: List[DimensionDelta] = Field(default_factory=list)
 
 
 class AdoptionScore(BaseModel):

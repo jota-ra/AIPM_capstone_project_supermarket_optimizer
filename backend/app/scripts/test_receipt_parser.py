@@ -2,10 +2,12 @@
 Quick manual test for the receipt parser (no server / DB needed).
 
 Usage (run from the repo root):
-    python -m backend.app.scripts.test_receipt_parser <image_path>
+    python -m backend.app.scripts.test_receipt_parser <image_or_pdf_path>
     python -m backend.app.scripts.test_receipt_parser --text <text_file_path>
 
-Requires the GEMINI/GOOGLE API key to be set in the environment.
+Fully local — no API key needed. Image/PDF extraction uses the on-device
+engines (Tesseract OCR + PyMuPDF); the image path requires the tesseract
+binary (+ German model) to be installed.
 """
 
 import json

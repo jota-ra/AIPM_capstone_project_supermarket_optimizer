@@ -55,7 +55,7 @@ def _offline():
 
     # Comparison: same gaps, omnivore profile with no exclusions.
     omnivore = ProfileCreate(
-        goal="eat_balanced",
+        goal="maintain",
         age_range="25-35",
         activity_level="moderately_active",
         dietary_pattern="omnivore",

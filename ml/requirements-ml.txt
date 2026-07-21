@@ -1,0 +1,14 @@
+# NutriWise — ML: embedding re-ranker (baseline vs. advanced)
+# Reproducible environment for ml/embedding_reranker.ipynb
+# Install:  python -m pip install -r ml/requirements-ml.txt
+#   (python -m pip guarantees the active venv — not a neighbouring project's)
+
+pandas>=2.0            # load data (judge JSON, BLS Excel)
+openpyxl>=3.1          # Excel reader for the BLS 4.0 table
+rapidfuzz>=3.0         # baseline: fast fuzzy string matcher
+sentence-transformers>=2.7   # advanced: multilingual sentence embeddings
+scikit-learn>=1.3      # cosine similarity, metrics
+matplotlib>=3.7        # head-to-head charts
+
+# To run the notebook itself (execute cells), also install:
+#   python -m pip install jupyter nbconvert ipykernel

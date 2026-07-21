@@ -4,25 +4,41 @@
       "item": "Rote Linsen",
       "action_type": "add",
       "tags": ["protein", "vegetable", "legume"],
-      "rationale": "Legumes like lentils are one of the most fiber-dense foods per calorie and drop easily into soups or salads."
+      "rationale": "Legumes like lentils are one of the most fiber-dense foods per calorie and drop easily into soups or salads.",
+      "rationale_de": "Hülsenfrüchte wie Linsen gehören zu den ballaststoffreichsten Lebensmitteln pro Kalorie und lassen sich mühelos in Suppen oder Salate geben.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
     },
     {
       "item": "Kichererbsen",
       "action_type": "add",
       "tags": ["protein", "vegetable", "legume"],
-      "rationale": "Chickpeas add fiber and plant protein in one ingredient."
+      "rationale": "Chickpeas add fiber and plant protein in one ingredient.",
+      "rationale_de": "Kichererbsen liefern Ballaststoffe und pflanzliches Protein in einer einzigen Zutat.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
     },
     {
       "item": "Vollkornhaferflocken",
       "action_type": "add",
       "tags": ["grain", "whole_grain"],
-      "rationale": "Whole oats are a simple, versatile source of fiber for breakfast."
+      "rationale": "Whole oats are a simple, versatile source of fiber for breakfast.",
+      "rationale_de": "Vollkornhaferflocken sind eine einfache, vielseitige Ballaststoffquelle zum Frühstück.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
     },
     {
       "item": "Vollkornbrot",
       "action_type": "replace",
       "tags": ["grain", "whole_grain"],
-      "rationale": "Swapping refined bread for whole-grain bread raises fiber without changing your routine."
+      "rationale": "Swapping refined bread for whole-grain bread raises fiber without changing your routine.",
+      "rationale_de": "Wenn du Weißbrot durch Vollkornbrot ersetzt, erhöhst du deine Ballaststoffe, ohne deine Routine zu ändern.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
     }
   ],
   "protein:low": [
@@ -30,25 +46,51 @@
       "item": "Griechischer Joghurt",
       "action_type": "add",
       "tags": ["dairy", "protein"],
-      "rationale": "Greek yogurt is a concentrated, versatile source of protein."
+      "rationale": "Greek yogurt is a concentrated, versatile source of protein.",
+      "rationale_de": "Griechischer Joghurt ist eine konzentrierte, vielseitige Proteinquelle.",
+      "effort": "low",
+      "cost": "medium",
+      "season": "all"
     },
     {
       "item": "Tofu",
       "action_type": "add",
       "tags": ["protein", "vegetable"],
-      "rationale": "Tofu is a plant-based protein that works in almost any savory dish."
+      "rationale": "Tofu is a plant-based protein that works in almost any savory dish.",
+      "rationale_de": "Tofu ist ein pflanzliches Protein, das in fast jedes herzhafte Gericht passt.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
     },
     {
       "item": "Rote Linsen",
       "action_type": "add",
       "tags": ["protein", "vegetable", "legume"],
-      "rationale": "Lentils combine plant protein with fiber."
+      "rationale": "Lentils combine plant protein with fiber.",
+      "rationale_de": "Linsen verbinden pflanzliches Protein mit Ballaststoffen.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
     },
     {
       "item": "Eier",
       "action_type": "add",
       "tags": ["eggs", "protein"],
-      "rationale": "Eggs are an affordable, complete source of protein."
+      "rationale": "Eggs are an affordable, complete source of protein.",
+      "rationale_de": "Eier sind eine günstige, vollwertige Proteinquelle.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
+    },
+    {
+      "item": "Apfel mit Erdnussmus",
+      "action_type": "add",
+      "tags": ["fruit"],
+      "rationale": "A no-cook snack that pairs fruit with a plant-based protein and fat source — ready in a minute.",
+      "rationale_de": "Ein Snack ohne Kochen, der Obst mit einer pflanzlichen Protein- und Fettquelle kombiniert — in einer Minute fertig.",
+      "effort": "low",
+      "cost": "low",
+      "season": [8, 9, 10, 11, 12, 1, 2, 3]
     }
   ],
   "sugar:high": [
@@ -56,19 +98,31 @@
       "item": "Ungesüßter Tee oder Wasser",
       "action_type": "replace",
       "tags": ["drink"],
-      "rationale": "Swapping sugary drinks for unsweetened tea or water is the single biggest lever on added sugar."
+      "rationale": "Swapping sugary drinks for unsweetened tea or water is the single biggest lever on added sugar.",
+      "rationale_de": "Zuckerhaltige Getränke durch ungesüßten Tee oder Wasser zu ersetzen, ist der größte Hebel gegen zugesetzten Zucker.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
     },
     {
       "item": "Naturjoghurt",
       "action_type": "replace",
       "tags": ["dairy"],
-      "rationale": "Plain yogurt has a fraction of the sugar of flavored yogurt."
+      "rationale": "Plain yogurt has a fraction of the sugar of flavored yogurt.",
+      "rationale_de": "Naturjoghurt enthält nur einen Bruchteil des Zuckers von Fruchtjoghurt.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
     },
     {
       "item": "Ungesalzene Nüsse",
       "action_type": "replace",
       "tags": ["nuts", "snack"],
-      "rationale": "Nuts make a lower-sugar snack swap for sweets."
+      "rationale": "Nuts make a lower-sugar snack swap for sweets.",
+      "rationale_de": "Nüsse sind ein zuckerärmerer Snack-Ersatz für Süßigkeiten.",
+      "effort": "low",
+      "cost": "medium",
+      "season": "all"
     }
   ],
   "processed:high": [
@@ -76,19 +130,145 @@
       "item": "Frisches Gemüse",
       "action_type": "replace",
       "tags": ["vegetable"],
-      "rationale": "Swapping a ready meal for fresh vegetables lowers your basket's average processing level."
+      "rationale": "Swapping a ready meal for fresh vegetables lowers your basket's average processing level.",
+      "rationale_de": "Ein Fertiggericht durch frisches Gemüse zu ersetzen, senkt den durchschnittlichen Verarbeitungsgrad deines Einkaufs.",
+      "effort": "medium",
+      "cost": "medium",
+      "season": "all"
     },
     {
       "item": "Vollkornreis oder Vollkornnudeln",
       "action_type": "replace",
       "tags": ["grain", "whole_grain"],
-      "rationale": "Whole-grain staples are less processed than their refined equivalents."
+      "rationale": "Whole-grain staples are less processed than their refined equivalents.",
+      "rationale_de": "Vollkornprodukte sind weniger verarbeitet als ihre raffinierten Gegenstücke.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
     },
     {
       "item": "Ungesalzene Nüsse",
       "action_type": "reduce",
       "tags": ["nuts", "snack"],
-      "rationale": "A whole-food snack in place of packaged snacks reduces overall processing."
+      "rationale": "A whole-food snack in place of packaged snacks reduces overall processing.",
+      "rationale_de": "Ein naturbelassener Snack anstelle von abgepackten Snacks verringert den gesamten Verarbeitungsgrad.",
+      "effort": "low",
+      "cost": "medium",
+      "season": "all"
+    },
+    {
+      "item": "Reiswaffeln",
+      "action_type": "replace",
+      "tags": ["grain", "snack"],
+      "rationale": "Rice cakes are a simple, minimally processed swap for packaged snacks — no prep needed.",
+      "rationale_de": "Reiswaffeln sind ein einfacher, kaum verarbeiteter Ersatz für abgepackte Snacks — ganz ohne Vorbereitung.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
+    }
+  ],
+  "iron:low": [
+    {
+      "item": "Rote Linsen",
+      "action_type": "add",
+      "tags": ["protein", "vegetable", "legume"],
+      "rationale": "Lentils are one of the most iron-dense plant foods and work in soups, salads or as a side.",
+      "rationale_de": "Linsen gehören zu den eisenreichsten pflanzlichen Lebensmitteln und passen in Suppen, Salate oder als Beilage.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
+    },
+    {
+      "item": "Spinat",
+      "action_type": "add",
+      "tags": ["vegetable"],
+      "rationale": "Spinach is a well-known plant source of iron, easy to add to salads or cooked dishes.",
+      "rationale_de": "Spinat ist eine bekannte pflanzliche Eisenquelle und lässt sich leicht in Salate oder warme Gerichte geben.",
+      "effort": "low",
+      "cost": "low",
+      "season": [3, 4, 5, 6, 9, 10]
+    },
+    {
+      "item": "Kichererbsen",
+      "action_type": "add",
+      "tags": ["protein", "vegetable", "legume"],
+      "rationale": "Chickpeas combine iron with fiber and plant protein.",
+      "rationale_de": "Kichererbsen verbinden Eisen mit Ballaststoffen und pflanzlichem Protein.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
+    },
+    {
+      "item": "Rindfleisch",
+      "action_type": "add",
+      "tags": ["meat", "protein"],
+      "rationale": "Red meat carries a highly bioavailable (heme) form of iron.",
+      "rationale_de": "Rotes Fleisch enthält eine sehr gut verfügbare (Häm-)Form von Eisen.",
+      "effort": "medium",
+      "cost": "high",
+      "season": "all"
+    },
+    {
+      "item": "Eier",
+      "action_type": "add",
+      "tags": ["eggs", "protein"],
+      "rationale": "Eggs contribute iron alongside protein and are versatile in most meals.",
+      "rationale_de": "Eier liefern neben Protein auch Eisen und lassen sich vielseitig in den meisten Mahlzeiten einsetzen.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
+    }
+  ],
+  "calcium:low": [
+    {
+      "item": "Milch",
+      "action_type": "add",
+      "tags": ["dairy"],
+      "rationale": "Milk is one of the most calcium-dense everyday foods.",
+      "rationale_de": "Milch gehört zu den calciumreichsten Alltagslebensmitteln.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
+    },
+    {
+      "item": "Griechischer Joghurt",
+      "action_type": "add",
+      "tags": ["dairy", "protein"],
+      "rationale": "Greek yogurt combines calcium with protein in one product.",
+      "rationale_de": "Griechischer Joghurt verbindet Calcium mit Protein in einem Produkt.",
+      "effort": "low",
+      "cost": "medium",
+      "season": "all"
+    },
+    {
+      "item": "Angereicherter Pflanzendrink",
+      "action_type": "add",
+      "tags": ["plant_milk"],
+      "rationale": "Calcium-fortified oat or almond drinks match dairy milk's calcium content without the dairy.",
+      "rationale_de": "Mit Calcium angereicherte Hafer- oder Mandeldrinks erreichen den Calciumgehalt von Kuhmilch ganz ohne Milchprodukte.",
+      "effort": "low",
+      "cost": "medium",
+      "season": "all"
+    },
+    {
+      "item": "Tofu",
+      "action_type": "add",
+      "tags": ["protein", "vegetable"],
+      "rationale": "Calcium-set tofu is one of the best plant-based calcium sources.",
+      "rationale_de": "Mit Calcium hergestellter Tofu ist eine der besten pflanzlichen Calciumquellen.",
+      "effort": "low",
+      "cost": "low",
+      "season": "all"
+    },
+    {
+      "item": "Grünkohl",
+      "action_type": "add",
+      "tags": ["vegetable"],
+      "rationale": "Kale is a calcium-rich leafy green that works raw, sautéed or in a smoothie.",
+      "rationale_de": "Grünkohl ist ein calciumreiches Blattgemüse, das sich roh, gedünstet oder im Smoothie verwenden lässt.",
+      "effort": "low",
+      "cost": "low",
+      "season": [10, 11, 12, 1, 2]
     }
   ]
 }

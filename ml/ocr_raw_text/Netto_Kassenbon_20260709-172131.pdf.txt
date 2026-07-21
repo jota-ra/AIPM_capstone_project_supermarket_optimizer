@@ -1,0 +1,94 @@
+*** eBon ***
+NETTO
+Filiale 7761
+Kottbusser Damm 1
+10967 Berlin
+WWW.NETTO-ONLINE.DE
+EUR
+VL Eier FH 10ST
+2,99
+B
+LiekenUrkornMehrkorn500g
+1,49
+B
+Ostmann.Oregano gerebelt.25g
+2,99
+B
+Ostm.Rosmarin geschn.50g
+2,99
+B
+AIRWAVESCoolCassis50ST
+2,95
+B
+SUMME [5]
+13,41
+----------
+SUMME
+13,41
+€
+Kartenzahlung EUR
+13,41
+-K-U-N-D-E-N-B-E-L-E-G-
+ 
+Terminal-ID :   65482706
+TA-Nr 692445    BNr 4639
+ 
+     Kartenzahlung
+       kontaktlos
+       Visa Debit
+ 
+  EUR 13,41
+PAN     ############9825
+Karte 0
+EMV-AID   A0000000031010
+VU-Nr         4556409584
+Genehmigungs-Nr   721578
+Datum 09.07.26 17:21 Uhr
+========================
+*** Zahlung erfolgt ***
+========================
+AS-Proc-Code = 00 075 00
+Capt.-Ref.= 0000
+APPROVED
+ 
+MWST
+BRUTTO
+NETTO
+B
+7%
+0,88
+13,41
+12,53
+------------------------------------------
+Versäumte Ersparnis
+PAYBACK
+6 Punkte
+------------------------------------------
+Lassen Sie sich künftig keine
+Rabatte entgehen und nutzen Sie
+Netto plus App und PAYBACK
+TSE Transaktionsnummer.:1027446
+Seriennr. Kasse:NTO-000-07761-2
+Prüfwert:JFkFl4xTLbKR99VUibUViwG21VTQrFl/
+az21sz2k9rNwduc6R6MiBUAKNbdkSGrT56lePc5xW
+yUUB74N9z9A7e4E6Yhr1LYtwc4IB38dmJOftP9f5Y
+NpzcFUjdR7p56c
+Signaturzähler:2058902
+TSE-Start:2026-07-09T15:21:30.000Z
+TSE-Stop : 2026-07-09T15:22:05.000Z
+TSE-Seriennr.:477562DEB8075AFD79E22B38ED7
+6C493539CC226CA954D6B5509E4CD20193307
+Steuer-Nr.DE133822409
+Montag-Samstag 7:00-22:00 Uhr
+Datum
+Uhrzeit
+Filiale
+Pos
+Bed
+Bon-Nr.
+09.07.26
+17:21
+0007761
+002
+5538333 0079
+(1/1) 

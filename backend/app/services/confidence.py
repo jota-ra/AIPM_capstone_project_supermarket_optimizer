@@ -30,6 +30,9 @@ def confidence_from_match(match_type: MatchType, score: float) -> ConfidenceLeve
 
     if match_type in (MatchType.FALLBACK, MatchType.NONE):
         return ConfidenceLevel.LOW
+    # A learned verified match (Tier-0) is confirmed data → always HIGH.
+    if match_type == MatchType.LEARNED:
+        return ConfidenceLevel.HIGH
     if match_type == MatchType.EXACT and score >= EXACT_THRESHOLD:
         return ConfidenceLevel.HIGH
     if score >= _MEDIUM_THRESHOLD:

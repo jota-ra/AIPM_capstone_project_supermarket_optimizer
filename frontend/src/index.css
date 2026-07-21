@@ -1,10 +1,22 @@
 @import "tailwindcss";
 
 /*
- * Design tokens ported from lovable_prototypes/src-grocery-shadow-ai
- * (styles.css) — the "Grocery Shadow" quiet/editorial look: canvas/ink
- * colors, Instrument Sans, generous rounding. Kept only what NutriWise's
- * hand-rolled screens actually use (no shadcn/Radix component tokens).
+ * Design tokens — the "Grocery Shadow" quiet/editorial look: canvas/ink
+ * neutrals, generous rounding. Kept only what NutriWise's hand-rolled
+ * screens actually use (no shadcn/Radix component tokens).
+ *
+ * Corporate design pass: one accent color (`--accent`, sage green) is
+ * now a real token instead of a hardcoded hex repeated across files
+ * with drift (#7c9a6a vs #8fa97d in different places). Every page —
+ * including Landing/Account-Picker/Onboarding, which used to hand-roll
+ * their own cream palette — shares this same neutral base + single
+ * accent, no separate "marketing" palette anymore.
+ *
+ * `--font-sans` is the plain system stack: "Instrument Sans" was
+ * declared here before but never actually loaded (no @font-face or
+ * <link>), so every browser was silently already falling back to this
+ * same stack — this just makes that explicit instead of naming a font
+ * that was never really in use.
  */
 
 @theme inline {
@@ -12,7 +24,9 @@
   --color-ink: var(--ink);
   --color-surface: var(--surface);
   --color-ink-soft: var(--ink-soft);
-  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 :root {
@@ -20,6 +34,8 @@
   --ink: oklch(0.18 0.005 270);
   --ink-soft: oklch(0.45 0.005 270);
   --surface: oklch(1 0 0);
+  --accent: #7c9a6a;
+  --accent-soft: #eef2ea;
 }
 
 body {

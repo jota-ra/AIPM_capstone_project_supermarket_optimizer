@@ -1,0 +1,431 @@
+<title>NutriWise — UI Mockup v2</title>
+<style>
+  :root{
+    --canvas:#eef1ec; --screen:#fafbf9; --surface:#ffffff;
+    --ink:#1d1d21; --ink-soft:#6b7168; --line:#e6e7e2; --line-soft:#eef0ec;
+    --sage:#7c9a6a; --sage-ink:#4f6b3c; --sage-soft:#eef2ea; --sage-soft2:#e3ebdd;
+    --clay:#c2683f; --clay-soft:#f6e6de; --amber:#cf9a34; --amber-soft:#f6ecd6;
+    --shadow:0 1px 2px rgba(29,29,33,.05),0 8px 24px rgba(29,29,33,.07);
+    --radius:18px; --radius-sm:12px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --canvas:#0f1113; --screen:#16191b; --surface:#1d2124;
+      --ink:#eef0ea; --ink-soft:#9aa294; --line:#2b3033; --line-soft:#23282b;
+      --sage:#8fb079; --sage-ink:#adc79a; --sage-soft:#232a20; --sage-soft2:#2a3226;
+      --clay:#df8a63; --clay-soft:#33241d; --amber:#e0b158; --amber-soft:#332a18;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="light"]{
+    --canvas:#eef1ec; --screen:#fafbf9; --surface:#ffffff;
+    --ink:#1d1d21; --ink-soft:#6b7168; --line:#e6e7e2; --line-soft:#eef0ec;
+    --sage:#7c9a6a; --sage-ink:#4f6b3c; --sage-soft:#eef2ea; --sage-soft2:#e3ebdd;
+    --clay:#c2683f; --clay-soft:#f6e6de; --amber:#cf9a34; --amber-soft:#f6ecd6;
+    --shadow:0 1px 2px rgba(29,29,33,.05),0 8px 24px rgba(29,29,33,.07);
+  }
+  :root[data-theme="dark"]{
+    --canvas:#0f1113; --screen:#16191b; --surface:#1d2124;
+    --ink:#eef0ea; --ink-soft:#9aa294; --line:#2b3033; --line-soft:#23282b;
+    --sage:#8fb079; --sage-ink:#adc79a; --sage-soft:#232a20; --sage-soft2:#2a3226;
+    --clay:#df8a63; --clay-soft:#33241d; --amber:#e0b158; --amber-soft:#332a18;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.45);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font);background:
+      radial-gradient(120% 90% at 50% 0%,color-mix(in srgb,var(--sage) 12%,var(--canvas)) 0%,var(--canvas) 60%);
+      color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+  .wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:14px;padding:26px 16px 40px;}
+  .lead{max-width:720px;text-align:center;}
+  .lead h1{font-size:20px;margin:0 0 5px;letter-spacing:-.015em;}
+  .lead p{margin:0 auto;font-size:13px;color:var(--ink-soft);line-height:1.55;max-width:60ch}
+  .lead .hint{margin-top:9px;font-size:11.5px;color:var(--sage-ink);font-weight:600;}
+  .legend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:10px;font-size:11.5px;color:var(--ink-soft)}
+  .legend b{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--ink)}
+  .dchip{font-size:9.5px;font-weight:800;letter-spacing:.04em;padding:2px 6px;border-radius:6px;background:var(--amber-soft);color:var(--amber);text-transform:uppercase}
+  .dchip.new{background:var(--sage-soft);color:var(--sage-ink)}
+
+  .phone{width:392px;max-width:100%;height:812px;max-height:86vh;background:var(--screen);
+    border-radius:44px;box-shadow:var(--shadow),0 0 0 10px color-mix(in srgb,var(--ink) 88%,#000 0%),0 0 0 12px var(--line);
+    position:relative;overflow:hidden;display:flex;flex-direction:column;}
+  @media (prefers-color-scheme:dark){.phone{box-shadow:var(--shadow),0 0 0 10px #05060700,0 0 0 2px var(--line)}}
+  .statusbar{height:34px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 26px;font-size:12px;font-weight:600;flex:0 0 auto;color:var(--ink);}
+  .statusbar .dots{display:flex;gap:5px;align-items:center}
+  .statusbar .dots span{width:5px;height:5px;border-radius:50%;background:var(--ink);opacity:.5}
+  .notch{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:118px;height:22px;background:var(--ink);border-radius:0 0 16px 16px;opacity:.9;z-index:5}
+  @media (prefers-color-scheme:dark){.notch{background:#000}}
+
+  .screen{flex:1;overflow-y:auto;overflow-x:hidden;display:none;flex-direction:column;}
+  .screen.active{display:flex}
+  .screen::-webkit-scrollbar{width:0}
+
+  .apphead{padding:6px 20px 12px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px;position:sticky;top:0;background:linear-gradient(var(--screen) 72%,transparent);z-index:4}
+  .apphead .t{font-size:23px;font-weight:700;letter-spacing:-.02em;}
+  .apphead .s{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+  .brandpill{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:12px;letter-spacing:.02em}
+  .brandpill .mark{width:22px;height:22px;border-radius:7px;background:var(--sage);display:grid;place-items:center;font-size:12px}
+
+  .body{padding:2px 16px 22px;display:flex;flex-direction:column;gap:12px}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .pad{padding:15px}
+  .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--sage-ink)}
+  .muted{color:var(--ink-soft)}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* delta annotation */
+  .delta-note{display:flex;gap:8px;align-items:flex-start;font-size:11px;line-height:1.4;color:var(--ink-soft);
+    background:color-mix(in srgb,var(--amber) 9%,var(--surface));border:1px dashed color-mix(in srgb,var(--amber) 45%,transparent);
+    border-radius:10px;padding:8px 11px}
+  .delta-note.new{background:color-mix(in srgb,var(--sage) 9%,var(--surface));border-color:color-mix(in srgb,var(--sage) 45%,transparent)}
+  .delta-note .k{font-weight:800;font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--amber);flex:0 0 auto;margin-top:1px}
+  .delta-note.new .k{color:var(--sage-ink)}
+
+  .hero{background:linear-gradient(150deg,var(--sage-soft),var(--sage-soft2));border:1px solid color-mix(in srgb,var(--sage) 30%,transparent);border-radius:var(--radius);padding:16px}
+  .hero .eyebrow{color:var(--sage-ink)}
+  .hero h3{margin:7px 0 5px;font-size:17px;letter-spacing:-.01em}
+  .hero p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.45}
+  .hero .row{display:flex;gap:8px;margin-top:13px}
+
+  .btn{appearance:none;border:0;font-family:inherit;font-weight:600;font-size:13px;border-radius:11px;padding:10px 14px;cursor:pointer;transition:transform .05s ease, filter .15s ease, background .15s}
+  .btn:active{transform:scale(.97)}
+  .btn.primary{background:var(--sage);color:#fff}
+  .btn.primary:hover{filter:brightness(1.05)}
+  .btn.ghost{background:transparent;color:var(--sage-ink);border:1px solid color-mix(in srgb,var(--sage) 40%,transparent)}
+  .btn.soft{background:var(--sage-soft);color:var(--sage-ink)}
+  .btn.block{width:100%;justify-content:center}
+  .btn.sm{padding:7px 11px;font-size:12px;border-radius:9px}
+  .btn:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+
+  .item{display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);transition:opacity .3s, background .2s}
+  .item .ic{width:38px;height:38px;border-radius:10px;background:var(--sage-soft);display:grid;place-items:center;font-size:18px;flex:0 0 auto}
+  .item .grow{flex:1;min-width:0}
+  .item .nm{font-size:14px;font-weight:600;line-height:1.2}
+  .item .meta{font-size:11.5px;color:var(--ink-soft);margin-top:3px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+  .item.done{opacity:.5}
+  .item.done .nm{text-decoration:line-through}
+  .badge{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:.01em;white-space:nowrap}
+  .badge.warn{background:var(--clay-soft);color:var(--clay)}
+  .badge.ok{background:var(--sage-soft);color:var(--sage-ink)}
+  .badge.gone{background:var(--line);color:var(--ink-soft)}
+  .badge.est{background:transparent;color:var(--ink-soft);border:1px dashed var(--line);font-weight:600}
+  .rowbtns{display:flex;gap:6px;flex:0 0 auto}
+
+  .sectlabel{display:flex;align-items:center;justify-content:space-between;margin:8px 2px 2px}
+  .sectlabel .eyebrow{color:var(--ink-soft)}
+
+  .tally{display:flex;flex-direction:column;gap:12px}
+  .trow .tl{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px}
+  .trow .tl b{font-weight:600}
+  .bar{height:8px;border-radius:6px;background:var(--line-soft);overflow:hidden}
+  .bar > i{display:block;height:100%;border-radius:6px;background:var(--sage)}
+  .bar > i.low{background:var(--clay)}
+  .logline{display:flex;gap:11px;align-items:center;padding:10px 2px;border-bottom:1px solid var(--line-soft)}
+  .logline:last-child{border-bottom:0}
+  .logline .time{font-size:11px;color:var(--ink-soft);width:42px;flex:0 0 auto}
+  .logline .lg{flex:1;font-size:13.5px}
+  .logline .kc{font-size:11.5px;color:var(--ink-soft)}
+  .logline .undo{border:0;background:transparent;color:var(--clay);font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;padding:4px 6px;border-radius:7px}
+  .logline .undo:hover{background:var(--clay-soft)}
+
+  .disclaimer{display:flex;gap:9px;align-items:flex-start;background:var(--sage-soft);border-radius:var(--radius-sm);padding:11px 13px;font-size:11.5px;color:var(--sage-ink);line-height:1.4}
+  .score{display:flex;align-items:center;gap:16px}
+  .ring{--v:72;width:74px;height:74px;border-radius:50%;flex:0 0 auto;position:relative;
+    background:conic-gradient(var(--sage) calc(var(--v)*1%),var(--line-soft) 0);display:grid;place-items:center}
+  .ring .inner{width:56px;height:56px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-weight:700;font-size:19px}
+  .statusgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .chip{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;border-radius:11px;border:1px solid var(--line);font-size:12.5px}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:7px}
+  .dot.low{background:var(--clay)} .dot.ok{background:var(--sage)} .dot.high{background:var(--amber)} .dot.track{background:var(--ink-soft)}
+  .st{font-weight:700;font-size:11px}
+  .st.low{color:var(--clay)} .st.ok{color:var(--sage-ink)} .st.high{color:var(--amber)} .st.track{color:var(--ink-soft)}
+
+  /* two recommendations side by side */
+  .recgrid{display:grid;grid-template-columns:1fr;gap:11px}
+  .reccard{border:1px solid var(--line);border-radius:var(--radius);padding:14px;background:var(--surface)}
+  .reccard.have{border-color:color-mix(in srgb,var(--sage) 38%,transparent);background:linear-gradient(150deg,var(--sage-soft),var(--sage-soft2))}
+  .reccard .tag{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px}
+  .reccard.have .tag{color:var(--sage-ink)} .reccard.buy .tag{color:var(--ink-soft)}
+  .reccard h4{margin:7px 0 4px;font-size:16px}
+  .reccard p{margin:0;font-size:12px;color:var(--ink-soft);line-height:1.45}
+  .fbrow{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+  details.why{margin-top:10px}
+  details.why summary{font-size:12px;color:var(--sage-ink);cursor:pointer;font-weight:600}
+  details.why p{margin:7px 0 0;font-size:11.5px;color:var(--ink-soft);line-height:1.45}
+
+  .nav{flex:0 0 auto;display:flex;background:var(--surface);border-top:1px solid var(--line);padding:8px 6px calc(8px + env(safe-area-inset-bottom));position:relative}
+  .nav button{flex:1;border:0;background:transparent;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 0;cursor:pointer;color:var(--ink-soft);font-size:10.5px;font-weight:600}
+  .nav button .ni{width:22px;height:22px;display:grid;place-items:center}
+  .nav button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.9}
+  .nav button.on{color:var(--sage-ink)}
+  .nav button.on svg{stroke:var(--sage)}
+  .fab{position:absolute;right:16px;top:-30px;width:56px;height:56px;border-radius:18px;border:0;background:var(--sage);color:#fff;font-size:26px;box-shadow:0 6px 18px color-mix(in srgb,var(--sage) 55%,transparent);cursor:pointer;display:grid;place-items:center}
+  .fab:active{transform:scale(.95)}
+
+  .toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--screen);
+    padding:10px 16px;border-radius:12px;font-size:12.5px;font-weight:600;opacity:0;pointer-events:none;transition:.28s;z-index:20;box-shadow:var(--shadow);white-space:nowrap}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .themebtn{position:fixed;top:14px;right:16px;z-index:50;border:1px solid var(--line);background:var(--surface);color:var(--ink);
+    border-radius:10px;padding:8px 12px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;box-shadow:var(--shadow)}
+  .footnote{max-width:620px;font-size:11px;color:var(--ink-soft);text-align:center;line-height:1.5}
+</style>
+
+<button class="themebtn" id="themebtn" aria-label="Theme wechseln">◑ Theme</button>
+
+<div class="wrap">
+  <div class="lead">
+    <h1>NutriWise — UI Mockup v2</h1>
+    <p>Vorgeschlagene User-Journey nach der Code-Analyse. Vier Tabs unten wechseln. Die gestrichelten
+      Kästen markieren, <b>was sich gegenüber dem aktuellen Code ändert und warum</b> — sie gehören nicht ins Produkt.</p>
+    <div class="legend">
+      <b><span class="dchip new">NEU</span> neu / zusammengeführt</b>
+      <b><span class="dchip">Δ ÄNDERN</span> heute anders gebaut</b>
+    </div>
+  </div>
+
+  <div class="phone" role="application" aria-label="NutriWise Mockup v2">
+    <div class="notch"></div>
+    <div class="statusbar"><span class="num">9:41</span><span class="dots"><span></span><span></span><span></span> 📶 🔋</span></div>
+
+    <!-- ============ VORRAT (HOME) ============ -->
+    <section class="screen active" id="vorrat" aria-label="Vorrat">
+      <div class="apphead">
+        <div><div class="t">Dein Vorrat</div><div class="s">14 Lebensmittel · Startbildschirm</div></div>
+        <div class="brandpill"><span class="mark">🥗</span>NutriWise</div>
+      </div>
+      <div class="body">
+        <div class="delta-note new"><span class="k">Δ Home</span><span>Vorrat ist der Startbildschirm — der tägliche Grund, die App zu öffnen (Retention-Loop). Heute startet die App auf „Insights".</span></div>
+
+        <div class="hero">
+          <div class="eyebrow">Heute · nutze, was du hast</div>
+          <h3>Trink deine Buttermilch 🥛</h3>
+          <p>Läuft in 2 Tagen ab — und diese Woche fehlt dir Protein. Zwei Fliegen, eine Klappe.</p>
+          <div class="row">
+            <button class="btn primary sm" data-eat="Buttermilch" data-toast="Buttermilch als gegessen — 1 Portion ✓">Gegessen · 1 Portion</button>
+            <button class="btn ghost sm" data-goto="empfehlungen">Beide Tipps ansehen</button>
+          </div>
+        </div>
+
+        <div class="sectlabel"><span class="eyebrow">Läuft bald ab</span><span class="muted" style="font-size:11px">nach Frische sortiert</span></div>
+
+        <div class="item" data-item="Hähnchenbrust">
+          <div class="ic">🍗</div>
+          <div class="grow"><div class="nm">Hähnchenbrust</div><div class="meta">300 g <span class="badge warn">läuft in 1 Tag</span><span class="badge est">geschätzt</span></div></div>
+          <div class="rowbtns">
+            <button class="btn soft sm eat" data-eat="Hähnchenbrust" data-toast="Hähnchenbrust · 1 Portion gegessen ✓">Gegessen</button>
+          </div>
+        </div>
+        <div class="item" data-item="Buttermilch">
+          <div class="ic">🥛</div>
+          <div class="grow"><div class="nm">Buttermilch</div><div class="meta">500 ml <span class="badge warn">läuft in 2 Tagen</span><span class="badge est">geschätzt</span></div></div>
+          <div class="rowbtns">
+            <button class="btn soft sm eat" data-eat="Buttermilch" data-toast="Buttermilch · 1 Portion gegessen ✓">Gegessen</button>
+          </div>
+        </div>
+        <div class="item" data-item="Brokkoli">
+          <div class="ic">🥦</div>
+          <div class="grow"><div class="nm">Brokkoli</div><div class="meta">1 Kopf <span class="badge warn">läuft in 4 Tagen</span></div></div>
+          <div class="rowbtns">
+            <button class="btn soft sm eat" data-eat="Brokkoli" data-toast="Brokkoli · 1 Portion gegessen ✓">Gegessen</button>
+          </div>
+        </div>
+
+        <div class="delta-note"><span class="k">Δ Aktion</span><span>Eine primäre Aktion „Gegessen" (= 1 Portion, ein Tap). „Weg / verdorben" liegt hinter „···", nicht mehr als gleichwertiger zweiter Button auf einer anderen Seite. Heute: zwei verwechselbare Buttons auf zwei Seiten, Menge Pflicht.</span></div>
+
+        <div class="sectlabel"><span class="eyebrow">Frisch im Haus</span></div>
+        <div class="item" data-item="Haferflocken">
+          <div class="ic">🥣</div>
+          <div class="grow"><div class="nm">Haferflocken</div><div class="meta">750 g <span class="badge ok">frisch</span></div></div>
+          <div class="rowbtns"><button class="btn soft sm eat" data-eat="Haferflocken" data-toast="Haferflocken · 1 Portion ✓">Gegessen</button></div>
+        </div>
+        <div class="item" data-item="Eier">
+          <div class="ic">🥚</div>
+          <div class="grow"><div class="nm">Eier</div><div class="meta">8 Stück <span class="badge ok">frisch</span></div></div>
+          <div class="rowbtns"><button class="btn soft sm eat" data-eat="Eier" data-toast="1 Ei gegessen ✓">Gegessen</button></div>
+        </div>
+        <p class="muted" style="font-size:11px;text-align:center;margin:6px 0 0">„Gegessen" = 1 typische Portion. Für eigene Menge antippen &amp; halten.</p>
+      </div>
+    </section>
+
+    <!-- ============ LOG ============ -->
+    <section class="screen" id="log" aria-label="Tages-Log">
+      <div class="apphead"><div><div class="t">Tages-Log</div><div class="s">Heute · Mi, 16. Juli</div></div>
+        <button class="btn ghost sm" data-toast="Datum wählen (bis 14 Tage rückwirkend)">📅 Tag</button></div>
+      <div class="body">
+        <div class="delta-note new"><span class="k">Δ 1-Tap</span><span>Abhaken ist ein Tap = 1 typische Portion (Serving-Default aus <code>units.py</code>). Menge ist optional. Heute verlangt jedes „Gegessen" eine Menge, vorbelegt mit dem <i>gesamten</i> Bestand — wer nur einen Teil isst, muss aktiv korrigieren.</span></div>
+
+        <div class="card pad">
+          <div class="eyebrow" style="margin-bottom:12px">Heute gegessen — vs. Ziel</div>
+          <div class="tally">
+            <div class="trow"><div class="tl"><b>Protein</b><span class="num muted">62 / 120 g</span></div><div class="bar"><i class="low" style="width:52%"></i></div></div>
+            <div class="trow"><div class="tl"><b>Ballaststoffe</b><span class="num muted">11 / 30 g</span></div><div class="bar"><i class="low" style="width:37%"></i></div></div>
+            <div class="trow"><div class="tl"><b>Kalorien</b><span class="num muted">1.340 / 2.100 kcal</span></div><div class="bar"><i style="width:64%"></i></div></div>
+          </div>
+        </div>
+
+        <div class="card pad">
+          <div class="eyebrow" style="margin-bottom:4px">Einträge</div>
+          <div class="logline" data-log><span class="time num">08:15</span><span class="lg">Haferflocken + Apfel</span><span class="kc num">410 kcal</span><button class="undo" data-undo data-toast="Eintrag entfernt ↩">↩︎</button></div>
+          <div class="logline" data-log><span class="time num">13:00</span><span class="lg">Hähnchenbrust + Brokkoli</span><span class="kc num">520 kcal</span><button class="undo" data-undo data-toast="Eintrag entfernt ↩">↩︎</button></div>
+          <div class="logline" data-log><span class="time num">16:20</span><span class="lg">Vollkornbrot</span><span class="kc num">365 kcal</span><button class="undo" data-undo data-toast="Eintrag entfernt ↩">↩︎</button></div>
+        </div>
+        <div class="delta-note new"><span class="k">Δ Undo</span><span>Jeder Eintrag ist mit einem Tap rücknehmbar. Heute ist das Log read-only — ein Fehl-Log lässt sich nicht korrigieren.</span></div>
+
+        <div class="hero">
+          <div class="eyebrow">Schnell nachtragen</div>
+          <h3 style="font-size:15px">Was hast du noch gegessen? 🍽️</h3>
+          <p>Aus dem Vorrat wählen (1 Tap) oder frei eintippen.</p>
+          <div class="row">
+            <button class="btn primary sm" data-goto="vorrat">Aus Vorrat wählen</button>
+            <button class="btn ghost sm" data-toast="Freitext-Eintrag …">Manuell</button>
+          </div>
+        </div>
+        <button class="btn soft block" data-toast="Als weggeworfen erfasst 🗑️">🗑️ Etwas weggeworfen?</button>
+      </div>
+    </section>
+
+    <!-- ============ EMPFEHLUNGEN (unified) ============ -->
+    <section class="screen" id="empfehlungen" aria-label="Empfehlungen">
+      <div class="apphead"><div><div class="t">Empfehlungen</div><div class="s">Deine 2 nächsten Schritte</div></div></div>
+      <div class="body">
+        <div class="delta-note new"><span class="k">Δ Zusammengeführt</span><span>Beide Empfehlungstypen stehen <b>nebeneinander auf einer Seite</b> („alongside, never instead" — steht so im Code-Kommentar). Heute liegen sie auf zwei Seiten (Vorrat vs. Insights), plus zwei redundante Next-Cart-Karten aus zwei Endpunkten.</span></div>
+
+        <div class="recgrid">
+          <div class="reccard have">
+            <span class="tag">🧺 Nutze, was du hast</span>
+            <h4>Buttermilch 🥛</h4>
+            <p>Schließt deine Protein-Lücke — und läuft in 2 Tagen ab. Erdnussfrei ✓</p>
+            <div class="fbrow">
+              <button class="btn primary sm" data-eat="Buttermilch" data-toast="Gegessen · 1 Portion ✓">Gegessen</button>
+              <button class="btn ghost sm" data-toast="Ok, wird seltener vorgeschlagen">Passt nicht</button>
+            </div>
+            <details class="why"><summary>Warum diese?</summary><p>3 Kandidaten geprüft. Buttermilch gewinnt: im Vorrat, läuft am schnellsten ab, passt zur Protein-Lücke, kein Ausschluss verletzt.</p></details>
+          </div>
+
+          <div class="reccard buy">
+            <span class="tag">🛒 Next Cart · beim nächsten Einkauf</span>
+            <h4>Rote Linsen (getrocknet) 🫘</h4>
+            <p>+Ballaststoffe &amp; pflanzliches Protein. Günstig, lange haltbar, erdnussfrei.</p>
+            <div class="fbrow">
+              <button class="btn soft sm" data-toast="Auf die Einkaufsliste ✓">Merken</button>
+              <button class="btn ghost sm" data-toast="3 passende Rezepte …">Rezepte</button>
+            </div>
+            <details class="why"><summary>Warum diese?</summary><p>Deine größte Wochen-Lücke ist Ballaststoff. Linsen liefern viel pro Euro, sind lange haltbar und respektieren deinen Erdnuss-Ausschluss.</p></details>
+          </div>
+        </div>
+
+        <div class="delta-note"><span class="k">Δ Aufräumen</span><span>Genau eine „Nutze was du hast"- und eine „Next Cart"-Karte. Die zweite (Legacy-)Next-Cart-Karte, EasySwaps und die doppelte Coach-Prosa entfallen als eigenständige Blöcke → weniger Verwirrung, ein Backend-Call statt zwei, weniger LLM-Kosten.</span></div>
+
+        <div class="card pad">
+          <div class="eyebrow" style="margin-bottom:6px">Nutri-Coach</div>
+          <p class="muted" style="font-size:12.5px;line-height:1.5;margin:0">„Diese Woche war Protein knapp. Deine Buttermilch deckt das heute — und Linsen halten es nächste Woche stabil. Kleine Schritte zählen. 🌱"</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ INSIGHTS ============ -->
+    <section class="screen" id="insights" aria-label="Insights">
+      <div class="apphead"><div><div class="t">Insights</div><div class="s">Diese Woche · Mo–So</div></div></div>
+      <div class="body">
+        <div class="disclaimer">ⓘ Schätzungen aus deinem Einkauf + Tages-Log. Keine medizinische Beratung — Trends, keine exakten Werte.</div>
+
+        <div class="card pad">
+          <div class="score">
+            <div class="ring" style="--v:72"><div class="inner num">72</div></div>
+            <div><div class="eyebrow">Wochen-Ernährungsscore</div>
+              <div style="font-size:16px;font-weight:700;margin:3px 0">Gut — mit 2 Baustellen</div>
+              <div class="muted" style="font-size:12px">Protein und Ballaststoffe hinken hinterher.</div></div>
+          </div>
+        </div>
+
+        <div class="sectlabel"><span class="eyebrow">Bewertet · Makros</span></div>
+        <div class="statusgrid">
+          <div class="chip"><span><span class="dot low"></span>Protein</span><span class="st low">niedrig</span></div>
+          <div class="chip"><span><span class="dot low"></span>Ballaststoffe</span><span class="st low">niedrig</span></div>
+          <div class="chip"><span><span class="dot ok"></span>Zucker</span><span class="st ok">ok</span></div>
+          <div class="chip"><span><span class="dot ok"></span>Kalorien</span><span class="st ok">ok</span></div>
+        </div>
+
+        <div class="sectlabel"><span class="eyebrow">Bewertet · Mikros</span></div>
+        <div class="statusgrid">
+          <div class="chip"><span><span class="dot ok"></span>Eisen</span><span class="st ok">ok</span></div>
+          <div class="chip"><span><span class="dot low"></span>Calcium</span><span class="st low">niedrig</span></div>
+        </div>
+
+        <div class="sectlabel"><span class="eyebrow">Mitverfolgt · Bewertung folgt</span></div>
+        <div class="statusgrid">
+          <div class="chip"><span><span class="dot track"></span>Magnesium</span><span class="st track">verfolgt</span></div>
+          <div class="chip"><span><span class="dot track"></span>Vitamin C</span><span class="st track">verfolgt</span></div>
+          <div class="chip"><span><span class="dot track"></span>Vitamin B12</span><span class="st track">verfolgt</span></div>
+          <div class="chip"><span><span class="dot track"></span>Kalium</span><span class="st track">verfolgt</span></div>
+        </div>
+        <div class="delta-note"><span class="k">Δ Mikros</span><span>Ehrliches Framing statt „noch nicht bewertet" ganz unten versteckt: <b>Eisen &amp; Calcium sind voll bewertet</b> (Bedarf→Ist→Lücke→Empfehlung im Code verdrahtet). Die übrigen 9 Mikros werden aus dem BLS geladen und mitverfolgt, aber bewusst noch nicht bewertet — bis zur DGE/EFSA-Freigabe (Q1). Kein Neuberechnen nötig, nur diese Darstellung.</span></div>
+
+        <button class="btn soft block" data-goto="empfehlungen">Deine 2 Empfehlungen ansehen →</button>
+      </div>
+    </section>
+
+    <div class="toast" id="toast"></div>
+
+    <nav class="nav" id="nav" aria-label="Hauptnavigation">
+      <button data-tab="vorrat" class="on"><span class="ni"><svg viewBox="0 0 24 24"><path d="M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M4 8l2-4h12l2 4"/></svg></span>Vorrat</button>
+      <button data-tab="log"><span class="ni"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M9 9l2 2 4-4"/><path d="M9 15h6"/></svg></span>Log</button>
+      <button data-tab="empfehlungen"><span class="ni"><svg viewBox="0 0 24 24"><path d="M5 7h14"/><path d="M6 7l1 12h10l1-12"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg></span>Tipps</button>
+      <button data-tab="insights"><span class="ni"><svg viewBox="0 0 24 24"><path d="M4 20V4"/><path d="M4 20h16"/><path d="M8 16v-4"/><path d="M12 16V8"/><path d="M16 16v-6"/></svg></span>Insights</button>
+      <button class="fab" id="fab" aria-label="Bon hinzufügen">+</button>
+    </nav>
+  </div>
+
+  <p class="footnote">Mockup v2 der vorgeschlagenen User-Journey · Salbeigrün-Corporate-Design · light &amp; dark über den Schalter oben rechts.
+    Basiert auf der Code-Analyse von Frontend (State-Machine, 3 Tabs) und Backend (Serving-Default fehlt, Mikros geladen aber ungewichtet).</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var root=document.documentElement;
+  document.getElementById('themebtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    root.setAttribute('data-theme', cur==='dark'?'light':'dark');
+  });
+
+  var toastEl=document.getElementById('toast'), tt;
+  function toast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('show');},1900);}
+
+  var nav=document.getElementById('nav');
+  function show(id){
+    var scr=document.querySelectorAll('.screen');
+    for(var i=0;i<scr.length;i++){scr[i].classList.toggle('active',scr[i].id===id);}
+    var el=document.getElementById(id); if(el) el.scrollTop=0;
+  }
+  function setTab(tab){
+    show(tab);
+    nav.querySelectorAll('button[data-tab]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===tab);});
+  }
+  nav.querySelectorAll('button[data-tab]').forEach(function(b){
+    b.addEventListener('click',function(){setTab(b.getAttribute('data-tab'));});
+  });
+  document.getElementById('fab').addEventListener('click',function(){toast("Neuen Bon hinzufügen 📷");});
+
+  document.querySelector('.phone').addEventListener('click',function(e){
+    var t=e.target.closest('[data-toast],[data-eat],[data-goto],[data-undo]');
+    if(!t)return;
+    if(t.hasAttribute('data-goto')){setTab(t.getAttribute('data-goto'));}
+    if(t.hasAttribute('data-undo')){var ln=t.closest('[data-log]'); if(ln){ln.style.opacity=.35;ln.style.textDecoration='line-through';t.disabled=true;}}
+    if(t.hasAttribute('data-eat')){
+      var name=t.getAttribute('data-eat');
+      var it=document.querySelector('.item[data-item="'+name+'"]');
+      if(it && !it.classList.contains('done')){
+        it.classList.add('done');
+        var badge=it.querySelector('.badge'); if(badge){badge.className='badge gone';badge.textContent='gegessen ✓';}
+        var btn=it.querySelector('.eat'); if(btn){btn.textContent='✓';btn.disabled=true;}
+      }
+    }
+    if(t.hasAttribute('data-toast')){toast(t.getAttribute('data-toast'));}
+  });
+})();
+</script>

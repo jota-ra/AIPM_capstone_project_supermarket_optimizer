@@ -1,0 +1,119 @@
+*** eBon ***
+NETTO
+Filiale 7761
+Kottbusser Damm 1
+10967 Berlin
+WWW.NETTO-ONLINE.DE
+EUR
+Beste Ernte Kidneybohnen 255g
+0,69
+B
+VL Eier FH 10ST
+2,99
+B
+Rabatt 30%
+-0,90
+Beste Ernte Kichererbsen 265g
+0,59
+B
+Lieken Urkorn Fitnessbrot 500g
+1,89
+B
+Bio BB Feta 200g
+2,42
+B
+Paprika rot 500g
+1,79
+B
+Bio Naturland Speisem. 1kg
+1,97
+B
+Bio NL Zucchini 500g
+1,61
+B
+0,958 kg x
+1,29 EUR/kg
+Bananen Lose MT
+1,24
+B
+Lauchzwiebeln
+0,69
+B
+Broccoli 500g VKE
+1,11
+B
+Bio BB SB R-Hackfl.400g
+5,84
+B
+SUMME [12]
+21,93
+----------
+SUMME
+21,93
+€
+Kartenzahlung EUR
+21,93
+-K-U-N-D-E-N-B-E-L-E-G-
+ 
+Terminal-ID :   65482706
+TA-Nr 695147    BNr 5961
+ 
+     Kartenzahlung
+       kontaktlos
+       Visa Debit
+ 
+  EUR 21,93
+PAN     ############9825
+Karte 0
+EMV-AID   A0000000031010
+VU-Nr         4556409584
+Genehmigungs-Nr   923723
+Datum 13.07.26 17:06 Uhr
+========================
+*** Zahlung erfolgt ***
+========================
+AS-Proc-Code = 00 075 00
+Capt.-Ref.= 0000
+APPROVED
+ 
+MWST
+BRUTTO
+NETTO
+B
+7%
+1,43
+21,93
+20,50
+------------------------------------------
+Versäumte Ersparnis
+PAYBACK
+10 Punkte
+------------------------------------------
+Lassen Sie sich künftig keine
+Rabatte entgehen und nutzen Sie
+Netto plus App und PAYBACK
+TSE Transaktionsnummer.:1032239
+Seriennr. Kasse:NTO-000-07761-2
+Prüfwert:BFoGgM65wgcZxq3zpRmPqT9FPdM8YSIK
+DtnS+YI/HIGYrSaeNVxgjBOLt6ecaN9ObmV3PRsgD
+FT7kvRaEM6WngBCb66Gh5yreZqQHqMMIEIhuq1uNA
+P7Js1edTTQnYJ2
+Signaturzähler:2068504
+TSE-Start:2026-07-13T15:06:19.000Z
+TSE-Stop : 2026-07-13T15:07:22.000Z
+TSE-Seriennr.:477562DEB8075AFD79E22B38ED7
+6C493539CC226CA954D6B5509E4CD20193307
+Steuer-Nr.DE133822409
+Montag-Samstag 7:00-22:00 Uhr
+Datum
+Uhrzeit
+Filiale
+Pos
+Bed
+Bon-Nr.
+13.07.26
+17:06
+0007761
+002
+918028570450
+(1/1) 

@@ -18,14 +18,14 @@ FALLBACK_CONFIDENCE = 0.30
 # Canonical categories -> rough per-100g nutrition (protein, fiber, sugar,
 # kcal, NOVA-ish processed score). Intentionally approximate.
 CATEGORY_NUTRITION = {
-    "dairy":     NutritionValues(protein_g=6.0, fiber_g=0.0, sugar_g=5.0, calories_kcal=90, processed_score=2),
-    "grain":     NutritionValues(protein_g=9.0, fiber_g=7.0, sugar_g=2.0, calories_kcal=340, processed_score=2),
-    "vegetable": NutritionValues(protein_g=2.0, fiber_g=3.0, sugar_g=3.0, calories_kcal=40, processed_score=1),
-    "fruit":     NutritionValues(protein_g=1.0, fiber_g=2.5, sugar_g=12.0, calories_kcal=60, processed_score=1),
-    "protein":   NutritionValues(protein_g=20.0, fiber_g=0.0, sugar_g=0.0, calories_kcal=180, processed_score=2),
-    "snack":     NutritionValues(protein_g=6.0, fiber_g=3.0, sugar_g=25.0, calories_kcal=470, processed_score=4),
-    "drink":     NutritionValues(protein_g=0.0, fiber_g=0.0, sugar_g=9.0, calories_kcal=42, processed_score=4),
-    "other":     NutritionValues(protein_g=3.0, fiber_g=1.0, sugar_g=5.0, calories_kcal=150, processed_score=3),
+    "dairy":     NutritionValues(protein_g=6.0, fiber_g=0.0, sugar_g=5.0, calories_kcal=90, processed_score=2, iron_mg=0.1, calcium_mg=120.0),
+    "grain":     NutritionValues(protein_g=9.0, fiber_g=7.0, sugar_g=2.0, calories_kcal=340, processed_score=2, iron_mg=2.5, calcium_mg=20.0),
+    "vegetable": NutritionValues(protein_g=2.0, fiber_g=3.0, sugar_g=3.0, calories_kcal=40, processed_score=1, iron_mg=1.0, calcium_mg=50.0),
+    "fruit":     NutritionValues(protein_g=1.0, fiber_g=2.5, sugar_g=12.0, calories_kcal=60, processed_score=1, iron_mg=0.3, calcium_mg=15.0),
+    "protein":   NutritionValues(protein_g=20.0, fiber_g=0.0, sugar_g=0.0, calories_kcal=180, processed_score=2, iron_mg=2.0, calcium_mg=40.0),
+    "snack":     NutritionValues(protein_g=6.0, fiber_g=3.0, sugar_g=25.0, calories_kcal=470, processed_score=4, iron_mg=0.5, calcium_mg=50.0),
+    "drink":     NutritionValues(protein_g=0.0, fiber_g=0.0, sugar_g=9.0, calories_kcal=42, processed_score=4, iron_mg=0.0, calcium_mg=10.0),
+    "other":     NutritionValues(protein_g=3.0, fiber_g=1.0, sugar_g=5.0, calories_kcal=150, processed_score=3, iron_mg=0.5, calcium_mg=30.0),
 }
 
 # German parser categories (and common terms) -> canonical category.

@@ -18,7 +18,21 @@ postgrest==2.31.0
 storage3==2.31.0
 
 # ==========================
-# Google Gemini
+# Local receipt text extraction (Epic 3)
+# Replaces the Gemini vision call for receipts: on-device OCR + PDF
+# text-layer extraction, so the receipt pipeline has no rate limits, works
+# offline, and never sends receipt data to a third-party LLM.
+# NOTE: pytesseract needs the system `tesseract` binary + German model
+# (tesseract-ocr, tesseract-ocr-deu) — installed via the Dockerfile.
+# ==========================
+pymupdf==1.28.0
+pytesseract==0.3.13
+pillow==12.3.0
+opencv-python-headless==5.0.0.93
+numpy==2.4.6
+
+# ==========================
+# Google Gemini (still used by the nutrition coach — NOT for receipts)
 # ==========================
 google-genai==2.10.0
 
@@ -35,7 +49,21 @@ pydantic==2.13.4
 pydantic-settings==2.14.2
 
 # ==========================
+# Auth (E1) — verify Supabase user access tokens (JWT). The `[crypto]`
+# extra pulls in `cryptography`, required for the ES256/RS256 asymmetric
+# signing keys Supabase issues to signed-in users (see services/auth.py).
+# ==========================
+PyJWT[crypto]==2.10.1
+
+# ==========================
 # OpenFoodFacts nutrition lookups (Epic 2) are done via direct REST
 # calls through `requests` (see backend/app/services/off_api.py), not
 # the openfoodfacts SDK — no separate package needed.
 # ==========================
+
+# ==========================
+# BLS 4.0 food-composition table (Epic 4). openpyxl parses the xlsx once
+# to build backend/app/services/_bls_cache.json; only needed to (re)build
+# that cache — the app runs from the cached JSON at runtime.
+# ==========================
+openpyxl==3.1.5

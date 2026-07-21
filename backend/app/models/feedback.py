@@ -29,5 +29,5 @@ class Feedback(FeedbackCreate):
     """Stored feedback record (Task 8.2)."""
 
     id: str
-    session_id: str
+    user_id: str
     created_at: Optional[str] = None

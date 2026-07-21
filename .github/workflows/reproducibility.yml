@@ -1,0 +1,42 @@
+name: reproducibility
+
+# Guards the from-scratch reproducibility contract as the team keeps building:
+#   1. .env.example must document every env var the code reads.
+#   2. A DB migration must be accompanied by an updated schema.sql.
+# See backend/db/README.md for the why + how-to-fix.
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  env-example:
+    name: .env.example is complete
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Check .env.example documents all required env vars
+        run: python scripts/check_env_example.py
+
+  schema-in-sync:
+    name: schema.sql tracks migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Migration changed without a schema.sql update?
+        run: |
+          base="origin/${{ github.base_ref }}"
+          changed="$(git diff --name-only "$base"...HEAD)"
+          echo "Changed files:"; echo "$changed"
+          if echo "$changed" | grep -q '^backend/db/migrations/' \
+             && ! echo "$changed" | grep -qx 'backend/db/schema.sql'; then
+            echo "::error::A migration under backend/db/migrations/ changed but backend/db/schema.sql was not. Update schema.sql so a fresh clone can still bootstrap the full DB (see backend/db/README.md)."
+            exit 1
+          fi
+          echo "OK: schema.sql is in sync with migrations for this PR."

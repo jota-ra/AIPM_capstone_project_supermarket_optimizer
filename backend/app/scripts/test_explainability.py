@@ -100,7 +100,7 @@ def test_recommendation_carries_explanation_and_disclaimer():
         message="Your basket is low in fiber.", confidence="high",
     )]
     profile = ProfileCreate(
-        goal="eat_balanced", age_range="25-35", activity_level="moderately_active", dietary_pattern="vegan",
+        goal="maintain", age_range="25-35", activity_level="moderately_active", dietary_pattern="vegan",
     )
     rec = recommend_next_cart(gap, profile, "high")
     print(json.dumps(rec.model_dump(), indent=2, ensure_ascii=False))

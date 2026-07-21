@@ -1,0 +1,97 @@
+*** eBon ***
+NETTO
+Filiale 7761
+Kottbusser Damm 1
+10967 Berlin
+WWW.NETTO-ONLINE.DE
+EUR
+Carat Jodsalz mit Fluorid 500g
+0,29
+B
+Clarkys Walnusskerne 200g
+2,99
+B
+Clarkys Cashewkerne 200g
+2,89
+B
+VL Eier FH 10ST
+2,99
+B
+Datteln Deglet Nour 400g
+2,49
+B
+Tomaten-Mix 500g VKE
+2,79
+B
+SUMME [6]
+14,44
+----------
+SUMME
+14,44
+€
+Kartenzahlung EUR
+14,44
+-K-U-N-D-E-N-B-E-L-E-G-
+ 
+Terminal-ID :   65482706
+TA-Nr 695963    BNr 6366
+ 
+     Kartenzahlung
+       kontaktlos
+       Visa Debit
+ 
+  EUR 14,44
+PAN     ############9825
+Karte 0
+EMV-AID   A0000000031010
+VU-Nr         4556409584
+Genehmigungs-Nr   699975
+Datum 14.07.26 13:34 Uhr
+========================
+*** Zahlung erfolgt ***
+========================
+AS-Proc-Code = 00 075 00
+Capt.-Ref.= 0000
+APPROVED
+ 
+MWST
+BRUTTO
+NETTO
+B
+7%
+0,94
+14,44
+13,50
+------------------------------------------
+Versäumte Ersparnis
+PAYBACK
+7 Punkte
+------------------------------------------
+Lassen Sie sich künftig keine
+Rabatte entgehen und nutzen Sie
+Netto plus App und PAYBACK
+TSE Transaktionsnummer.:1033434
+Seriennr. Kasse:NTO-000-07761-2
+Prüfwert:EvkG+u0rL0+D/9KOCNJiCoNnkbkfJMHJ
+VOBHU7uFUANOtlaG09Q4na1gVFePfJT+2mUzpkPyh
+jvpJxRlNxQpQeegEWiiqBG9V99ILHyjLo3lbm2Kfl
+RZSwV+Dpmu2Kvm
+Signaturzähler:2070904
+TSE-Start:2026-07-14T11:34:11.000Z
+TSE-Stop : 2026-07-14T11:34:35.000Z
+TSE-Seriennr.:477562DEB8075AFD79E22B38ED7
+6C493539CC226CA954D6B5509E4CD20193307
+Steuer-Nr.DE133822409
+Montag-Samstag 7:00-22:00 Uhr
+Datum
+Uhrzeit
+Filiale
+Pos
+Bed
+Bon-Nr.
+14.07.26
+13:34
+0007761
+002
+102751820372
+(1/1) 

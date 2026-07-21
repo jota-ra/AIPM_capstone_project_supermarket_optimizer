@@ -1,20 +1,32 @@
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Card, PrimaryButton, inputCls } from "@/components/AppShell";
 import { cn } from "@/lib/utils";
 import { useLanguage, type Lang } from "@/lib/i18n";
-import { createProfile, ApiError } from "@/lib/api";
-import type { ProfileCreate } from "@/types/api";
+import { createProfile, updateProfile, ApiError } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
+import type { IdealProfile, Profile, ProfileCreate } from "@/types/api";
 
-// Chat-style onboarding: 7 questions total (language + name up front,
-// then the 5 profile questions). The very first answer (language)
-// switches the rest of this chat — and the whole app — immediately,
-// via LanguageProvider (see lib/i18n.tsx).
+// Chat-style Level-1 onboarding (E1-S5). The chat itself only ever asks
+// ONBOARDING_STEPS below — name, sex, date of birth, height, weight,
+// exercise frequency, daily movement, goal — exactly what the Ideal
+// Profile Engine (E2) needs to compute calories + macros. Every other
+// preference (diet type, allergies, dislikes, symptoms, digestion,
+// veg/fruit frequency, meals/snacks per day, pregnancy, form of address)
+// is collected later, in Profile Settings (ProfileSummary.tsx), which
+// reuses the fuller STEPS list further down so those fields stay
+// editable without ever blocking onboarding.
+//
+// Everything the bot "says" is one continuous, strictly-ordered sequence
+// of typed chat bubbles (see SequenceView) — the previous step's reply
+// finishes typing before the next step's question even starts, and that
+// question's input controls only appear once the question itself (and
+// its hint) has finished typing. Nothing pops up ahead of its turn.
 
 export type Bi = { en: string; de: string };
 export const bi = (en: string, de: string): Bi => ({ en, de });
 
-export type StepKind = "choice" | "multi" | "text" | "number";
-export type MultiKey = "allergies" | "symptoms";
+export type StepKind = "choice" | "multi" | "text" | "number" | "date";
+export type MultiKey = "allergies" | "symptoms" | "dislikes";
 
 export interface Option {
   value: string;
@@ -23,19 +35,28 @@ export interface Option {
 
 export interface StepDef {
   key: string;
+  // Bot messages shown BEFORE `prompt`, each typed in its own turn — e.g.
+  // splitting a greeting from the actual question that follows it.
+  promptIntro?: Bi[];
   prompt: Bi;
   hint?: Bi;
-  // Compact label for the My Profile grid form (ProfileSummary.tsx) —
-  // the chat's `prompt` is a full conversational sentence, too long for
-  // a form field label. Falls back to `prompt` if not set.
   shortLabel?: Bi;
-  // Mandatory disclaimer (Q6): must appear wherever this app links
-  // self-reported symptoms to a recommendation.
+  category?: Bi;
+  // Reassuring reply shown after the answer (R-FEEDBACK).
+  feedback?: Bi;
+  // Additional bot messages shown right after `feedback`, each typed out
+  // in sequence — for breaking up a longer explanation into readable
+  // beats instead of one wall of text. Optional; most steps only need
+  // `feedback`.
+  extraFeedback?: Bi[];
   disclaimer?: Bi;
   kind: StepKind;
   options?: Option[];
   placeholder?: Bi;
   optional?: boolean;
+  // Only ask this step when the predicate holds (e.g. pregnancy for
+  // female profiles only). Absent = always shown.
+  showIf?: (answers: Record<string, unknown>) => boolean;
 }
 
 const SYMPTOM_DISCLAIMER = bi(
@@ -43,41 +64,67 @@ const SYMPTOM_DISCLAIMER = bi(
   "Diese Symptome können mit Nährstofflücken in deiner Ernährung zusammenhängen. Das ist keine medizinische Diagnose. Bitte wende dich an eine Fachperson, falls die Symptome anhalten.",
 );
 
+// Shared between STEPS (Profile Settings) and ONBOARDING_STEPS (the chat)
+// below, so these option lists only need to be spelled out once.
+const GOAL_OPTIONS: Option[] = [
+  { value: "lose_weight_gradually", label: bi("⚖️ Lose fat", "⚖️ Fett verlieren") },
+  { value: "maintain", label: bi("🧭 Maintain weight", "🧭 Gewicht Halten") },
+  { value: "build_muscle", label: bi("🏋️ Build muscle", "🏋️ Muskeln aufbauen") },
+];
+const SEX_OPTIONS: Option[] = [
+  { value: "female", label: bi("Female", "Weiblich") },
+  { value: "male", label: bi("Male", "Männlich") },
+  { value: "prefer_not_to_say", label: bi("Prefer not to say", "Keine Angabe") },
+];
+const EXERCISE_OPTIONS: Option[] = [
+  { value: "none", label: bi("🛋️ Rarely / never", "🛋️ Selten / nie") },
+  { value: "one_two", label: bi("🚶 1–2× per week", "🚶 1–2× pro Woche") },
+  { value: "three_four", label: bi("🏃 3–4× per week", "🏃 3–4× pro Woche") },
+  { value: "five_six", label: bi("💪 5–6× per week", "💪 5–6× pro Woche") },
+  { value: "daily_athlete", label: bi("🏅 Daily / athlete", "🏅 Täglich / Leistungssport") },
+];
+const MOVEMENT_OPTIONS: Option[] = [
+  { value: "mostly_sitting", label: bi("🪑 Mostly sitting", "🪑 Überwiegend sitzend") },
+  { value: "mixed", label: bi("🔀 A mix of sitting & moving", "🔀 Mix aus Sitzen & Bewegen") },
+  { value: "mostly_standing", label: bi("🧍 Mostly on my feet", "🧍 Überwiegend auf den Beinen") },
+  { value: "physical_labor", label: bi("🏗️ Physical labor", "🏗️ Körperliche Arbeit") },
+];
+
 export const STEPS: StepDef[] = [
-  {
-    key: "language",
-    prompt: bi("First — which language do you prefer?", "Zuerst — welche Sprache bevorzugst du?"),
-    shortLabel: bi("Language", "Sprache"),
-    kind: "choice",
-    options: [
-      { value: "en", label: bi("English", "English") },
-      { value: "de", label: bi("Deutsch", "Deutsch") },
-    ],
-  },
   {
     key: "name",
     prompt: bi("What should we call you?", "Wie sollen wir dich nennen?"),
     shortLabel: bi("Name", "Name"),
+    category: bi("Personal", "Persönlich"),
     kind: "text",
     placeholder: bi("Your name", "Dein Name"),
+    feedback: bi("Lovely to meet you! 🌱", "Schön, dich kennenzulernen! 🌱"),
+  },
+  {
+    key: "form_of_address",
+    prompt: bi("How would you like me to address you?", "Wie möchtest du angesprochen werden?"),
+    shortLabel: bi("Form of address", "Anrede"),
+    category: bi("Personal", "Persönlich"),
+    kind: "choice",
+    options: [
+      { value: "informal_du", label: bi("Casually (du)", "Locker (du)") },
+      { value: "formal_sie", label: bi("Formally (Sie)", "Förmlich (Sie)") },
+      { value: "neutral", label: bi("No preference", "Keine Präferenz") },
+    ],
+    feedback: bi("Got it — I'll keep that in mind.", "Alles klar — merke ich mir."),
   },
   {
     key: "goal",
     prompt: bi("What is your main health goal?", "Was ist dein wichtigstes Gesundheitsziel?"),
     shortLabel: bi("Goal", "Ziel"),
+    category: bi("Goal", "Ziel"),
     hint: bi(
       "This helps us prioritize what matters most for you.",
       "Das hilft uns zu priorisieren, was für dich am wichtigsten ist.",
     ),
     kind: "choice",
-    options: [
-      { value: "build_muscle", label: bi("🏋️ Build muscle & strength", "🏋️ Muskeln & Kraft aufbauen") },
-      { value: "more_energy", label: bi("⚡ More energy & less fatigue", "⚡ Mehr Energie & weniger Müdigkeit") },
-      { value: "lose_weight_gradually", label: bi("⚖️ Lose weight gradually", "⚖️ Schrittweise Gewicht verlieren") },
-      { value: "eat_balanced", label: bi("🥗 Eat more balanced & healthy", "🥗 Ausgewogener & gesünder essen") },
-      { value: "better_focus", label: bi("🧠 Better focus & mental clarity", "🧠 Bessere Konzentration & Klarheit") },
-      { value: "better_sleep", label: bi("😴 Better sleep & recovery", "😴 Besserer Schlaf & Erholung") },
-    ],
+    options: GOAL_OPTIONS,
+    feedback: bi("Great goal — we'll build everything around it.", "Tolles Ziel — wir richten alles danach aus."),
   },
   {
     key: "dietary_pattern",
@@ -86,38 +133,135 @@ export const STEPS: StepDef[] = [
       "Wie würdest du deine aktuelle Ernährungsweise beschreiben?",
     ),
     shortLabel: bi("Eating style", "Ernährungsstil"),
+    category: bi("Diet", "Ernährung"),
     hint: bi(
       "Choose the one that fits best — you can be more specific later.",
       "Wähle die passendste Option — du kannst später genauer werden.",
     ),
     kind: "choice",
     options: [
-      { value: "high_protein", label: bi("🥩 High protein (lots of meat, eggs, dairy)", "🥩 Eiweißreich (viel Fleisch, Eier, Milchprodukte)") },
+      { value: "high_protein", label: bi("🥩 High protein", "🥩 Eiweißreich") },
       { value: "low_carb_keto", label: bi("🥦 Low carb / Keto", "🥦 Low Carb / Keto") },
       { value: "low_fat", label: bi("🫙 Low fat", "🫙 Fettarm") },
       { value: "vegan", label: bi("🌿 Plant-based / Vegan", "🌿 Pflanzenbasiert / Vegan") },
       { value: "vegetarian", label: bi("🥗 Vegetarian", "🥗 Vegetarisch") },
-      { value: "omnivore", label: bi("🍽️ No specific diet — I eat everything", "🍽️ Keine bestimmte Ernährungsweise — ich esse alles") },
+      { value: "omnivore", label: bi("🍽️ No specific diet — I eat everything", "🍽️ Keine bestimmte Ernährungsweise") },
       { value: "gluten_free", label: bi("🌾 Gluten-free", "🌾 Glutenfrei") },
       { value: "lactose_free", label: bi("🥛 Lactose-free", "🥛 Laktosefrei") },
     ],
+    feedback: bi("Noted — we'll only ever suggest things that fit this.", "Notiert — wir schlagen nur Passendes vor."),
   },
   {
-    key: "activity_level",
-    prompt: bi("How active are you on a typical week?", "Wie aktiv bist du in einer typischen Woche?"),
-    shortLabel: bi("Activity level", "Aktivitätslevel"),
+    key: "sex",
+    prompt: bi("What is your sex at birth?", "Was ist dein Geschlecht bei Geburt?"),
+    shortLabel: bi("Sex at birth", "Geschlecht bei Geburt"),
+    category: bi("Personalization", "Personalisierung"),
+    hint: bi(
+      "Used to calculate your energy baseline (BMR).",
+      "Wird zur Berechnung deines Grundumsatzes (BMR) genutzt.",
+    ),
     kind: "choice",
+    options: SEX_OPTIONS,
+    feedback: bi("Thanks — this makes your targets more accurate.", "Danke — das macht deine Ziele genauer."),
+  },
+  {
+    key: "date_of_birth",
+    prompt: bi("What's your date of birth?", "Wann bist du geboren?"),
+    shortLabel: bi("Date of birth", "Geburtsdatum"),
+    category: bi("Personalization", "Personalisierung"),
+    hint: bi(
+      "Age affects your energy needs and nutrient targets.",
+      "Das Alter beeinflusst deinen Energiebedarf und deine Nährstoffziele.",
+    ),
+    kind: "date",
+    feedback: bi("POk, got it", "Ok, habe ich"),
+  },
+  {
+    key: "height_cm",
+    prompt: bi("What's your height, in cm?", "Wie groß bist du, in cm?"),
+    shortLabel: bi("Height (cm)", "Größe (cm)"),
+    category: bi("Personalization", "Personalisierung"),
+    placeholder: bi("e.g. 170", "z.B. 170"),
+    kind: "number",
+    feedback: bi("Thanks!", "Danke!"),
+  },
+  {
+    key: "weight_kg",
+    prompt: bi("And your weight, in kg?", "Und dein Gewicht, in kg?"),
+    shortLabel: bi("Weight (kg)", "Gewicht (kg)"),
+    category: bi("Personalization", "Personalisierung"),
+    hint: bi(
+      "Together with height and activity, this personalizes your protein target.",
+      "Zusammen mit Größe und Aktivität personalisiert das dein Protein-Ziel.",
+    ),
+    placeholder: bi("e.g. 68", "z.B. 68"),
+    kind: "number",
+    feedback: bi("No judgement here — just math for better targets. 💚", "Keine Wertung — nur Mathe für bessere Ziele. 💚"),
+  },
+  {
+    key: "exercise_frequency",
+    prompt: bi("How often do you exercise in a typical week?", "Wie oft trainierst du in einer typischen Woche?"),
+    shortLabel: bi("Exercise frequency", "Trainingshäufigkeit"),
+    category: bi("Activity", "Aktivität"),
+    kind: "choice",
+    options: EXERCISE_OPTIONS,
+    feedback: bi("Great — this sets your energy needs.", "Super — das bestimmt deinen Energiebedarf."),
+  },
+  {
+    key: "daily_movement",
+    prompt: bi("How much do you move during a normal day?", "Wie viel bewegst du dich an einem normalen Tag?"),
+    shortLabel: bi("Daily movement", "Alltagsbewegung"),
+    category: bi("Activity", "Aktivität"),
+    hint: bi(
+      "Everyday movement outside of workouts (walking, standing, chores).",
+      "Alltagsbewegung außerhalb des Trainings (Gehen, Stehen, Hausarbeit).",
+    ),
+    kind: "choice",
+    options: MOVEMENT_OPTIONS,
+    feedback: bi("Thanks — every bit of movement counts.", "Danke — jede Bewegung zählt."),
+  },
+  {
+    key: "meals_per_day",
+    prompt: bi("How many main meals do you eat a day?", "Wie viele Hauptmahlzeiten isst du am Tag?"),
+    shortLabel: bi("Meals / day", "Mahlzeiten / Tag"),
+    category: bi("Diet", "Ernährung"),
+    placeholder: bi("e.g. 3", "z.B. 3"),
+    kind: "number",
+    feedback: bi("Good to know — helps us read your receipts.", "Gut zu wissen — hilft beim Lesen deiner Bons."),
+  },
+  {
+    key: "snacks_per_day",
+    prompt: bi("And how many snacks, roughly?", "Und wie viele Snacks, ungefähr?"),
+    shortLabel: bi("Snacks / day", "Snacks / Tag"),
+    category: bi("Diet", "Ernährung"),
+    placeholder: bi("e.g. 1", "z.B. 1"),
+    kind: "number",
+    feedback: bi("Snacks are part of the picture too. 🍎", "Snacks gehören auch dazu. 🍎"),
+  },
+  {
+    key: "pregnancy_status",
+    prompt: bi("Are you currently pregnant or breastfeeding?", "Bist du aktuell schwanger oder stillst du?"),
+    shortLabel: bi("Pregnancy", "Schwangerschaft"),
+    category: bi("Personalization", "Personalisierung"),
+    hint: bi(
+      "This meaningfully changes some nutrient targets (e.g. iron, folate).",
+      "Das verändert einige Nährstoffziele deutlich (z.B. Eisen, Folat).",
+    ),
+    kind: "choice",
+    optional: true,
+    showIf: (a) => a.sex === "female",
     options: [
-      { value: "mostly_sitting", label: bi("🛋️ Mostly sitting (office, home)", "🛋️ Überwiegend sitzend (Büro, zu Hause)") },
-      { value: "light_activity", label: bi("🚶 Light activity (walks, occasional gym)", "🚶 Leichte Aktivität (Spaziergänge, gelegentlich Fitness)") },
-      { value: "moderately_active", label: bi("🏃 Moderately active (3-4x sport per week)", "🏃 Mäßig aktiv (3-4x Sport pro Woche)") },
-      { value: "very_active", label: bi("💪 Very active (daily training / physical job)", "💪 Sehr aktiv (täglich Training / körperliche Arbeit)") },
+      { value: "none", label: bi("No", "Nein") },
+      { value: "pregnant", label: bi("Pregnant", "Schwanger") },
+      { value: "breastfeeding", label: bi("Breastfeeding", "Stillend") },
     ],
+    feedback: bi("Thank you for sharing — we'll adjust accordingly.", "Danke — wir passen es entsprechend an."),
   },
   {
     key: "allergies",
     prompt: bi("Do you avoid any of these foods?", "Vermeidest du eines dieser Lebensmittel?"),
     shortLabel: bi("Foods to avoid", "Zu vermeidende Lebensmittel"),
+    category: bi("Safety", "Sicherheit"),
     hint: bi(
       "Select all that apply — we'll never recommend something you can't eat.",
       "Wähle alle zutreffenden aus — wir empfehlen nie etwas, das du nicht essen kannst.",
@@ -132,66 +276,34 @@ export const STEPS: StepDef[] = [
       { value: "nuts", label: bi("🥜 Nuts", "🥜 Nüsse") },
       { value: "none", label: bi("🚫 None of the above", "🚫 Nichts davon") },
     ],
+    feedback: bi("Locked in — these are off the table for good.", "Gespeichert — die sind dauerhaft tabu."),
   },
   {
-    key: "age_range",
-    prompt: bi("How old are you?", "Wie alt bist du?"),
-    shortLabel: bi("Age", "Alter"),
+    key: "dislikes",
+    prompt: bi("Anything you simply don't like to eat?", "Gibt es etwas, das du einfach nicht magst?"),
+    shortLabel: bi("Dislikes", "Abneigungen"),
+    category: bi("Diet", "Ernährung"),
     hint: bi(
-      "Age affects how your body processes nutrients.",
-      "Das Alter beeinflusst, wie dein Körper Nährstoffe verarbeitet.",
+      "Optional — we'll deprioritize these, but they're not a hard rule like allergies.",
+      "Optional — wir stellen diese hinten an, aber sie sind keine feste Regel wie Allergien.",
     ),
-    kind: "choice",
+    kind: "multi",
     optional: true,
     options: [
-      { value: "under_25", label: bi("Under 25", "Unter 25") },
-      { value: "25-35", label: bi("25–35", "25–35") },
-      { value: "36-45", label: bi("36–45", "36–45") },
-      { value: "46-55", label: bi("46–55", "46–55") },
-      { value: "55+", label: bi("55+", "55+") },
-      { value: "undisclosed", label: bi("Prefer not to say", "Keine Angabe") },
+      { value: "mushrooms", label: bi("🍄 Mushrooms", "🍄 Pilze") },
+      { value: "olives", label: bi("🫒 Olives", "🫒 Oliven") },
+      { value: "liver", label: bi("🥩 Liver / offal", "🥩 Leber / Innereien") },
+      { value: "seafood", label: bi("🦐 Seafood", "🦐 Meeresfrüchte") },
+      { value: "spicy", label: bi("🌶️ Very spicy food", "🌶️ Sehr scharfes Essen") },
+      { value: "none", label: bi("🚫 Nothing in particular", "🚫 Nichts Bestimmtes") },
     ],
-  },
-  {
-    key: "gender",
-    prompt: bi("How do you describe your gender?", "Wie beschreibst du dein Geschlecht?"),
-    shortLabel: bi("Gender", "Geschlecht"),
-    hint: bi(
-      "Used only to calculate your personalized nutrition targets.",
-      "Wird nur genutzt, um deine persönlichen Nährstoffziele zu berechnen.",
-    ),
-    kind: "choice",
-    optional: true,
-    options: [
-      { value: "female", label: bi("Female", "Weiblich") },
-      { value: "male", label: bi("Male", "Männlich") },
-      { value: "other", label: bi("Other", "Divers") },
-    ],
-  },
-  {
-    key: "weight_kg",
-    prompt: bi("What's your weight, in kg?", "Wie viel wiegst du, in kg?"),
-    shortLabel: bi("Weight (kg)", "Gewicht (kg)"),
-    hint: bi(
-      "Together with height and activity, this personalizes your protein target.",
-      "Zusammen mit Größe und Aktivität personalisiert das dein Protein-Ziel.",
-    ),
-    placeholder: bi("e.g. 68", "z.B. 68"),
-    kind: "number",
-    optional: true,
-  },
-  {
-    key: "height_cm",
-    prompt: bi("And your height, in cm?", "Und deine Größe, in cm?"),
-    shortLabel: bi("Height (cm)", "Größe (cm)"),
-    placeholder: bi("e.g. 170", "z.B. 170"),
-    kind: "number",
-    optional: true,
+    feedback: bi("Noted — I'll steer around those.", "Notiert — ich mache einen Bogen darum."),
   },
   {
     key: "symptoms",
     prompt: bi("How do you feel on most days?", "Wie fühlst du dich an den meisten Tagen?"),
     shortLabel: bi("How you feel", "Wie du dich fühlst"),
+    category: bi("Health signals", "Gesundheit"),
     hint: bi(
       "Select all that apply — this helps us find the most relevant gaps for you.",
       "Wähle alle zutreffenden aus — das hilft uns, die relevantesten Lücken für dich zu finden.",
@@ -201,33 +313,37 @@ export const STEPS: StepDef[] = [
     optional: true,
     options: [
       { value: "fatigue", label: bi("😴 Often tired or low energy", "😴 Oft müde oder wenig Energie") },
-      { value: "brain_fog", label: bi("🧠 Trouble concentrating or brain fog", "🧠 Konzentrationsprobleme oder Denknebel") },
-      { value: "mood_swings", label: bi("😤 Mood swings or irritability", "😤 Stimmungsschwankungen oder Reizbarkeit") },
+      { value: "brain_fog", label: bi("🧠 Trouble concentrating", "🧠 Konzentrationsprobleme") },
+      { value: "mood_swings", label: bi("😤 Mood swings or irritability", "😤 Stimmungsschwankungen") },
       { value: "poor_sleep", label: bi("💤 Poor sleep quality", "💤 Schlechte Schlafqualität") },
-      { value: "muscle_weakness", label: bi("💪 Muscle weakness or slow recovery", "💪 Muskelschwäche oder langsame Erholung") },
+      { value: "muscle_weakness", label: bi("💪 Muscle weakness / slow recovery", "💪 Muskelschwäche / langsame Erholung") },
       { value: "often_cold", label: bi("🥶 Often cold, even indoors", "🥶 Oft kalt, sogar drinnen") },
       { value: "hair_nails", label: bi("💇 Hair loss or brittle nails", "💇 Haarausfall oder brüchige Nägel") },
       { value: "heart_palpitations", label: bi("🫀 Heart palpitations occasionally", "🫀 Gelegentliches Herzklopfen") },
       { value: "none", label: bi("😊 I feel great — no issues", "😊 Mir geht's gut — keine Probleme") },
     ],
+    feedback: bi("Thanks for sharing — this stays private.", "Danke fürs Teilen — das bleibt privat."),
   },
   {
     key: "digestion",
     prompt: bi("How would you describe your digestion?", "Wie würdest du deine Verdauung beschreiben?"),
     shortLabel: bi("Digestion", "Verdauung"),
+    category: bi("Health signals", "Gesundheit"),
     kind: "choice",
     optional: true,
     options: [
       { value: "fine", label: bi("✅ Works fine, no issues", "✅ Funktioniert gut, keine Probleme") },
       { value: "bloated", label: bi("🫧 Often bloated after meals", "🫧 Oft aufgebläht nach dem Essen") },
       { value: "slow", label: bi("🐢 Slow digestion / constipation", "🐢 Langsame Verdauung / Verstopfung") },
-      { value: "sensitive", label: bi("⚡ Sensitive stomach / frequent discomfort", "⚡ Empfindlicher Magen / häufiges Unwohlsein") },
+      { value: "sensitive", label: bi("⚡ Sensitive stomach", "⚡ Empfindlicher Magen") },
     ],
+    feedback: bi("Good to know — fiber can help here.", "Gut zu wissen — Ballaststoffe können helfen."),
   },
   {
     key: "veg_frequency",
     prompt: bi("How often do you eat fruit and vegetables?", "Wie oft isst du Obst und Gemüse?"),
     shortLabel: bi("Fruit & veg frequency", "Obst- & Gemüse-Häufigkeit"),
+    category: bi("Diet", "Ernährung"),
     kind: "choice",
     optional: true,
     options: [
@@ -236,78 +352,601 @@ export const STEPS: StepDef[] = [
       { value: "few_times_week", label: bi("🥕 A few times a week", "🥕 Ein paar Mal pro Woche") },
       { value: "rarely", label: bi("🍟 Rarely", "🍟 Selten") },
     ],
+    feedback: bi("Perfect — that's the last question. 🎉", "Perfekt — das war die letzte Frage. 🎉"),
   },
 ];
 
-const SKIP_LABEL = bi(
-  "Skip for now (use a neutral profile with no exclusions)",
-  "Für jetzt überspringen (neutrales Profil ohne Ausschlüsse verwenden)",
-);
+// The chat's actual question set (onboardingflow_etc.md): name, then the
+// biometrics + activity + goal the Ideal Profile Engine (E2) needs to
+// compute calories and macros — nothing else. Every field here is
+// mandatory (no `optional`/`showIf`) so the Ideal Profile is always
+// computable once `goal` is answered. `feedback`/`extraFeedback` on
+// `name` and `sex` are placeholders — their real reply sequences are
+// dynamic (see replySequenceFor below) and use the NAME_*/SEX_FORMULA_*
+// constants further down instead.
+export const ONBOARDING_STEPS: StepDef[] = [
+  {
+    key: "name",
+    promptIntro: [
+      bi(
+        "Hi, I'm Nährbert — your companion for healthy eating, smart grocery shopping, and cooking at home.",
+        "Hi, ich bin Nährbert, dein Helfer rund um gesunde Ernährung, smartes Einkaufen und Kochen zu Hause.",
+      ),
+    ],
+    prompt: bi(
+      "So I can address you properly from now on: what should I call you?",
+      "Damit ich dich in Zukunft richtig ansprechen kann: Wie darf ich dich nennen?",
+    ),
+    shortLabel: bi("Name", "Name"),
+    category: bi("Personal", "Persönlich"),
+    kind: "text",
+    placeholder: bi("Your name", "Dein Name"),
+    feedback: bi(
+      "Quick heads-up: I can't replace medical advice, and I'm not a dietitian in the traditional sense.",
+      "Kurzer Hinweis: Ich kann keinen ärztlichen Rat ersetzen und bin auch kein Ernährungsberater im traditionellen Sinne.",
+    ),
+  },
+  {
+    key: "sex",
+    prompt: bi("What sex were you assigned at birth?", "Welches Geschlecht wurde dir bei deiner Geburt zugeordnet?"),
+    shortLabel: bi("Sex at birth", "Geschlecht bei Geburt"),
+    category: bi("Personalization", "Personalisierung"),
+    hint: bi(
+      "Sorry if that sounds a little odd — being biologically male or female meaningfully affects your energy needs. If you'd rather not say, that's fine too: I'll just use the midpoint of both.",
+      "Sorry, das mag etwas komisch klingen — aber biologisch männlich oder weiblich zu sein beeinflusst deinen Verbrauch erheblich. Wenn du das nicht angeben möchtest, ist das auch okay: Dann rechne ich einfach mit der Mitte aus beidem.",
+    ),
+    kind: "choice",
+    options: SEX_OPTIONS,
+  },
+  {
+    key: "date_of_birth",
+    prompt: bi("When were you born?", "Wann wurdest du geboren?"),
+    shortLabel: bi("Date of birth", "Geburtsdatum"),
+    category: bi("Personalization", "Personalisierung"),
+    kind: "date",
+  },
+  {
+    key: "height_cm",
+    prompt: bi("How tall are you, in cm?", "Wie groß bist du, in cm?"),
+    shortLabel: bi("Height (cm)", "Größe (cm)"),
+    category: bi("Personalization", "Personalisierung"),
+    placeholder: bi("e.g. 170", "z.B. 170"),
+    kind: "number",
+  },
+  {
+    key: "weight_kg",
+    prompt: bi("And how much do you weigh, in kg?", "Und wie viel wiegst du, in kg?"),
+    shortLabel: bi("Weight (kg)", "Gewicht (kg)"),
+    category: bi("Personalization", "Personalisierung"),
+    placeholder: bi("e.g. 68", "z.B. 68"),
+    kind: "number",
+    // No feedback text here (#1) — the async BMR reveal (bold, once the
+    // backend has computed it) is the only thing shown after this answer.
+  },
+  {
+    key: "exercise_frequency",
+    prompt: bi(
+      "That's not all — depending on your goal and activity, we'll now adjust your BMR into your Total Daily Energy Expenditure (TDEE). How often do you currently exercise per week?",
+      "Das ist noch nicht alles: Abhängig von deinem Ziel und deiner Aktivität passen wir deinen Grundumsatz jetzt noch auf deinen Gesamtenergiebedarf (TDEE) an. Wie oft machst du aktuell Sport pro Woche?",
+    ),
+    shortLabel: bi("Exercise frequency", "Trainingshäufigkeit"),
+    category: bi("Activity", "Aktivität"),
+    hint: bi(
+      "Depending on your activity level, we add up to 600 kcal per day to your needs.",
+      "Je nach Aktivitätslevel fügen wir bis zu 600 kcal pro Tag zu deinem Bedarf hinzu.",
+    ),
+    kind: "choice",
+    options: EXERCISE_OPTIONS,
+  },
+  {
+    key: "daily_movement",
+    prompt: bi("And what does your day-to-day look like?", "Und wie sieht dein Alltag aus?"),
+    shortLabel: bi("Daily movement", "Alltagsbewegung"),
+    category: bi("Activity", "Aktivität"),
+    hint: bi(
+      "Depending on your daily routine, we multiply your calorie needs by up to 1.35×.",
+      "Je nach Alltagssituation multiplizieren wir deinen Kalorienbedarf um bis zu 1,35×.",
+    ),
+    kind: "choice",
+    options: MOVEMENT_OPTIONS,
+  },
+  {
+    key: "goal",
+    prompt: bi(
+      "And one last thing: which of these goals fits you best?",
+      "Und jetzt noch: Welches dieser Ziele trifft am ehesten auf dich zu?",
+    ),
+    shortLabel: bi("Goal", "Ziel"),
+    category: bi("Goal", "Ziel"),
+    hint: bi(
+      "Depending on your choice, we'll lower your daily target, keep it the same, or raise it.",
+      "Je nach Auswahl verringern wir deinen Tagesbedarf, belassen ihn gleich oder steigern ihn.",
+    ),
+    kind: "choice",
+    options: GOAL_OPTIONS,
+  },
+];
+
 const SEND_LABEL = bi("Send", "Senden");
-const CONTINUE_LABEL = bi("Continue", "Weiter");
-const SKIP_QUESTION_LABEL = bi("Skip this one", "Diese Frage überspringen");
-const CREATING_LABEL = bi("All set — creating your profile…", "Alles klar — dein Profil wird erstellt…");
-const SUBTITLE = bi(
-  "A short chat instead of a form. This is what keeps recommendations personal — and safe, if you have allergies.",
-  "Ein kurzer Chat statt eines Formulars. So bleiben Empfehlungen persönlich — und sicher, falls du Allergien hast.",
+const CREATING_LABEL = bi(
+  "All set — saving your profile, then let's upload your first receipt as a baseline…",
+  "Alles klar — dein Profil wird gespeichert, danach lädst du deinen ersten Kassenbon hoch…",
 );
-const TITLE = bi("Let's get to know you.", "Lass uns dich kennenlernen.");
-const STEP_LABEL = bi("Onboarding", "Onboarding");
+const CREATE_PROFILE_FAILED = bi("Could not save profile.", "Profil konnte nicht gespeichert werden.");
+const START_UPLOADING_LABEL = bi("Start uploading receipts", "Kassenzettel-Upload starten");
+const CANCEL_LABEL = bi("Cancel", "Abbrechen");
+const SAVE_LABEL = bi("Save", "Speichern");
+const EDIT_LABEL = bi("Edit", "Bearbeiten");
+const RANGE_ERROR = bi("Please enter a realistic value.", "Bitte einen realistischen Wert eingeben.");
 
 type Answers = {
-  language: Lang;
   name: string;
+  form_of_address: string;
   goal: string;
   dietary_pattern: string;
-  activity_level: string;
-  allergies: string[];
-  age_range: string;
-  gender: string;
-  weight_kg: string;
+  sex: string;
+  date_of_birth: string;
   height_cm: string;
+  weight_kg: string;
+  exercise_frequency: string;
+  daily_movement: string;
+  meals_per_day: string;
+  snacks_per_day: string;
+  pregnancy_status: string;
+  allergies: string[];
+  dislikes: string[];
   symptoms: string[];
   digestion: string;
   veg_frequency: string;
 };
 
 const INITIAL_ANSWERS: Answers = {
-  language: "en",
   name: "",
-  goal: "eat_balanced",
+  form_of_address: "neutral",
+  goal: "maintain",
   dietary_pattern: "omnivore",
-  activity_level: "moderately_active",
-  allergies: [],
-  age_range: "",
-  gender: "",
-  weight_kg: "",
+  sex: "",
+  date_of_birth: "",
   height_cm: "",
+  weight_kg: "",
+  exercise_frequency: "",
+  daily_movement: "",
+  meals_per_day: "",
+  snacks_per_day: "",
+  pregnancy_status: "",
+  allergies: [],
+  dislikes: [],
   symptoms: [],
   digestion: "",
   veg_frequency: "",
 };
 
-function toProfileCreate(a: Answers): ProfileCreate {
+// Derive the legacy fields the rest of the app still reads (BR-compatible)
+// from the new Level-1 answers, so downstream code (recommender,
+// nutrition_personalization) keeps working unchanged.
+const _ACTIVITY_FROM_EXERCISE: Record<string, ProfileCreate["activity_level"]> = {
+  none: "mostly_sitting",
+  one_two: "light_activity",
+  three_four: "moderately_active",
+  five_six: "very_active",
+  daily_athlete: "very_active",
+};
+const _GENDER_FROM_SEX: Record<string, ProfileCreate["gender"]> = {
+  female: "female",
+  male: "male",
+  prefer_not_to_say: "other",
+};
+
+function ageRangeFromDob(dob: string): ProfileCreate["age_range"] {
+  if (!dob) return null;
+  const birth = new Date(dob);
+  if (Number.isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age -= 1;
+  if (age < 25) return "under_25";
+  if (age <= 35) return "25-35";
+  if (age <= 45) return "36-45";
+  if (age <= 55) return "46-55";
+  return "55+";
+}
+
+function toProfileCreate(a: Answers, language: Lang): ProfileCreate {
+  const dislikes = a.dislikes.filter((v) => v !== "none");
   return {
     goal: a.goal as ProfileCreate["goal"],
-    activity_level: a.activity_level as ProfileCreate["activity_level"],
     dietary_pattern: a.dietary_pattern as ProfileCreate["dietary_pattern"],
-    exclusions: [],
+    // Derived legacy fields (kept for downstream compatibility).
+    activity_level: _ACTIVITY_FROM_EXERCISE[a.exercise_frequency] ?? "moderately_active",
+    gender: a.sex ? _GENDER_FROM_SEX[a.sex] ?? "other" : null,
+    age_range: ageRangeFromDob(a.date_of_birth),
+    exclusions: dislikes,
     name: a.name.trim() || null,
-    allergies: a.allergies.filter((v) => v !== "none"),
-    age_range: a.age_range && a.age_range !== "undisclosed" ? (a.age_range as ProfileCreate["age_range"]) : null,
-    gender: (a.gender || null) as ProfileCreate["gender"],
-    weight_kg: a.weight_kg ? Number(a.weight_kg) : null,
+    // Level-1 fields (E1).
+    form_of_address: (a.form_of_address || null) as ProfileCreate["form_of_address"],
+    sex: (a.sex || null) as ProfileCreate["sex"],
+    date_of_birth: a.date_of_birth || null,
     height_cm: a.height_cm ? Number(a.height_cm) : null,
+    weight_kg: a.weight_kg ? Number(a.weight_kg) : null,
+    exercise_frequency: (a.exercise_frequency || null) as ProfileCreate["exercise_frequency"],
+    daily_movement: (a.daily_movement || null) as ProfileCreate["daily_movement"],
+    pregnancy_status: (a.pregnancy_status || null) as ProfileCreate["pregnancy_status"],
+    meals_per_day: a.meals_per_day ? Number(a.meals_per_day) : null,
+    snacks_per_day: a.snacks_per_day ? Number(a.snacks_per_day) : null,
+    dislikes,
+    allergies: a.allergies.filter((v) => v !== "none"),
     symptoms: a.symptoms.filter((v) => v !== "none"),
     digestion: (a.digestion || null) as ProfileCreate["digestion"],
     veg_frequency: (a.veg_frequency || null) as ProfileCreate["veg_frequency"],
-    language: a.language,
+    language,
   };
+}
+
+// Map a stored (possibly partial) profile back to chat answers, so a
+// half-finished onboarding can be resumed where it left off (E1-S6).
+function profileToAnswers(p: Profile): Answers {
+  const s = (v: unknown) => (v === null || v === undefined ? "" : String(v));
+  return {
+    ...INITIAL_ANSWERS,
+    name: s(p.name),
+    form_of_address: s(p.form_of_address) || "neutral",
+    goal: s(p.goal) || INITIAL_ANSWERS.goal,
+    dietary_pattern: s(p.dietary_pattern) || INITIAL_ANSWERS.dietary_pattern,
+    sex: s(p.sex),
+    date_of_birth: s(p.date_of_birth),
+    height_cm: s(p.height_cm),
+    weight_kg: s(p.weight_kg),
+    exercise_frequency: s(p.exercise_frequency),
+    daily_movement: s(p.daily_movement),
+    meals_per_day: s(p.meals_per_day),
+    snacks_per_day: s(p.snacks_per_day),
+    pregnancy_status: s(p.pregnancy_status),
+    allergies: p.allergies ?? [],
+    dislikes: p.dislikes ?? [],
+    symptoms: p.symptoms ?? [],
+    digestion: s(p.digestion),
+    veg_frequency: s(p.veg_frequency),
+  };
+}
+
+// Out-of-range guard (E1-S5). Only height_cm/weight_kg are ever checked
+// here — the only numeric ONBOARDING_STEPS fields (meals/snacks per day
+// live only in STEPS, for the Profile Settings form).
+const _NUMERIC_KEYS = new Set(["height_cm", "weight_kg"]);
+
+function rangeError(key: string, value: string): Bi | null {
+  if (!value || !_NUMERIC_KEYS.has(key)) return null;
+  const n = Number(value);
+  if (Number.isNaN(n)) return RANGE_ERROR;
+  if (key === "height_cm" && (n < 100 || n > 250)) return RANGE_ERROR;
+  if (key === "weight_kg" && (n < 30 || n > 300)) return RANGE_ERROR;
+  return null;
+}
+
+// ── Dynamic / structured bot content (#3, #5, #6, #7) ────────────────────
+
+// The chat's opening explanation, split into short beats (#1) instead of
+// one long paragraph — shown after `name` is answered.
+const NAME_PROFILES_INTRO = bi(
+  "But I'll help you eat in a more balanced way so you stay healthy and reach your goals — by working out 2 Ideal Profiles for you:",
+  "Trotzdem helfe ich dir dabei, dich ausgewogener zu ernähren, damit du gesund bleibst und deine Ziele erreichst — dafür berechne ich 2 Idealprofile:",
+);
+const NAME_PROFILE_BULLETS: Record<Lang, string[]> = {
+  en: [
+    "🔥 Calories — your energy balance and body weight",
+    "💪 Macros — to fuel performance, muscle, and metabolism",
+    "🥦 Micros — for your body's internal systems (coming soon)",
+  ],
+  de: [
+    "🔥 Kalorien — deine Energiebalance und dein Körpergewicht",
+    "💪 Makros — für Leistung, Muskeln und Stoffwechsel",
+    "🥦 Mikros — für die Gesundheit deiner Körperfunktionen (folgt bald)",
+  ],
+};
+const NAME_BMR_INTRO = bi(
+  "To do that, I need a bit of information about you. Let's start with the baseline: your Basal Metabolic Rate (BMR).",
+  "Dafür brauche ich ein paar Informationen über dich. Fangen wir mit der Baseline an: deinem Grundumsatz / Basal Metabolic Rate (BMR).",
+);
+
+// The BMR formula preview (#3): shown BEFORE date_of_birth/height/weight
+// are asked, so the user knows upfront which 3 answers feed the BMR and
+// why. Gender-specific (#6): only the formula for the sex actually
+// chosen is shown, not both variants at once.
+const SEX_FORMULA_INTRO = bi(
+  "Thanks. Here's the actual formula:",
+  "Danke. Hier ist die Formel dazu:",
+);
+const SEX_FORMULA_NEXT = bi(
+  "So next up, I'll need your date of birth, your height, and your weight.",
+  "Als Nächstes brauche ich also dein Geburtsdatum, deine Größe und dein Gewicht.",
+);
+
+function sexFormulaLine(sex: string, lang: Lang): string {
+  if (sex === "male") {
+    return lang === "de"
+      ? "BMR = 10 × Gewicht (kg) + 6,25 × Größe (cm) − 5 × Alter (Jahre) + 5."
+      : "BMR = 10 × weight (kg) + 6.25 × height (cm) − 5 × age (years) + 5.";
+  }
+  if (sex === "female") {
+    return lang === "de"
+      ? "BMR = 10 × Gewicht (kg) + 6,25 × Größe (cm) − 5 × Alter (Jahre) − 161."
+      : "BMR = 10 × weight (kg) + 6.25 × height (cm) − 5 × age (years) − 161.";
+  }
+  // prefer_not_to_say (or unanswered) — the same male/female midpoint the
+  // backend actually uses (BR-E1, services/ideal_profile.py's _bmr()).
+  return lang === "de"
+    ? "BMR = 10 × Gewicht (kg) + 6,25 × Größe (cm) − 5 × Alter (Jahre) − 78 (der Mittelwert aus beidem, da du nichts angegeben hast)."
+    : "BMR = 10 × weight (kg) + 6.25 × height (cm) − 5 × age (years) − 78 (the midpoint between both, since you didn't specify).";
+}
+
+// Dynamic reveal shown right after `weight_kg` is answered — by then
+// sex/date_of_birth/height/weight are all known, so the BMR the backend
+// just computed (Mifflin-St Jeor, BR-E1) is already real, not a preview.
+// Bold (#4), like every other calculated result in this chat.
+function bmrResultNode(ideal: IdealProfile, lang: Lang): ReactNode {
+  return lang === "de" ? (
+    <>
+      Dein BMR ist: <strong>{ideal.bmr_kcal} kcal</strong>.
+    </>
+  ) : (
+    <>
+      Your BMR is: <strong>{ideal.bmr_kcal} kcal</strong>.
+    </>
+  );
+}
+
+// Structured (non-typed) results shown after `goal` is answered (#7): the
+// calculated numbers are bold and the macro split is a real bullet list,
+// not prose — these render instantly (see SequenceView's "node" handling)
+// rather than typing letter by letter.
+function bulletList(items: string[]): ReactNode {
+  return (
+    <ul className="list-disc space-y-1 pl-4">
+      {items.map((item, i) => (
+        <li key={i}>{item}</li>
+      ))}
+    </ul>
+  );
+}
+
+function calorieResultNode(ideal: IdealProfile, lang: Lang): ReactNode {
+  return lang === "de" ? (
+    <>
+      Dein durchschnittlicher idealer Kalorienverbrauch pro Tag liegt bei etwa{" "}
+      <strong>{ideal.calories_kcal} kcal</strong>.
+    </>
+  ) : (
+    <>
+      Your average ideal calorie intake per day is about <strong>{ideal.calories_kcal} kcal</strong>.
+    </>
+  );
+}
+
+function macroListNode(ideal: IdealProfile, lang: Lang): ReactNode {
+  return (
+    <>
+      <p className="mb-1">
+        {lang === "de"
+          ? "Außerdem sollten deine Makronährwerte idealerweise so verteilt sein:"
+          : "Your macros should ideally be split like this:"}
+      </p>
+      <ul className="list-disc space-y-0.5 pl-4">
+        <li>
+          <strong>{ideal.carbs_g}g</strong> {lang === "de" ? "Kohlenhydrate" : "carbs"}
+        </li>
+        <li>
+          <strong>{ideal.protein_g}g</strong> {lang === "de" ? "Proteine" : "protein"}
+        </li>
+        <li>
+          <strong>{ideal.fat_g}g</strong> {lang === "de" ? "Fette" : "fat"}
+        </li>
+      </ul>
+    </>
+  );
+}
+
+const EDIT_LATER_NOTE = bi(
+  "If anything about you changes, you can always adjust these later via your profile icon, top right.",
+  "Sollte sich an deinen Angaben etwas ändern, kannst du diese jederzeit über dein Profil-Icon oben rechts anpassen.",
+);
+const UNLOCK_NEXT_LEVEL_TEXT = bi(
+  "Great — that's everything I need to get started. To unlock the next level of the app, upload as many receipts as you can now — ideally as a digital receipt from a supermarket loyalty app, or clean, upright photos. Once you've uploaded 50 food items, you're through.",
+  "Super, dann habe ich für den Start erstmal alles von dir, was ich brauche. Um das nächste Level der App freizuschalten, lade jetzt bitte so viele Kassenzettel wie möglich hoch — im Idealfall als digitalen Bon aus einer Supermarkt-Loyalitäts-App oder als saubere, gerade Fotos. Sobald du auf 50 hochgeladene Lebensmittel kommst, geht's weiter.",
+);
+
+// ── Typing engine (#2, #4) ────────────────────────────────────────────────
+
+// Speed of the letter-by-letter typing effect, in ms per character —
+// ~25% slower than an earlier 14ms/char. Tune here.
+const TYPEWRITER_MS_PER_CHAR = 19;
+
+// How long a purely-visual ("node") message pauses for before the
+// sequence advances — it doesn't type letter-by-letter (bullet lists /
+// bold results render as real markup), so this stands in for "reading
+// time" instead.
+const NODE_PAUSE_MS = 900;
+
+// One message in the conversation's linear queue: either plain text that
+// types out letter by letter, or a structured React node (bullet list,
+// bold result) that appears instantly and then pauses for NODE_PAUSE_MS.
+type SeqItem = { kind: "typed"; text: string } | { kind: "node"; node: ReactNode };
+const typedItem = (text: string): SeqItem => ({ kind: "typed", text });
+const nodeItem = (n: ReactNode): SeqItem => ({ kind: "node", node: n });
+
+// Reveals `text` one character at a time, like it's being typed live.
+// Runs once per mount and never re-types on a later re-render, since the
+// effect only restarts when `text` itself changes — once a bubble has
+// finished typing it just stays fully shown. Click/tap the text to skip
+// straight to the end (and still fire `onDone`, so a sequence doesn't
+// get stuck waiting).
+export function TypewriterText({ text, onDone }: { text: string; onDone?: () => void }) {
+  const [shown, setShown] = useState(0);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+  const doneRef = useRef(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    setShown(0);
+    doneRef.current = false;
+    if (!text) {
+      doneRef.current = true;
+      onDoneRef.current?.();
+      return;
+    }
+    let i = 0;
+    intervalRef.current = setInterval(() => {
+      i += 1;
+      setShown(i);
+      if (i >= text.length) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        doneRef.current = true;
+        onDoneRef.current?.();
+      }
+    }, TYPEWRITER_MS_PER_CHAR);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [text]);
+
+  function skip() {
+    if (doneRef.current) return;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setShown(text.length);
+    doneRef.current = true;
+    onDoneRef.current?.();
+  }
+
+  return (
+    <span onClick={skip} className="cursor-default">
+      {text.slice(0, shown)}
+    </span>
+  );
+}
+
+// A fully-resolved sequence (history that's already been fully typed) —
+// every item just appears, no animation.
+function renderStaticSequence(items: SeqItem[]): ReactNode {
+  return (
+    <>
+      {items.map((item, i) => (
+        <ChatBubble key={i} from="bot">
+          {item.kind === "node" ? item.node : item.text}
+        </ChatBubble>
+      ))}
+    </>
+  );
+}
+
+// Renders a slice of the CURRENT turn's queue, live (#3): everything
+// before `turnRevealed` is already fully shown; the item exactly at
+// `turnRevealed` is actively typing (or, for a "node" message, paused on
+// for a beat) and calls `onAdvance` once it's done; anything after that
+// hasn't arrived yet and isn't rendered — so a question's input controls
+// can never appear before every message leading up to it has finished.
+function SequenceView({
+  items,
+  globalOffset,
+  turnRevealed,
+  onAdvance,
+}: {
+  items: SeqItem[];
+  globalOffset: number;
+  turnRevealed: number;
+  onAdvance: () => void;
+}) {
+  const liveLocalIndex = turnRevealed - globalOffset;
+  const liveItem = liveLocalIndex >= 0 && liveLocalIndex < items.length ? items[liveLocalIndex] : undefined;
+
+  useEffect(() => {
+    if (liveItem?.kind !== "node") return;
+    const t = setTimeout(onAdvance, NODE_PAUSE_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [globalOffset, turnRevealed]);
+
+  return (
+    <>
+      {items.map((item, localI) => {
+        const globalI = globalOffset + localI;
+        if (globalI > turnRevealed) return null;
+        const isLive = globalI === turnRevealed;
+        return (
+          <ChatBubble key={globalI} from="bot">
+            {item.kind === "node" ? (
+              item.node
+            ) : isLive ? (
+              <TypewriterText text={item.text} onDone={onAdvance} />
+            ) : (
+              item.text
+            )}
+          </ChatBubble>
+        );
+      })}
+    </>
+  );
+}
+
+// ── Per-step sequence builders ────────────────────────────────────────────
+
+function askSequenceFor(step: StepDef, lang: Lang): SeqItem[] {
+  const items: SeqItem[] = [];
+  if (step.promptIntro) items.push(...step.promptIntro.map((m) => typedItem(m[lang])));
+  items.push(typedItem(step.prompt[lang]));
+  if (step.hint) items.push(typedItem(step.hint[lang]));
+  return items;
+}
+
+function replySequenceFor(step: StepDef, ans: Answers, lang: Lang): SeqItem[] {
+  if (step.key === "name") {
+    return [
+      typedItem(step.feedback![lang]),
+      typedItem(NAME_PROFILES_INTRO[lang]),
+      nodeItem(bulletList(NAME_PROFILE_BULLETS[lang])),
+      typedItem(NAME_BMR_INTRO[lang]),
+    ];
+  }
+  if (step.key === "sex") {
+    return [
+      typedItem(SEX_FORMULA_INTRO[lang]),
+      typedItem(sexFormulaLine(ans.sex, lang)),
+      typedItem(SEX_FORMULA_NEXT[lang]),
+    ];
+  }
+  const msgs: SeqItem[] = [];
+  if (step.feedback) msgs.push(typedItem(step.feedback[lang]));
+  if (step.extraFeedback) msgs.push(...step.extraFeedback.map((m) => typedItem(m[lang])));
+  return msgs;
+}
+
+// The final reveal (#7, #9): shown once `goal` is answered and the Ideal
+// Profile Engine (E2) has computed real calories/macros.
+function revealSequence(ideal: IdealProfile | null, lang: Lang): SeqItem[] {
+  if (!ideal) return [typedItem(UNLOCK_NEXT_LEVEL_TEXT[lang])];
+  return [
+    nodeItem(calorieResultNode(ideal, lang)),
+    nodeItem(macroListNode(ideal, lang)),
+    typedItem(EDIT_LATER_NOTE[lang]),
+    typedItem(UNLOCK_NEXT_LEVEL_TEXT[lang]),
+  ];
+}
+
+function BotAvatar() {
+  return (
+    <span
+      aria-hidden
+      className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-sm ring-2 ring-white"
+    >
+      🌱
+    </span>
+  );
 }
 
 function ChatBubble({ from, children }: { from: "bot" | "user"; children: React.ReactNode }) {
   return (
-    <div className={cn("flex", from === "user" ? "justify-end" : "justify-start")}>
+    <div className={cn("flex items-end gap-2", from === "user" ? "justify-end" : "justify-start")}>
+      {from === "bot" ? <BotAvatar /> : null}
       <div
         className={cn(
           "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm",
@@ -320,229 +959,481 @@ function ChatBubble({ from, children }: { from: "bot" | "user"; children: React.
   );
 }
 
+function InlineAnswerEditor({
+  step,
+  value,
+  lang,
+  onSave,
+  onCancel,
+}: {
+  step: StepDef;
+  value: unknown;
+  lang: Lang;
+  onSave: (value: string | string[]) => void;
+  onCancel: () => void;
+}) {
+  const [multiDraft, setMultiDraft] = useState<string[]>(
+    step.kind === "multi" ? [...((value as string[]) ?? [])] : [],
+  );
+  const [textDraft, setTextDraft] = useState<string>(
+    step.kind === "multi" ? "" : String(value ?? ""),
+  );
+
+  if (step.kind === "choice") {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        {step.options!.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onSave(opt.value)}
+            className={cn(
+              "rounded-xl px-3 py-2 text-xs font-medium tracking-tight ring-1 transition-colors",
+              opt.value === value
+                ? "bg-ink text-canvas ring-ink"
+                : "bg-zinc-50 text-ink/60 ring-black/5 hover:text-ink",
+            )}
+          >
+            {opt.label[lang]}
+          </button>
+        ))}
+        <button type="button" onClick={onCancel} className="text-xs text-ink/40 hover:text-ink">
+          {CANCEL_LABEL[lang]}
+        </button>
+      </div>
+    );
+  }
+
+  if (step.kind === "multi") {
+    function toggle(v: string) {
+      setMultiDraft((prev) => {
+        if (v === "none") return prev.includes("none") ? [] : ["none"];
+        if (prev.includes(v)) return prev.filter((x) => x !== v);
+        return [...prev.filter((x) => x !== "none"), v];
+      });
+    }
+    return (
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-2">
+          {step.options!.map((opt) => {
+            const selected = multiDraft.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => toggle(opt.value)}
+                className={cn(
+                  "rounded-xl px-3 py-2 text-xs font-medium tracking-tight ring-1 transition-colors",
+                  selected ? "bg-ink text-canvas ring-ink" : "bg-zinc-50 text-ink/60 ring-black/5 hover:text-ink",
+                )}
+              >
+                {opt.label[lang]}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => onSave(multiDraft)}
+            className="rounded-full bg-ink px-3 py-1.5 text-xs font-medium tracking-tight text-canvas"
+          >
+            {SAVE_LABEL[lang]}
+          </button>
+          <button type="button" onClick={onCancel} className="text-xs text-ink/40 hover:text-ink">
+            {CANCEL_LABEL[lang]}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        className={inputCls}
+        type={step.kind === "number" ? "number" : step.kind === "date" ? "date" : "text"}
+        value={textDraft}
+        onChange={(e) => setTextDraft(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && onSave(textDraft.trim())}
+        autoFocus
+      />
+      <button
+        type="button"
+        onClick={() => onSave(textDraft.trim())}
+        className="shrink-0 rounded-xl bg-ink px-4 py-2.5 text-xs font-medium tracking-tight text-canvas"
+      >
+        {SAVE_LABEL[lang]}
+      </button>
+      <button type="button" onClick={onCancel} className="shrink-0 text-xs text-ink/40 hover:text-ink">
+        {CANCEL_LABEL[lang]}
+      </button>
+    </div>
+  );
+}
+
 export function answerLabel(step: StepDef, answers: Record<string, unknown>, lang: Lang): string {
   const value = answers[step.key];
   if (step.kind === "choice") {
-    return step.options?.find((o) => o.value === value)?.label[lang] ?? String(value);
+    return step.options?.find((o) => o.value === value)?.label[lang] ?? String(value ?? "—");
   }
   if (step.kind === "multi") {
-    const list = value as string[];
+    const list = (value as string[]) ?? [];
     if (list.length === 0) return "—";
-    return list
-      .map((v) => step.options?.find((o) => o.value === v)?.label[lang] ?? v)
-      .join(", ");
+    return list.map((v) => step.options?.find((o) => o.value === v)?.label[lang] ?? v).join(", ");
   }
   return (value as string) || "—";
 }
 
+function findFirstUnanswered(steps: StepDef[], ans: Answers): number {
+  const idx = steps.findIndex((s) => {
+    const v = ans[s.key as keyof Answers];
+    if (Array.isArray(v)) return false; // multis are never "blocking"
+    return !v && !s.optional;
+  });
+  return idx === -1 ? 0 : idx;
+}
+
 export function ChatOnboardingStep({
+  resumeProfile,
+  resumeProfileId,
   onProfileCreated,
-  onSkip,
 }: {
-  onProfileCreated: (profileId: string) => void;
-  onSkip: () => void;
+  resumeProfile?: Profile | null;
+  resumeProfileId?: string | null;
+  onProfileCreated: (profileId: string, name: string | null) => void;
 }) {
-  const [answers, setAnswers] = useState<Answers>(INITIAL_ANSWERS);
-  const [stepIndex, setStepIndex] = useState(0);
+  const { language } = useLanguage();
+  const lang: Lang = language;
+
+  const initialAnswers = resumeProfile ? profileToAnswers(resumeProfile) : INITIAL_ANSWERS;
+  const [answers, setAnswers] = useState<Answers>(initialAnswers);
   const [draftText, setDraftText] = useState("");
-  const [saving, setSaving] = useState(false);
+  // "chat": answering questions. "saving": final submit in flight.
+  // "reveal": submit succeeded — showing the computed calories/macros and
+  // the hand-off to the baseline receipt upload.
+  const [phase, setPhase] = useState<"chat" | "saving" | "reveal">("chat");
   const [error, setError] = useState<string | null>(null);
-  const { language, setLanguage } = useLanguage();
+  const [inputError, setInputError] = useState<Bi | null>(null);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  // The Ideal Profile Engine's (E2) output as of the last save — populated
+  // as soon as sex/date_of_birth/height/weight are all known (even before
+  // exercise/movement/goal are answered, since those default sensibly),
+  // so the BMR reveal right after `weight_kg` is already the real number.
+  const [latestIdeal, setLatestIdeal] = useState<IdealProfile | null>(
+    resumeProfile?.ideal_profile ?? null,
+  );
+  const [revealName, setRevealName] = useState<string | null>(null);
+  const historyRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<HTMLDivElement>(null);
+  const savedIdRef = useRef<string | null>(resumeProfileId ?? null);
 
-  const done = stepIndex >= STEPS.length;
-  const current = STEPS[stepIndex];
-  // Before the language question is answered, fall back to the app's
-  // current language (English by default) so the very first prompt
-  // still renders in something sensible.
-  const lang: Lang = stepIndex === 0 ? language : answers.language;
+  // The chat's fixed 8-question set (onboardingflow_etc.md) — none are
+  // conditional, but `showIf` stays supported for parity with STEPS.
+  const visibleSteps = ONBOARDING_STEPS.filter((s) => !s.showIf || s.showIf(answers));
 
-  function setAnswer<K extends keyof Answers>(key: K, value: Answers[K]) {
-    setAnswers((prev) => ({ ...prev, [key]: value }));
+  const [stepIndex, setStepIndex] = useState<number>(() =>
+    resumeProfile ? findFirstUnanswered(visibleSteps, initialAnswers) : 0,
+  );
+
+  // The live "turn": everything typing right now, in strict order — the
+  // just-answered step's reply (if any) followed by the newly-current
+  // step's ask sequence (question + hint). `turnReplyCount` marks where
+  // the reply ends and the ask begins, so the history area and the
+  // current-question area can each render their half while both stay
+  // driven by the same shared counter — nothing "pops up" ahead of its
+  // turn (#3). Reused as-is for the reveal phase's own sequence too.
+  const [turnQueue, setTurnQueue] = useState<SeqItem[]>(() =>
+    askSequenceFor(visibleSteps[Math.min(stepIndex, visibleSteps.length - 1)], lang),
+  );
+  const [turnReplyCount, setTurnReplyCount] = useState(0);
+  const [turnRevealed, setTurnRevealed] = useState(0);
+
+  const busy = phase !== "chat";
+  const done = phase !== "chat";
+  const current = visibleSteps[Math.min(stepIndex, visibleSteps.length - 1)];
+  const askDone = turnRevealed >= turnQueue.length;
+
+  function advanceTurn() {
+    setTurnRevealed((r) => r + 1);
   }
 
-  function advance() {
-    setDraftText("");
-    setStepIndex((i) => i + 1);
-  }
+  // Prefill DOB from the age-gate value captured at sign-up (reconciles
+  // E1-S3): the onboarding DOB is authoritative, but we don't ask twice.
+  useEffect(() => {
+    let cancelled = false;
+    if (answers.date_of_birth) return;
+    supabase.auth.getUser().then(({ data }) => {
+      if (cancelled) return;
+      const dob = (data.user?.user_metadata as { date_of_birth?: string } | undefined)?.date_of_birth;
+      if (dob) setAnswers((prev) => (prev.date_of_birth ? prev : { ...prev, date_of_birth: dob }));
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  async function submit(finalAnswers: Answers) {
-    setSaving(true);
-    setError(null);
+  useEffect(() => {
+    chatRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (historyRef.current) historyRef.current.scrollTop = historyRef.current.scrollHeight;
+  }, [stepIndex, done, turnRevealed]);
+
+  // Best-effort incremental persistence so progress survives a reload /
+  // relogin (E1-S6). Failures are swallowed here — the authoritative save
+  // is the final submit(). Also captures the freshly-computed Ideal
+  // Profile (E2) as soon as the backend can produce one (sex/dob/height/
+  // weight all set) — see the BMR reveal after `weight_kg` below.
+  async function persistProgress(next: Answers) {
     try {
-      const profile = await createProfile(toProfileCreate(finalAnswers));
-      onProfileCreated(profile.profile_id);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not create profile.");
-    } finally {
-      setSaving(false);
+      const payload = { ...toProfileCreate(next, language), profile_complete: false };
+      const saved = savedIdRef.current
+        ? await updateProfile(savedIdRef.current, payload)
+        : await createProfile(payload as ProfileCreate);
+      savedIdRef.current = saved.profile_id;
+      setLatestIdeal(saved.ideal_profile ?? null);
+    } catch {
+      // ignore — retried implicitly on the next answer, and on submit
     }
   }
 
+  function saveEdit(key: string, value: string | string[]) {
+    setAnswers((prev) => ({ ...prev, [key]: value }));
+    setEditingKey(null);
+  }
+
+  async function submit(finalAnswers: Answers) {
+    setPhase("saving");
+    setError(null);
+    try {
+      const payload = { ...toProfileCreate(finalAnswers, language), profile_complete: true };
+      const p = savedIdRef.current
+        ? await updateProfile(savedIdRef.current, payload)
+        : await createProfile(payload as ProfileCreate);
+      savedIdRef.current = p.profile_id;
+      setLatestIdeal(p.ideal_profile ?? null);
+      setRevealName(p.name ?? finalAnswers.name ?? null);
+      setTurnQueue(revealSequence(p.ideal_profile ?? null, language));
+      setTurnReplyCount(0);
+      setTurnRevealed(0);
+      setPhase("reveal");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : CREATE_PROFILE_FAILED[language]);
+      setPhase("chat");
+    }
+  }
+
+  function handleContinueToUpload() {
+    if (savedIdRef.current) onProfileCreated(savedIdRef.current, revealName);
+  }
+
+  // Rebuilds the live turn for the step after the one just answered.
+  // Deliberately does NOT touch `stepIndex` on the final step (see
+  // goNext) — `current` must stay `goal` if submit() fails, so a retry
+  // re-shows the right question without duplicating it in history.
+  function advance(next: Answers) {
+    setDraftText("");
+    setInputError(null);
+    setEditingKey(null);
+    void persistProgress(next);
+
+    const nextVisible = ONBOARDING_STEPS.filter((s) => !s.showIf || s.showIf(next));
+    const nextStep = nextVisible[stepIndex + 1];
+    const reply = replySequenceFor(current, next, language);
+    const ask = askSequenceFor(nextStep, language);
+    setTurnQueue([...reply, ...ask]);
+    setTurnReplyCount(reply.length);
+    setTurnRevealed(0);
+    setStepIndex((i) => i + 1);
+  }
+
   function goNext(nextAnswers: Answers) {
-    if (stepIndex === STEPS.length - 1) {
+    const nextVisible = ONBOARDING_STEPS.filter((s) => !s.showIf || s.showIf(nextAnswers));
+    if (stepIndex >= nextVisible.length - 1) {
       submit(nextAnswers);
     } else {
-      advance();
+      advance(nextAnswers);
     }
   }
 
   function handleChoice(value: string) {
-    if (current.key === "language") {
-      setLanguage(value as Lang);
-    }
     const next = { ...answers, [current.key]: value };
     setAnswers(next);
     goNext(next);
   }
 
   function handleTextSubmit() {
-    if (!draftText.trim() && !current.optional) return;
-    const next = { ...answers, [current.key]: draftText.trim() };
+    const trimmed = draftText.trim();
+    if (!trimmed) return;
+    const err = rangeError(current.key, trimmed);
+    if (err) {
+      setInputError(err);
+      return;
+    }
+    const next = { ...answers, [current.key]: trimmed };
     setAnswers(next);
     goNext(next);
   }
 
-  function toggleMultiOption(key: MultiKey, value: string) {
-    const list = answers[key];
-    let nextList: string[];
-    if (value === "none") {
-      nextList = list.includes("none") ? [] : ["none"];
-    } else if (list.includes(value)) {
-      nextList = list.filter((v) => v !== value);
-    } else {
-      nextList = [...list.filter((v) => v !== "none"), value];
-    }
-    setAnswer(key, nextList);
-  }
-
-  function handleMultiContinue() {
-    goNext(answers);
-  }
-
-  const answeredSteps = STEPS.slice(0, stepIndex);
+  // Once saving/revealed, `goal` (the last step) is answered too even
+  // though `stepIndex` itself never advanced past it (see goNext above) —
+  // show the full history rather than dropping the final Q&A.
+  const answeredSteps = phase === "chat" ? visibleSteps.slice(0, stepIndex) : visibleSteps;
 
   return (
-    <section className="space-y-8 px-6 pb-16">
-      <header className="space-y-2">
-        <p className="text-xs font-medium uppercase tracking-widest text-ink/40">{STEP_LABEL[lang]}</p>
-        <h1 className="text-balance text-4xl font-medium leading-none tracking-tight">{TITLE[lang]}</h1>
-        <p className="max-w-[56ch] text-pretty text-base text-ink/60">{SUBTITLE[lang]}</p>
-      </header>
+    <section className="flex flex-col px-6 pb-10">
+      {/* Bug fix: this used to be an unconstrained box that visually grew
+          taller with every answer (history had its own small max-height,
+          but the card around it didn't) — it looked like a small box on
+          the first question, then a second box appearing underneath and
+          "merging in" on every answer after. Now the card is one fixed-
+          height box from the very first render; history and the live
+          question share a single scrollable feed inside it, and the
+          input controls stay pinned to the bottom. */}
+      <div ref={chatRef} className="flex h-[75vh] min-h-[480px] flex-col scroll-mt-6">
+        <Card className="flex h-full flex-col overflow-hidden">
+          <div ref={historyRef} className="flex-1 space-y-3 overflow-y-auto pr-1">
+            {answeredSteps.map((step, stepPos) => {
+              const isLastAnswered = stepPos === answeredSteps.length - 1;
+              const liveReply = phase === "chat" && isLastAnswered;
+              const replyItems = liveReply
+                ? turnQueue.slice(0, turnReplyCount)
+                : replySequenceFor(step, answers, language);
+              return (
+                <div key={step.key} className="space-y-1">
+                  {renderStaticSequence(askSequenceFor(step, language))}
+                  {editingKey === step.key ? (
+                    <div className="pl-9">
+                      <InlineAnswerEditor
+                        step={step}
+                        value={answers[step.key as keyof Answers]}
+                        lang={language}
+                        onSave={(value) => saveEdit(step.key, value)}
+                        onCancel={() => setEditingKey(null)}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <ChatBubble from="user">{answerLabel(step, answers, language)}</ChatBubble>
+                      {/* Edit sits right under the specific answer it
+                          edits, not after the bot's reply below — so it's
+                          unambiguous which bubble it applies to. */}
+                      {!done ? (
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setEditingKey(step.key)}
+                            className="text-[11px] font-medium text-ink/35 hover:text-ink"
+                          >
+                            {EDIT_LABEL[lang]}
+                          </button>
+                        </div>
+                      ) : null}
+                      {/* Per-answer reassuring feedback (R-FEEDBACK). */}
+                      {liveReply ? (
+                        <SequenceView
+                          items={replyItems}
+                          globalOffset={0}
+                          turnRevealed={turnRevealed}
+                          onAdvance={advanceTurn}
+                        />
+                      ) : (
+                        renderStaticSequence(replyItems)
+                      )}
+                      {/* Dynamic BMR reveal (bold, not typed — it's a
+                          calculated result, same treatment as the final
+                          calorie/macro reveal) — pops in once the backend
+                          has computed it, independently of the reply
+                          sequence above since it arrives async and must
+                          never block the next question. */}
+                      {step.key === "weight_kg" && latestIdeal ? (
+                        <ChatBubble from="bot">{bmrResultNode(latestIdeal, language)}</ChatBubble>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+              );
+            })}
 
-      <Card className="space-y-4">
-        <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
-          {answeredSteps.map((step) => (
-            <div key={step.key} className="space-y-2">
-              <ChatBubble from="bot">{step.prompt[step.key === "language" ? "en" : answers.language]}</ChatBubble>
-              <ChatBubble from="user">{answerLabel(step, answers, answers.language)}</ChatBubble>
+            <div className={cn("space-y-1", answeredSteps.length > 0 && "border-t border-black/5 pt-4")}>
+              {phase === "chat" ? (
+                <SequenceView
+                  items={turnQueue.slice(turnReplyCount)}
+                  globalOffset={turnReplyCount}
+                  turnRevealed={turnRevealed}
+                  onAdvance={advanceTurn}
+                />
+              ) : phase === "saving" ? (
+                <ChatBubble from="bot">
+                  <TypewriterText text={CREATING_LABEL[lang]} />
+                </ChatBubble>
+              ) : (
+                <SequenceView items={turnQueue} globalOffset={0} turnRevealed={turnRevealed} onAdvance={advanceTurn} />
+              )}
             </div>
-          ))}
-          {!done ? (
-            <div className="space-y-1">
-              <ChatBubble from="bot">{current.prompt[lang]}</ChatBubble>
-              {current.hint ? <p className="pl-1 text-xs text-ink/40">{current.hint[lang]}</p> : null}
-              {current.disclaimer ? (
-                <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] text-amber-800 ring-1 ring-amber-200">
-                  {current.disclaimer[lang]}
-                </p>
+          </div>
+
+          {phase === "reveal" && askDone ? (
+            <div className="shrink-0 border-t border-black/5 p-4">
+              <PrimaryButton type="button" onClick={handleContinueToUpload}>
+                {START_UPLOADING_LABEL[lang]}
+              </PrimaryButton>
+            </div>
+          ) : null}
+
+          {phase === "chat" && askDone ? (
+            <div className="shrink-0 space-y-3 border-t border-black/5 p-4">
+              {current.kind === "choice" ? (
+                <div className="flex flex-wrap gap-2">
+                  {current.options!.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => handleChoice(opt.value)}
+                      className="rounded-xl bg-zinc-50 px-4 py-2.5 text-sm font-medium tracking-tight text-ink/70 ring-1 ring-black/5 transition-colors hover:bg-ink hover:text-canvas disabled:opacity-40"
+                    >
+                      {opt.label[lang]}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {current.kind === "text" || current.kind === "number" || current.kind === "date" ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      className={inputCls}
+                      type={current.kind === "number" ? "number" : current.kind === "date" ? "date" : "text"}
+                      placeholder={current.placeholder?.[lang]}
+                      value={draftText}
+                      onChange={(e) => {
+                        setDraftText(e.target.value);
+                        setInputError(null);
+                      }}
+                      onKeyDown={(e) => e.key === "Enter" && handleTextSubmit()}
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={handleTextSubmit}
+                      className="shrink-0 rounded-xl bg-ink px-5 py-3 text-sm font-medium tracking-tight text-canvas disabled:opacity-40"
+                    >
+                      {SEND_LABEL[lang]}
+                    </button>
+                  </div>
+                  {inputError ? <p className="text-xs text-red-600">{inputError[lang]}</p> : null}
+                </div>
               ) : null}
             </div>
           ) : null}
-          {done ? <ChatBubble from="bot">{CREATING_LABEL[lang]}</ChatBubble> : null}
-        </div>
-
-        {!done ? (
-          <div className="space-y-3 border-t border-black/5 pt-4">
-            {current.kind === "choice" ? (
-              <div className="flex flex-wrap gap-2">
-                {current.options!.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    disabled={saving}
-                    onClick={() => handleChoice(opt.value)}
-                    className="rounded-xl bg-zinc-50 px-4 py-2.5 text-sm font-medium tracking-tight text-ink/70 ring-1 ring-black/5 transition-colors hover:bg-ink hover:text-canvas disabled:opacity-40"
-                  >
-                    {opt.label[lang]}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-
-            {current.kind === "multi" ? (
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  {current.options!.map((opt) => {
-                    const selected = answers[current.key as MultiKey].includes(opt.value);
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => toggleMultiOption(current.key as MultiKey, opt.value)}
-                        className={cn(
-                          "rounded-xl px-4 py-2.5 text-sm font-medium tracking-tight ring-1 transition-colors",
-                          selected
-                            ? "bg-ink text-canvas ring-ink"
-                            : "bg-zinc-50 text-ink/60 ring-black/5 hover:text-ink",
-                        )}
-                      >
-                        {opt.label[lang]}
-                      </button>
-                    );
-                  })}
-                </div>
-                <PrimaryButton type="button" disabled={saving} onClick={handleMultiContinue}>
-                  {CONTINUE_LABEL[lang]}
-                </PrimaryButton>
-              </div>
-            ) : null}
-
-            {current.kind === "text" || current.kind === "number" ? (
-              <div className="flex gap-2">
-                <input
-                  className={inputCls}
-                  type={current.kind === "number" ? "number" : "text"}
-                  placeholder={current.placeholder?.[lang]}
-                  value={draftText}
-                  onChange={(e) => setDraftText(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleTextSubmit()}
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={handleTextSubmit}
-                  className="shrink-0 rounded-xl bg-ink px-5 py-3 text-sm font-medium tracking-tight text-canvas disabled:opacity-40"
-                >
-                  {SEND_LABEL[lang]}
-                </button>
-              </div>
-            ) : null}
-
-            {current.optional ? (
-              <button
-                type="button"
-                onClick={() => (current.kind === "multi" ? handleMultiContinue() : handleTextSubmit())}
-                className="block text-xs font-medium tracking-tight text-ink/40 hover:text-ink"
-              >
-                {SKIP_QUESTION_LABEL[lang]}
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-      </Card>
+        </Card>
+      </div>
 
       {error ? (
-        <div className="rounded-2xl bg-red-50 px-5 py-4 text-sm text-red-700 ring-1 ring-red-200">{error}</div>
+        <div className="mt-5 rounded-2xl bg-red-50 px-5 py-4 text-sm text-red-700 ring-1 ring-red-200">{error}</div>
       ) : null}
-
-      <button
-        type="button"
-        onClick={onSkip}
-        className="block w-full text-center text-xs font-medium tracking-tight text-ink/50 hover:text-ink"
-      >
-        {SKIP_LABEL[lang]}
-      </button>
     </section>
   );
 }

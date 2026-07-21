@@ -1,0 +1,42 @@
+[
+  {
+    "query_standard": "Ostmann Oregano gerebelt 25g",
+    "off_matched_name": "Oregano gerebelt",
+    "off_code": "4002674073959",
+    "my_verdict": "correct",
+    "my_reasoning": "Exact branded match (Ostmann rubbed oregano).",
+    "jennifer_agrees": true,
+    "corrected_off_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Ostmann Rosmarin geschnitten 50g",
+    "off_matched_name": "Rosmarin geschnitten, getrocknet",
+    "off_code": "9001414024690",
+    "my_verdict": "partially_correct",
+    "my_reasoning": "Same product form (cut dried rosemary); different brand (no Ostmann entry in OFF).",
+    "jennifer_agrees": true,
+    "corrected_off_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Airwaves Cool Cassis Kaugummi (50 Stück)",
+    "off_matched_name": "Airwaves Cool Cassis",
+    "off_code": "4009900537698",
+    "my_verdict": "correct",
+    "my_reasoning": "Exact branded match (same product).",
+    "jennifer_agrees": true,
+    "corrected_off_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Ostmann Paprika edelsüß gemahlen 50g",
+    "off_matched_name": "Paprika edelsüß gemahlen",
+    "off_code": "4002674054071",
+    "my_verdict": "correct",
+    "my_reasoning": "Exact branded match (Ostmann ground sweet paprika).",
+    "jennifer_agrees": true,
+    "corrected_off_name": null,
+    "jennifer_note": null
+  }
+]

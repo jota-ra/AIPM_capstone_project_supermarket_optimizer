@@ -2,180 +2,347 @@
   "Rote Linsen": [
     {
       "title": "Red Lentil Soup",
+      "title_de": "Rote-Linsen-Suppe",
       "description": "Simmer red lentils with onion, carrot, cumin, and vegetable stock until soft; blend partially for a creamy texture.",
+      "description_de": "Rote Linsen mit Zwiebel, Karotte, Kreuzkümmel und Gemüsebrühe weich köcheln lassen; für eine cremige Konsistenz teilweise pürieren.",
       "prep_minutes": 25
     },
     {
       "title": "Lentil & Spinach Curry",
+      "title_de": "Linsen-Spinat-Curry",
       "description": "Cook lentils with tomatoes, garlic, and curry powder in coconut milk; stir in spinach at the end.",
+      "description_de": "Linsen mit Tomaten, Knoblauch und Currypulver in Kokosmilch garen; zum Schluss den Spinat unterrühren.",
       "prep_minutes": 30
     },
     {
       "title": "Warm Lentil Salad",
+      "title_de": "Warmer Linsensalat",
       "description": "Toss cooked lentils with cucumber, feta, lemon juice, and olive oil; serve warm or at room temperature.",
+      "description_de": "Gekochte Linsen mit Gurke, Feta, Zitronensaft und Olivenöl vermengen; warm oder bei Zimmertemperatur servieren.",
       "prep_minutes": 15
     }
   ],
   "Kichererbsen": [
     {
       "title": "Chickpea & Tomato Stew",
+      "title_de": "Kichererbsen-Tomaten-Eintopf",
       "description": "Simmer chickpeas with canned tomatoes, garlic, and smoked paprika until thick.",
+      "description_de": "Kichererbsen mit Dosentomaten, Knoblauch und geräuchertem Paprikapulver sämig einköcheln lassen.",
       "prep_minutes": 25
     },
     {
       "title": "Roasted Chickpea Snack",
+      "title_de": "Geröstete Kichererbsen als Snack",
       "description": "Toss chickpeas with olive oil and spices, roast until crisp.",
+      "description_de": "Kichererbsen mit Olivenöl und Gewürzen vermengen und knusprig rösten.",
       "prep_minutes": 30
     },
     {
       "title": "Chickpea Salad Bowl",
+      "title_de": "Kichererbsen-Salatbowl",
       "description": "Combine chickpeas with cucumber, red onion, parsley, and a lemon-tahini dressing.",
+      "description_de": "Kichererbsen mit Gurke, roter Zwiebel, Petersilie und einem Zitronen-Tahin-Dressing vermengen.",
       "prep_minutes": 10
     }
   ],
   "Vollkornhaferflocken": [
     {
       "title": "Overnight Oats",
+      "title_de": "Overnight Oats",
       "description": "Mix whole oats with milk or yogurt and a topping of your choice; refrigerate overnight.",
+      "description_de": "Vollkornhaferflocken mit Milch oder Joghurt und einem Topping nach Wahl verrühren; über Nacht im Kühlschrank ziehen lassen.",
       "prep_minutes": 5
     },
     {
       "title": "Savory Oat Porridge",
+      "title_de": "Herzhafter Haferbrei",
       "description": "Cook oats in stock instead of water, top with a fried egg and greens.",
+      "description_de": "Haferflocken statt in Wasser in Brühe kochen und mit einem Spiegelei und Blattgemüse garnieren.",
       "prep_minutes": 15
     },
     {
       "title": "Baked Oat Bars",
+      "title_de": "Gebackene Haferriegel",
       "description": "Combine oats, mashed banana, and nuts; bake until firm for a portable snack.",
+      "description_de": "Haferflocken, zerdrückte Banane und Nüsse vermengen; für einen praktischen Snack zum Mitnehmen fest backen.",
       "prep_minutes": 30
     }
   ],
   "Vollkornbrot": [
     {
       "title": "Open-Faced Egg Sandwich",
+      "title_de": "Belegtes Brot mit Ei",
       "description": "Top whole-grain bread with a soft-boiled egg, avocado, and chili flakes.",
+      "description_de": "Vollkornbrot mit einem weich gekochten Ei, Avocado und Chiliflocken belegen.",
       "prep_minutes": 10
     },
     {
       "title": "Tomato & Cheese Toast",
+      "title_de": "Tomaten-Käse-Toast",
       "description": "Layer whole-grain bread with fresh tomato, mozzarella, and basil; toast until melted.",
+      "description_de": "Vollkornbrot mit frischer Tomate, Mozzarella und Basilikum belegen und toasten, bis der Käse geschmolzen ist.",
       "prep_minutes": 10
     }
   ],
   "Griechischer Joghurt": [
     {
       "title": "Greek Yogurt Parfait",
+      "title_de": "Griechisches Joghurt-Parfait",
       "description": "Layer Greek yogurt with berries and a handful of nuts or granola.",
+      "description_de": "Griechischen Joghurt mit Beeren und einer Handvoll Nüsse oder Granola schichten.",
       "prep_minutes": 5
     },
     {
       "title": "Yogurt-Marinated Chicken",
+      "title_de": "In Joghurt mariniertes Hähnchen",
       "description": "Marinate chicken in Greek yogurt, garlic, and lemon before grilling or baking.",
+      "description_de": "Hähnchen in griechischem Joghurt, Knoblauch und Zitrone marinieren, bevor es gegrillt oder gebacken wird.",
       "prep_minutes": 20
     },
     {
       "title": "Savory Yogurt Dip",
+      "title_de": "Herzhafter Joghurt-Dip",
       "description": "Stir Greek yogurt with cucumber, garlic, and dill for a quick dip or sauce.",
+      "description_de": "Griechischen Joghurt mit Gurke, Knoblauch und Dill zu einem schnellen Dip oder einer Soße verrühren.",
       "prep_minutes": 10
     }
   ],
   "Tofu": [
     {
       "title": "Pan-Fried Tofu Stir-Fry",
+      "title_de": "Gebratener Tofu aus der Pfanne",
       "description": "Pan-fry cubed tofu until golden, then toss with vegetables and soy sauce.",
+      "description_de": "Tofuwürfel goldbraun anbraten, dann mit Gemüse und Sojasoße vermengen.",
       "prep_minutes": 20
     },
     {
       "title": "Tofu Scramble",
+      "title_de": "Tofu-Rührei",
       "description": "Crumble tofu into a pan with turmeric, onion, and peppers for an egg-free scramble.",
+      "description_de": "Tofu mit Kurkuma, Zwiebel und Paprika in eine Pfanne bröseln für ein eifreies Rührei.",
       "prep_minutes": 15
     },
     {
       "title": "Baked Marinated Tofu",
+      "title_de": "Gebackener marinierter Tofu",
       "description": "Marinate tofu slices and bake until firm and slightly caramelized.",
+      "description_de": "Tofuscheiben marinieren und backen, bis sie fest und leicht karamellisiert sind.",
       "prep_minutes": 30
     }
   ],
   "Eier": [
     {
       "title": "Vegetable Omelette",
+      "title_de": "Gemüseomelett",
       "description": "Whisk eggs and cook with sautéed vegetables of your choice.",
+      "description_de": "Eier verquirlen und mit angebratenem Gemüse nach Wahl zubereiten.",
       "prep_minutes": 10
     },
     {
       "title": "Soft-Boiled Eggs with Toast",
+      "title_de": "Weich gekochte Eier mit Toast",
       "description": "Boil eggs to a soft yolk, serve with toasted bread strips.",
+      "description_de": "Eier mit weichem Eigelb kochen und mit gerösteten Brotstreifen servieren.",
       "prep_minutes": 8
     },
     {
       "title": "Baked Egg Muffins",
+      "title_de": "Gebackene Ei-Muffins",
       "description": "Whisk eggs with vegetables and cheese, bake in a muffin tin for grab-and-go portions.",
+      "description_de": "Eier mit Gemüse und Käse verquirlen und in einer Muffinform backen für praktische Portionen zum Mitnehmen.",
       "prep_minutes": 25
+    },
+    {
+      "title": "Boiled Egg & Spinach Salad",
+      "title_de": "Spinatsalat mit gekochtem Ei",
+      "description": "Toss fresh spinach with a sliced hard-boiled egg, olive oil, and lemon juice.",
+      "description_de": "Frischen Spinat mit einem in Scheiben geschnittenen hart gekochten Ei, Olivenöl und Zitronensaft vermengen.",
+      "prep_minutes": 12
+    }
+  ],
+  "Spinat": [
+    {
+      "title": "Boiled Egg & Spinach Salad",
+      "title_de": "Spinatsalat mit gekochtem Ei",
+      "description": "Toss fresh spinach with a sliced hard-boiled egg, olive oil, and lemon juice.",
+      "description_de": "Frischen Spinat mit einem in Scheiben geschnittenen hart gekochten Ei, Olivenöl und Zitronensaft vermengen.",
+      "prep_minutes": 12
+    },
+    {
+      "title": "Sautéed Spinach with Garlic",
+      "title_de": "Gebratener Spinat mit Knoblauch",
+      "description": "Wilt spinach in a hot pan with garlic and a drizzle of olive oil.",
+      "description_de": "Spinat in einer heißen Pfanne mit Knoblauch und etwas Olivenöl zusammenfallen lassen.",
+      "prep_minutes": 8
+    }
+  ],
+  "Rindfleisch": [
+    {
+      "title": "Pan-Seared Beef Strips",
+      "title_de": "Scharf angebratene Rindfleischstreifen",
+      "description": "Sear thin beef strips and serve over rice or vegetables.",
+      "description_de": "Dünne Rindfleischstreifen scharf anbraten und auf Reis oder Gemüse servieren.",
+      "prep_minutes": 15
+    },
+    {
+      "title": "Beef & Vegetable Stir-Fry",
+      "title_de": "Rindfleisch-Gemüse-Pfanne",
+      "description": "Stir-fry beef strips with mixed vegetables and soy sauce.",
+      "description_de": "Rindfleischstreifen mit gemischtem Gemüse und Sojasoße in der Pfanne braten.",
+      "prep_minutes": 20
     }
   ],
   "Ungesüßter Tee oder Wasser": [
     {
       "title": "Cucumber Mint Infused Water",
+      "title_de": "Gurken-Minz-Wasser",
       "description": "Add cucumber slices and fresh mint to a jug of water; chill before serving.",
+      "description_de": "Gurkenscheiben und frische Minze in eine Karaffe Wasser geben; vor dem Servieren kalt stellen.",
       "prep_minutes": 5
     },
     {
       "title": "Unsweetened Iced Tea",
+      "title_de": "Ungesüßter Eistee",
       "description": "Brew tea, cool, and serve over ice with a slice of lemon.",
+      "description_de": "Tee aufbrühen, abkühlen lassen und mit einer Zitronenscheibe auf Eis servieren.",
       "prep_minutes": 10
     }
   ],
   "Naturjoghurt": [
     {
       "title": "Plain Yogurt with Honey Alternative",
+      "title_de": "Naturjoghurt mit Honigalternative",
       "description": "Top plain yogurt with fresh fruit and a small drizzle of your preferred sweetener.",
+      "description_de": "Naturjoghurt mit frischem Obst und einem kleinen Schuss des bevorzugten Süßungsmittels garnieren.",
       "prep_minutes": 5
     },
     {
       "title": "Yogurt Herb Sauce",
+      "title_de": "Joghurt-Kräuter-Soße",
       "description": "Mix plain yogurt with chopped herbs, garlic, and lemon as a sauce for grilled dishes.",
+      "description_de": "Naturjoghurt mit gehackten Kräutern, Knoblauch und Zitrone zu einer Soße für Gegrilltes verrühren.",
       "prep_minutes": 10
     }
   ],
   "Ungesalzene Nüsse": [
     {
       "title": "Homemade Trail Mix",
+      "title_de": "Selbst gemachtes Studentenfutter",
       "description": "Combine unsalted nuts with dried fruit and a few dark chocolate chips.",
+      "description_de": "Ungesalzene Nüsse mit Trockenfrüchten und ein paar Zartbitterschokoladenstückchen mischen.",
       "prep_minutes": 5
     },
     {
       "title": "Nut-Crusted Chicken or Tofu",
+      "title_de": "Hähnchen oder Tofu in Nusskruste",
       "description": "Crush unsalted nuts and use as a crust for baked chicken or tofu.",
+      "description_de": "Ungesalzene Nüsse zerkleinern und als Kruste für gebackenes Hähnchen oder Tofu verwenden.",
       "prep_minutes": 25
     }
   ],
   "Frisches Gemüse": [
     {
       "title": "Sheet-Pan Roasted Vegetables",
+      "title_de": "Ofengemüse vom Blech",
       "description": "Toss chopped vegetables with olive oil and herbs, roast until tender.",
+      "description_de": "Klein geschnittenes Gemüse mit Olivenöl und Kräutern vermengen und weich rösten.",
       "prep_minutes": 30
     },
     {
       "title": "Quick Vegetable Stir-Fry",
+      "title_de": "Schnelle Gemüsepfanne",
       "description": "Stir-fry a mix of fresh vegetables with garlic and soy sauce.",
+      "description_de": "Eine Mischung aus frischem Gemüse mit Knoblauch und Sojasoße in der Pfanne braten.",
       "prep_minutes": 15
     },
     {
       "title": "Raw Vegetable Salad",
+      "title_de": "Roher Gemüsesalat",
       "description": "Combine fresh vegetables with a simple vinaigrette for a crisp side dish.",
+      "description_de": "Frisches Gemüse mit einer einfachen Vinaigrette zu einer knackigen Beilage vermengen.",
       "prep_minutes": 10
     }
   ],
   "Vollkornreis oder Vollkornnudeln": [
     {
       "title": "Whole-Grain Rice Bowl",
+      "title_de": "Vollkornreis-Bowl",
       "description": "Top whole-grain rice with roasted vegetables, a protein of choice, and a simple sauce.",
+      "description_de": "Vollkornreis mit geröstetem Gemüse, einer Proteinquelle nach Wahl und einer einfachen Soße belegen.",
       "prep_minutes": 25
     },
     {
       "title": "Whole-Grain Pasta Primavera",
+      "title_de": "Vollkornnudeln Primavera",
       "description": "Toss whole-grain pasta with sautéed seasonal vegetables and olive oil.",
+      "description_de": "Vollkornnudeln mit angebratenem saisonalem Gemüse und Olivenöl vermengen.",
       "prep_minutes": 20
+    }
+  ],
+  "Milch": [
+    {
+      "title": "Warm Milk Overnight Oats",
+      "title_de": "Overnight Oats mit warmer Milch",
+      "description": "Soak oats in milk overnight with a topping of your choice for a quick, calcium-rich breakfast.",
+      "description_de": "Haferflocken über Nacht in Milch einweichen und mit einem Topping nach Wahl für ein schnelles, kalziumreiches Frühstück versehen.",
+      "prep_minutes": 5
+    },
+    {
+      "title": "Simple Milk-Based Smoothie",
+      "title_de": "Einfacher Smoothie mit Milch",
+      "description": "Blend milk with banana and a spoon of peanut butter for a filling, calcium-rich drink.",
+      "description_de": "Milch mit Banane und einem Löffel Erdnussbutter zu einem sättigenden, kalziumreichen Getränk mixen.",
+      "prep_minutes": 5
+    }
+  ],
+  "Angereicherter Pflanzendrink": [
+    {
+      "title": "Fortified Oat Milk Latte",
+      "title_de": "Latte mit angereichertem Haferdrink",
+      "description": "Warm calcium-fortified oat milk and combine with coffee or cocoa.",
+      "description_de": "Mit Kalzium angereicherten Haferdrink erwärmen und mit Kaffee oder Kakao verrühren.",
+      "prep_minutes": 5
+    },
+    {
+      "title": "Plant Milk Chia Pudding",
+      "title_de": "Chiapudding mit Pflanzendrink",
+      "description": "Mix chia seeds with fortified plant milk and refrigerate overnight.",
+      "description_de": "Chiasamen mit angereichertem Pflanzendrink verrühren und über Nacht kühl stellen.",
+      "prep_minutes": 5
+    }
+  ],
+  "Grünkohl": [
+    {
+      "title": "Sautéed Kale with Garlic",
+      "title_de": "Gebratener Grünkohl mit Knoblauch",
+      "description": "Wilt kale in a hot pan with garlic and a drizzle of olive oil.",
+      "description_de": "Grünkohl in einer heißen Pfanne mit Knoblauch und etwas Olivenöl zusammenfallen lassen.",
+      "prep_minutes": 10
+    },
+    {
+      "title": "Kale Salad with Lemon Dressing",
+      "title_de": "Grünkohlsalat mit Zitronendressing",
+      "description": "Massage raw kale with lemon juice and olive oil, top with nuts or seeds.",
+      "description_de": "Rohen Grünkohl mit Zitronensaft und Olivenöl einmassieren und mit Nüssen oder Samen bestreuen.",
+      "prep_minutes": 10
+    }
+  ],
+  "Apfel mit Erdnussmus": [
+    {
+      "title": "Apple Slices with Peanut Butter",
+      "title_de": "Apfelspalten mit Erdnussmus",
+      "description": "Slice an apple and serve with a spoonful of peanut butter for dipping.",
+      "description_de": "Einen Apfel in Spalten schneiden und mit einem Löffel Erdnussmus zum Dippen servieren.",
+      "prep_minutes": 2
+    }
+  ],
+  "Reiswaffeln": [
+    {
+      "title": "Rice Cakes with Toppings",
+      "title_de": "Reiswaffeln mit Belag",
+      "description": "Top rice cakes with peanut butter, mashed avocado, or cottage cheese for a quick snack.",
+      "description_de": "Reiswaffeln mit Erdnussmus, zerdrückter Avocado oder Hüttenkäse für einen schnellen Snack belegen.",
+      "prep_minutes": 2
     }
   ]
 }

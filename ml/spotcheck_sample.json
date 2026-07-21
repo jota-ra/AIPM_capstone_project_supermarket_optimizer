@@ -1,0 +1,427 @@
+[
+  {
+    "query_standard": "Airwaves Cool Cassis Kaugummi (50 Stück)",
+    "category": "confectionery",
+    "my_gold_bls_name": null,
+    "my_verdict": "no_bls_match",
+    "my_reasoning": "Chewing gum has no BLS entry (searched 'Kaugummi' -> none).",
+    "top5_candidates": [
+      "Arrak",
+      "Mais roh",
+      "Altbier",
+      "Melasse",
+      "Aioli"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Frischfisch (Bedientheke, ermäßigt)",
+    "category": "fish",
+    "my_gold_bls_name": null,
+    "my_verdict": "no_bls_match",
+    "my_reasoning": "'Frischfisch' species unspecified (counter, reduced) -> cannot assign a single BLS entry (ambiguity, not absence).",
+    "top5_candidates": [
+      "Pfirsich gedünstet",
+      "Schellfisch gedünstet",
+      "Litschisaft",
+      "Thunfisch roh",
+      "Kirschtasche (Blätterteig)"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Ostmann Oregano gerebelt 25g",
+    "category": "herbs_spices",
+    "my_gold_bls_name": null,
+    "my_verdict": "no_bls_match",
+    "my_reasoning": "Dried oregano has no BLS entry (spices largely absent).",
+    "top5_candidates": [
+      "Orange roh",
+      "Ananas getrocknet",
+      "Orangensaft",
+      "Ananasgelee",
+      "Most"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Ostmann Paprika edelsüß gemahlen 50g",
+    "category": "herbs_spices",
+    "my_gold_bls_name": null,
+    "my_verdict": "no_bls_match",
+    "my_reasoning": "Ground sweet paprika (spice) has no BLS entry.",
+    "top5_candidates": [
+      "Haselnuss gemahlen",
+      "Rinderragout mit Paprika",
+      "Walnuss gemahlen",
+      "Mohn gemahlen",
+      "Mandel süß, gemahlen"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Ostmann Rosmarin geschnitten 50g",
+    "category": "herbs_spices",
+    "my_gold_bls_name": null,
+    "my_verdict": "no_bls_match",
+    "my_reasoning": "Dried rosemary has no standalone BLS entry.",
+    "top5_candidates": [
+      "Lammrücken gebraten im Ofen, mit Rosmarin und Sauce",
+      "Tomatengemüse gedünstet, mit Rosmarin und Salbei",
+      "Wirsing gekocht",
+      "Geselchte",
+      "Romanesco gekocht"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Bio-Müsli Schoko-Knusper",
+    "category": "cereal",
+    "my_gold_bls_name": "Müslimischung mit Schokolade, glutenfrei, gesüßt",
+    "my_verdict": "partially_correct",
+    "my_reasoning": "Chocolate crunchy muesli; closest is 'Müslimischung mit Schokolade, glutenfrei, gesüßt' (extra 'glutenfrei' qualifier; no exact chocolate-crunch entry).",
+    "top5_candidates": [
+      "Schoko-Plunder",
+      "Schoko-Müslikekse/Schoko-Müsliplätzchen (Vollkornmürbeteig)",
+      "Schoko-Nuss-Creme",
+      "Schokosahnetorte (Schoko-Wasserbiskuit)",
+      "Baiser"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Bioland Tofu geräuchert",
+    "category": "legume",
+    "my_gold_bls_name": "Tofu",
+    "my_verdict": "partially_correct",
+    "my_reasoning": "Smoked tofu; no smoked entry exists -> plain 'Tofu' is the closest nutritional stand-in.",
+    "top5_candidates": [
+      "Tofu",
+      "Tofu gebacken",
+      "Tofu gargezogen",
+      "Vegetarische Bratwurst (aus Tofu und Weizenprotein)",
+      "Kohlroulade gedünstet, vegan gefüllt mit Hirse, Tomaten und Tofu"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Brühe im Glas",
+    "category": "condiment",
+    "my_gold_bls_name": "Fleischbrühe (Rind)",
+    "my_verdict": "partially_correct",
+    "my_reasoning": "Jarred liquid stock -> 'Fleischbrühe (Rind)' (type unspecified; shortlist miss).",
+    "top5_candidates": [
+      "Pastete im Brotteig gebacken",
+      "Kasseler im Brotteig gebacken",
+      "Karpfen im Backteig, roh",
+      "Kasseler im Blätterteig gebacken",
+      "Schnecken im Sud gekocht"
+    ],
+    "jennifer_agrees": false,
+    "corrected_bls_name": "Bouillon/Brühe/Suppe (Brühwürfel Pulver)",
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Chili-Mix Tricolore",
+    "category": "vegetable",
+    "my_gold_bls_name": "Pfefferschote rot, roh",
+    "my_verdict": "partially_correct",
+    "my_reasoning": "Tricolore chilli/pepper mix -> representative 'Pfefferschote rot, roh' (mix of colours).",
+    "top5_candidates": [
+      "Chili sin carne",
+      "Chili con carne (mit Rinderhackfleisch)",
+      "Quinoa tricolore, roh",
+      "Quinoa tricolore, gekocht",
+      "Chili con carne einfach"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Dr. Oetker Die Ofenfrische (TK-Pizza)",
+    "category": "frozen",
+    "my_gold_bls_name": "Pizza Spezial (mit Tomatensauce, Mozzarella, Schinken, Salami)",
+    "my_verdict": "partially_correct",
+    "my_reasoning": "Frozen 'Ofenfrische' pizza; variant unspecified -> 'Pizza Spezial (Schinken, Salami)' as typical (shortlist miss).",
+    "top5_candidates": [
+      "Eier russisch",
+      "Pfefferkuchen",
+      "Haferschleim",
+      "Kölsch",
+      "Fischbrühe"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Frischkäse 20%",
+    "category": "dairy",
+    "my_gold_bls_name": "Frischkäsezubereitung Natur, mind. 10 % Fett i. Tr.",
+    "my_verdict": "partially_correct",
+    "my_reasoning": "Smooth cream cheese 20%; nearest smooth natural prep is 'Frischkäsezubereitung Natur, mind. 10 % Fett i. Tr.' (fat class differs; körniger is grainy).",
+    "top5_candidates": [
+      "Körniger Frischkäse mind. 20 % Fett i. Tr.",
+      "Körniger Frischkäse < 10 % Fett i. Tr.",
+      "Frischkäse aus Schafmilch, Natur, mind. 45 % Fett i. Tr.",
+      "Frischkäse aus Ziegenmilch, Natur, mind. 45 % Fett i. Tr.",
+      "Skyr, Frischkäse < 10 % Fett i. Tr."
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Griechischer Joghurt 2%",
+    "category": "dairy",
+    "my_gold_bls_name": "Joghurt fettarm, mind. 1,5 % bis max. 1,8 % Fett",
+    "my_verdict": "partially_correct",
+    "my_reasoning": "Greek yogurt 2%; no strained/Greek entry -> nearest plain low-fat 'Joghurt fettarm, 1,5-1,8 % Fett'.",
+    "top5_candidates": [
+      "Haferflocken ungesüßt mit Joghurt 3,5 % Fett und Fruchtmischung",
+      "Joghurt mind. 3,5 % Fett, mit Frucht-Schokoladenzubereitung, gesüßt",
+      "Joghurt mind. 3,5 % Fett, laktosefrei",
+      "Joghurt mind. 3,5 % Fett, mit Vanillezubereitung, gesüßt",
+      "Müsli ungesüßt, mit Joghurt 3,5 % Fett und Fruchtmischung"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Hähnchen-Minutenschnitzel",
+    "category": "meat",
+    "my_gold_bls_name": "Hähnchen Brustfilet, roh",
+    "my_verdict": "partially_correct",
+    "my_reasoning": "Chicken minute schnitzel = thin-cut chicken breast; no schnitzel entry -> 'Hähnchen Brustfilet, roh'.",
+    "top5_candidates": [
+      "Jägerschnitzel (Schweineschnitzel natur, gebraten, mit Pilzsauce)",
+      "Schweineschnitzel natur, gebraten, mit Grundsauce dunkel/braun",
+      "Hähnchen Unterschenkel, mit Haut, gegrillt",
+      "Hähnchenschenkel/Hähnchenkeule, gebraten im Ofen",
+      "Hähnchen Unterschenkel, mit Haut, mariniert, gegrillt"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Lava Bar Cookie (Snack)",
+    "category": "confectionery",
+    "my_gold_bls_name": "Schokoladen-Mandel-Cookies vegan",
+    "my_verdict": "partially_correct",
+    "my_reasoning": "Soft chocolate cookie bar; no exact entry -> 'Schokoladen-Mandel-Cookies vegan' (closest chocolate cookie).",
+    "top5_candidates": [
+      "Hafer Flocken",
+      "Schokoladen-Mandel-Cookies vegan",
+      "Kokoszwieback",
+      "Baklava",
+      "Kaviar echt (Stör)"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Milka Nussini Riegel 31,5g",
+    "category": "confectionery",
+    "my_gold_bls_name": "Milchschokoladen-Riegel gefüllt mit Karamellcreme und gerösteten Haselnüssen",
+    "my_verdict": "partially_correct",
+    "my_reasoning": "Milka Nussini (milk chocolate + hazelnut/wafer) -> 'Milchschokoladen-Riegel gefüllt mit Karamellcreme und gerösteten Haselnüssen'.",
+    "top5_candidates": [
+      "Riegel aus Speiseeis, mit Karamell, überzogen mit Schokolade",
+      "Milchschokoladen-Riegel gefüllt mit Vollkornkeks",
+      "Milchschokoladen-Riegel gefüllt mit Knusperwaffel",
+      "Milchreis mit Milch 3,5 % Fett und roter Grütze",
+      "Milchreis mit Milch 3,5 % Fett und Stachelbeerkompott"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Paprika-Mix",
+    "category": "vegetable",
+    "my_gold_bls_name": "Gemüsepaprika rot, roh",
+    "my_verdict": "partially_correct",
+    "my_reasoning": "Mixed-colour pepper pack -> representative 'Gemüsepaprika rot, roh'.",
+    "top5_candidates": [
+      "Paprika-Tomaten-Gemüse gedünstet",
+      "Paprika-Gurkengemüse gedünstet",
+      "Paprika-Sahnesauce von dunkler/brauner Grundsauce",
+      "Paprika-Gurken-Tomatensalat mit Essigmarinade",
+      "Paprikasauce von Bechamelsauce"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Spanische grüne/geschwärzte Oliven",
+    "category": "vegetable",
+    "my_gold_bls_name": "Oliven grün, gesäuert, abgetropft",
+    "my_verdict": "partially_correct",
+    "my_reasoning": "Spanish green/blackened olives -> 'Oliven grün, gesäuert, abgetropft' (green/black variant; representative).",
+    "top5_candidates": [
+      "Oliven grün, gefüllt mit Mandeln, gesäuert, abgetropft",
+      "Oliven grün, gefüllt mit Paprikapaste, gesäuert, abgetropft",
+      "Tomaten gefüllt mit Oliven und Schafskäse überbacken",
+      "Olivenöl",
+      "Vollkornpizza mit Tomatensauce, Mozzarella, Tomaten, Zwiebeln, Oliven"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Auberginen",
+    "category": "vegetable",
+    "my_gold_bls_name": "Aubergine roh",
+    "my_verdict": "correct",
+    "my_reasoning": "Fresh aubergine bought raw -> 'Aubergine roh' (not in top-5; ranker only offered prepared forms).",
+    "top5_candidates": [
+      "Aubergine gedünstet",
+      "Aubergine gebacken",
+      "Auberginenscheiben gebraten",
+      "Aubergine gekocht",
+      "Auberginen gedünstet (mit Fett und Salz)"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Bio-Olivenöl",
+    "category": "fats_oils",
+    "my_gold_bls_name": "Olivenöl",
+    "my_verdict": "correct",
+    "my_reasoning": "Olive oil -> 'Olivenöl' (rank 1).",
+    "top5_candidates": [
+      "Olivenöl",
+      "Leinöl",
+      "Oliven grün, gefüllt mit Paprikapaste, gesäuert, abgetropft",
+      "Oliven grün, gesäuert, abgetropft",
+      "Mohnöl"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Carat Jodsalz mit Fluorid 500g",
+    "category": "herbs_spices",
+    "my_gold_bls_name": "Speisesalz jodiert/Jodsalz, mit Fluorid",
+    "my_verdict": "correct",
+    "my_reasoning": "Iodized salt with fluoride -> 'Speisesalz jodiert/Jodsalz, mit Fluorid' (exact; shortlist miss).",
+    "top5_candidates": [
+      "Grüner-Spargel-Salat (gegart) mit Essigmarinade",
+      "Rote-Bete-Karottensalat (roh) mit Essigmarinade",
+      "Rote-Bete-Salat (gegart) mit Zitronenmarinade",
+      "Grüne-Bohnen-Salat (gegart) mit Speck-Essigmarinade",
+      "Paprika-Gurken-Tomatensalat mit Essigmarinade"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Gut&Günstig Buttercroissant",
+    "category": "bakery",
+    "my_gold_bls_name": "Croissant (Hefeblätterteig/Plunderteig)",
+    "my_verdict": "correct",
+    "my_reasoning": "Butter croissant -> 'Croissant (Hefeblätterteig/Plunderteig)' (shortlist miss).",
+    "top5_candidates": [
+      "Butterreis",
+      "Buttermilch",
+      "Butterschmalz",
+      "Butternockerln",
+      "Butterzwieback"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Kartoffeln 2,5kg",
+    "category": "vegetable",
+    "my_gold_bls_name": "Kartoffel ungeschält, roh",
+    "my_verdict": "correct",
+    "my_reasoning": "Raw potatoes 2.5kg -> 'Kartoffel ungeschält, roh' (shortlist miss; only prepared potato dishes offered).",
+    "top5_candidates": [
+      "Kartoffelklöße von rohen Kartoffeln",
+      "Kartoffeln (als Pellkartoffeln) gebraten",
+      "Kartoffelklöße von gekochten Kartoffeln",
+      "Kartoffeln geschält, roh gebraten",
+      "Kartoffeln mit Schale gekocht"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Lieken Urkorn Mehrkornbrot 500g",
+    "category": "bakery",
+    "my_gold_bls_name": "Mehrkornbrot mit Ölsamen",
+    "my_verdict": "correct",
+    "my_reasoning": "Multigrain bread -> 'Mehrkornbrot mit Ölsamen' (rank 3).",
+    "top5_candidates": [
+      "Mehrkornschrot",
+      "Mehrkornbrötchen",
+      "Mehrkornbrot mit Ölsamen",
+      "Vollkornbrot",
+      "Roggenbrot"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Rispentomaten",
+    "category": "vegetable",
+    "my_gold_bls_name": "Tomate roh",
+    "my_verdict": "correct",
+    "my_reasoning": "Vine tomatoes -> 'Tomate roh' (shortlist miss; ranker offered tomato purees/dishes).",
+    "top5_candidates": [
+      "Tomaten passiert/Tomatenpüree",
+      "Rührei gebraten mit Tomaten",
+      "Omelett gebraten mit Tomaten",
+      "Frikadellen gebraten, mit gedünsteten Tomaten",
+      "Tomatensauce aus frischen Tomaten"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  },
+  {
+    "query_standard": "Staudensellerie",
+    "category": "vegetable",
+    "my_gold_bls_name": "Bleichsellerie roh",
+    "my_verdict": "correct",
+    "my_reasoning": "Stalk celery = 'Bleichsellerie roh' (shortlist miss; ranker matched Knollensellerie/celeriac).",
+    "top5_candidates": [
+      "Gemüsesaft aus Knollensellerie",
+      "Knollensellerie gedünstet",
+      "Stout",
+      "Sardelle roh",
+      "Knollensellerie roh"
+    ],
+    "jennifer_agrees": true,
+    "corrected_bls_name": null,
+    "jennifer_note": null
+  }
+]

@@ -6,7 +6,7 @@ Usage (run from the repo root):
 
 Pure/offline: exercises compute_nutrition_delta + the trend/message
 helpers directly with in-memory NutritionProfile objects, no DB needed.
-compute_session_progress() itself needs Supabase (get_receipts_by_session /
+compute_session_progress() itself needs Supabase (get_receipts_by_user /
 get_receipt_items), so it isn't covered here — same DB-vs-offline split
 as test_recommender.py's `--db` flag.
 """

@@ -17,6 +17,38 @@ class Recipe(BaseModel):
     prep_minutes: Optional[int] = None
 
 
+class EasySwap(BaseModel):
+    """
+    One easy, low-effort addition/swap suggestion — cheap, quick, few
+    ingredients, in season — as opposed to the single Next Cart pick
+    above. Several of these can be shown together (see
+    services/easy_swaps.py), unlike the one deliberate Next Cart choice.
+    """
+
+    item: str
+    targets_gap: str
+    cost: str  # "low" | "medium" | "high"
+    rationale: str
+
+
+class PantryMatch(BaseModel):
+    """
+    "Use what you already have" — a pantry item that already targets an
+    open gap, shown ALONGSIDE (not instead of) the Next Cart purchase
+    pick below, so the user can choose either (docs/architektur_entscheidungen.md,
+    ToDo 2). `urgent` is set when the item is expiring soon or already
+    past its estimated shelf life (services/shelf_life.py) — still
+    suggested, never hidden, since "abgelaufen" doesn't mean "unusable",
+    just "use it now or throw it out".
+    """
+
+    item: str
+    targets_gap: str
+    days_until_expiry: Optional[int] = None
+    urgent: bool
+    message: str
+
+
 class ActionType(str, Enum):
     ADD = "add"
     REPLACE = "replace"
@@ -40,6 +72,32 @@ class EvaluatedCandidate(BaseModel):
     targets_gap: str
     allowed: bool
     reason: Optional[str] = None  # set when blocked
+
+
+class ScoredRecommendation(BaseModel):
+    """One scored Next-Cart suggestion (E8, BR-S1)."""
+
+    item: str
+    action_type: ActionType
+    targets_gap: str            # e.g. "protein:low"
+    score: float
+    severity: float
+    goal_relevance: float
+    rationale: Optional[str] = None
+
+
+class StructuredNextCart(BaseModel):
+    """E8 output structure (BR-S1): 1 primary + ≤2 alternatives + ≤2 reduce,
+    or a no-suitable / no-gaps state."""
+
+    status: RecommendationStatus
+    primary: Optional[ScoredRecommendation] = None
+    alternatives: List[ScoredRecommendation] = Field(default_factory=list)  # ≤2
+    reduce: List[str] = Field(default_factory=list)                          # ≤2 red-tier item names
+    message: str
+    confidence: ConfidenceLevel
+    evaluated_candidates: List[EvaluatedCandidate] = Field(default_factory=list)
+    disclaimer: str = DISCLAIMER
 
 
 class NextCartRecommendation(BaseModel):

@@ -1,20 +1,23 @@
 from enum import Enum
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
 
 class Goal(str, Enum):
-    """Primary health goal (chat onboarding Q1). Drives which nutrient
-    the app leans on when explaining a recommendation (protein for
-    muscle, fiber for gradual weight loss, etc.) — see explainer.py."""
+    """Primary health goal (onboarding chat's last question). Drives the
+    BR-E6 calorie adjustment, the BR-M1 protein target, the BR-S5 goal
+    relevance lookup, and which nutrient the app leans on when explaining
+    a recommendation (protein for muscle, fiber for gradual weight loss)
+    — see ideal_profile.py, next_cart_engine.py, explainer.py.
 
-    BUILD_MUSCLE = "build_muscle"
-    MORE_ENERGY = "more_energy"
+    Exactly 3 options, matching the onboarding flow: lose weight, keep
+    weight/shape the same, or gain weight/muscle. BR-E6's fourth tier
+    ("aggressive" +15%) is intentionally not offered."""
+
     LOSE_WEIGHT_GRADUALLY = "lose_weight_gradually"
-    EAT_BALANCED = "eat_balanced"
-    BETTER_FOCUS = "better_focus"
-    BETTER_SLEEP = "better_sleep"
+    MAINTAIN = "maintain"
+    BUILD_MUSCLE = "build_muscle"
 
 
 class AgeRange(str, Enum):
@@ -95,11 +98,96 @@ class VegFrequency(str, Enum):
 class Gender(str, Enum):
     """Optional, used only for the Mifflin-St Jeor BMR term (see
     services/nutrition_personalization.py) — not asked for any other
-    reason. `OTHER` uses the midpoint of the male/female BMR offset."""
+    reason. `OTHER` uses the midpoint of the male/female BMR offset.
+
+    Retained for backward compatibility. The Level-1 onboarding (E1)
+    collects `sex` (sex-at-birth) instead and derives this field from it,
+    so existing downstream code (nutrition_personalization) keeps working
+    unchanged while the Ideal Profile Engine (E2) reads `sex`."""
 
     FEMALE = "female"
     MALE = "male"
     OTHER = "other"
+
+
+# ── Level-1 onboarding enums (E1-S5) ─────────────────────────────────────
+# These feed the Ideal Profile Engine (E2, services/ideal_profile.py) per
+# the deterministic rules in business_rules.md (BR-E/BR-M).
+
+class Sex(str, Enum):
+    """Sex at birth — the Mifflin-St Jeor BMR term (BR-E1).
+    `PREFER_NOT_TO_SAY` uses the mean of the male & female offset."""
+
+    FEMALE = "female"
+    MALE = "male"
+    PREFER_NOT_TO_SAY = "prefer_not_to_say"
+
+
+class ExerciseFrequency(str, Enum):
+    """Structured exercise per week → EAT added kcal/day (BR-E4)."""
+
+    NONE = "none"
+    ONE_TWO = "one_two"
+    THREE_FOUR = "three_four"
+    FIVE_SIX = "five_six"
+    DAILY_ATHLETE = "daily_athlete"
+
+
+class DailyMovement(str, Enum):
+    """Non-exercise daily movement → NEAT as a % of BMR (BR-E3)."""
+
+    MOSTLY_SITTING = "mostly_sitting"
+    MIXED = "mixed"
+    MOSTLY_STANDING = "mostly_standing"
+    PHYSICAL_LABOR = "physical_labor"
+
+
+class PregnancyStatus(str, Enum):
+    """Shown only for female profiles (BR); adjusts micronutrient RDAs."""
+
+    NONE = "none"
+    PREGNANT = "pregnant"
+    BREASTFEEDING = "breastfeeding"
+
+
+class FormOfAddress(str, Enum):
+    """How the app addresses the user (FR-2.2). Presentation-only."""
+
+    NEUTRAL = "neutral"
+    INFORMAL_DU = "informal_du"
+    FORMAL_SIE = "formal_sie"
+
+
+class MealsOutside(str, Enum):
+    """How often the user eats outside the tracked groceries (E6). Feeds the
+    confidence discount (BR-C4) and the eating-occasion coverage midpoints
+    (BR-I6) — it NEVER scales intake (BR-I4)."""
+
+    NEVER = "never"
+    RARELY = "rarely"
+    SOMETIMES = "sometimes"
+    OFTEN = "often"
+    DAILY = "daily"
+
+
+class ReceiptsComplete(str, Enum):
+    """How much of the user's shopping the uploaded receipts cover (E6).
+    Confidence discount only (BR-C4)."""
+
+    ALL = "all"
+    MOST = "most"
+    SOME = "some"
+    FEW = "few"
+
+
+class HomeCookedFrequency(str, Enum):
+    """How often the user cooks at home (E8-S4 / FR-10.1). Lets Next-Cart
+    lean toward ready-to-eat vs cook-from-scratch suggestions."""
+
+    RARELY = "rarely"
+    SOMETIMES = "sometimes"
+    OFTEN = "often"
+    DAILY = "daily"
 
 
 class ProfileCreate(BaseModel):
@@ -150,6 +238,72 @@ class ProfileCreate(BaseModel):
 
     language: Language = Language.EN
 
+    # ── Level-1 onboarding fields (E1-S5) ────────────────────────────────
+    # All optional so partial onboarding can be persisted and resumed
+    # (E1-S6). The frontend also derives the legacy `gender`/`age_range`/
+    # `activity_level` fields from these so existing downstream code keeps
+    # working unchanged (see ChatOnboardingStep.toProfileCreate).
+    form_of_address: Optional[FormOfAddress] = None
+    sex: Optional[Sex] = None
+    date_of_birth: Optional[str] = None  # ISO "YYYY-MM-DD"
+    exercise_frequency: Optional[ExerciseFrequency] = None
+    daily_movement: Optional[DailyMovement] = None
+    pregnancy_status: Optional[PregnancyStatus] = None
+    meals_per_day: Optional[int] = Field(default=None, ge=0, le=12)
+    snacks_per_day: Optional[int] = Field(default=None, ge=0, le=12)
+    dislikes: List[str] = Field(default_factory=list)
+    address: Optional[str] = None
+
+    # ── Status-quo attribution inputs (E6) ───────────────────────────────
+    # BR-I2 share: not shared → 100%; shared → 1/household_size (incl. user),
+    # optionally overridden by user_share. meals_outside / receipts_complete
+    # feed the confidence discount only (BR-C4/BR-I4), never intake.
+    groceries_shared: Optional[bool] = None
+    household_size: Optional[int] = Field(default=None, ge=1, le=20)
+    user_share: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    meals_outside: Optional[MealsOutside] = None
+    receipts_complete: Optional[ReceiptsComplete] = None
+
+    # ── Next-Cart inputs (E8-S4 / FR-10.1) ───────────────────────────────
+    days_to_shop: Optional[int] = Field(default=None, ge=1, le=60)
+    home_cooked_frequency: Optional[HomeCookedFrequency] = None
+
+    # ── Level-2 functional layer (E9) ────────────────────────────────────
+    # Health data (GDPR Art. 9): only processed under explicit consent
+    # (BR-P1). The app is fully usable without any of this; absent/without
+    # consent, all symptom multipliers default to 1.0 (BR-S4).
+    consent_level2: Optional[bool] = None
+    consent_at: Optional[str] = None            # ISO timestamp
+    consent_text_version: Optional[str] = None  # which consent copy was shown
+    # Level-2 answers (BR-S4). Fixed option strings, validated in the UI:
+    #   bowel_frequency:  normal | less_than_3_per_week
+    #   bloating:         none | sometimes | often_daily
+    #   hunger:           normal | most_of_day
+    #   energy:           fine | afternoon_crash
+    #   sleep:            fine | poor
+    #   hydration:        enough | low
+    #   alcohol:          none | occasional | weekly_plus
+    #   muscle_soreness:  none | active_sore
+    l2_bowel_frequency: Optional[str] = None
+    l2_bloating: Optional[str] = None
+    l2_hunger: Optional[str] = None
+    l2_energy: Optional[str] = None
+    l2_sleep: Optional[str] = None
+    l2_hydration: Optional[str] = None
+    l2_alcohol: Optional[str] = None
+    l2_muscle_soreness: Optional[str] = None
+
+    # E1-S6: false while the user is mid-walk-through, true once every
+    # required step is answered (drives "resume vs. dashboard" on login).
+    profile_complete: bool = False
+
+
+# Sane biometric bounds (E1-S5 "out-of-range inputs blocked"). Applied via
+# field validators below rather than Field(ge/le) so a legacy row that
+# predates onboarding validation still deserializes on read.
+_HEIGHT_CM_RANGE = (100.0, 250.0)
+_WEIGHT_KG_RANGE = (30.0, 300.0)
+
 
 class ProfileUpdate(BaseModel):
     """
@@ -175,9 +329,91 @@ class ProfileUpdate(BaseModel):
     veg_frequency: Optional[VegFrequency] = None
     language: Optional[Language] = None
 
+    # Level-1 fields (E1)
+    form_of_address: Optional[FormOfAddress] = None
+    sex: Optional[Sex] = None
+    date_of_birth: Optional[str] = None
+    exercise_frequency: Optional[ExerciseFrequency] = None
+    daily_movement: Optional[DailyMovement] = None
+    pregnancy_status: Optional[PregnancyStatus] = None
+    meals_per_day: Optional[int] = None
+    snacks_per_day: Optional[int] = None
+    dislikes: Optional[List[str]] = None
+    address: Optional[str] = None
+    # E6 status-quo attribution
+    groceries_shared: Optional[bool] = None
+    household_size: Optional[int] = None
+    user_share: Optional[float] = None
+    meals_outside: Optional[MealsOutside] = None
+    receipts_complete: Optional[ReceiptsComplete] = None
+    days_to_shop: Optional[int] = None
+    home_cooked_frequency: Optional[HomeCookedFrequency] = None
+    # E9 Level-2
+    consent_level2: Optional[bool] = None
+    consent_at: Optional[str] = None
+    consent_text_version: Optional[str] = None
+    l2_bowel_frequency: Optional[str] = None
+    l2_bloating: Optional[str] = None
+    l2_hunger: Optional[str] = None
+    l2_energy: Optional[str] = None
+    l2_sleep: Optional[str] = None
+    l2_hydration: Optional[str] = None
+    l2_alcohol: Optional[str] = None
+    l2_muscle_soreness: Optional[str] = None
+    profile_complete: Optional[bool] = None
+
+
+class Level2Submit(BaseModel):
+    """Level-2 submission (E9): explicit consent + the symptom answers.
+
+    `consent=False` records a decline (app stays fully usable, multipliers
+    stay 1.0). On `consent=True` the server stamps consent_at; answers are
+    only stored when consent is granted (BR-P1)."""
+
+    consent: bool
+    consent_text_version: str = "v1"
+    l2_bowel_frequency: Optional[str] = None
+    l2_bloating: Optional[str] = None
+    l2_hunger: Optional[str] = None
+    l2_energy: Optional[str] = None
+    l2_sleep: Optional[str] = None
+    l2_hydration: Optional[str] = None
+    l2_alcohol: Optional[str] = None
+    l2_muscle_soreness: Optional[str] = None
+
 
 class Profile(ProfileCreate):
     """Stored profile (Task 3.2), as returned by the API / DB."""
 
     id: str
     created_at: Optional[str] = None
+
+
+class IdealProfile(BaseModel):
+    """Personalized daily targets produced by the Ideal Profile Engine
+    (E2, services/ideal_profile.py) from a completed Level-1 profile.
+
+    Micronutrients ship as DGE starter values pending dietitian
+    verification (Q1) — see the `notes` field."""
+
+    calories_kcal: int
+    protein_g: int
+    fat_g: int
+    carbs_g: int
+    fiber_g: int
+    micronutrients: Dict[str, float] = Field(default_factory=dict)
+
+    # Energy breakdown (BR-E1..E6), surfaced for transparency/debugging.
+    bmr_kcal: int
+    neat_kcal: int
+    eat_kcal: int
+    tef_kcal: int
+    tdee_kcal: int
+
+    # BR-M3: True when protein alone (with fat already dropped to its
+    # 0.8 g/kg floor and carbs at 0) still meets/exceeds the calorie goal,
+    # so the macro split can't be satisfied and the conflict is surfaced
+    # rather than showing negative carbs.
+    constrained: bool = False
+
+    notes: List[str] = Field(default_factory=list)

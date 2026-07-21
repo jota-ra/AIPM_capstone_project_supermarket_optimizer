@@ -15,6 +15,7 @@ from backend.app.models.snapshot import (
     ConfidenceLevel,
 )
 from backend.app import nutrition_model as nm
+from backend.app.services import i18n
 
 MAX_GAPS = 3
 
@@ -23,6 +24,7 @@ def detect_gaps(
     profile: NutritionProfile,
     confidence: ConfidenceLevel,
     protein_ref: Optional[float] = None,
+    lang: str = "en",
 ) -> List[Gap]:
     """
     Return up to MAX_GAPS gaps, worst deviation first.
@@ -44,11 +46,7 @@ def detect_gaps(
             status=GapStatus.LOW,
             current_value=fiber,
             reference_value=nm.FIBER_REF_PER_1000KCAL,
-            message=(
-                f"Your basket is low in fiber (~{fiber:.0f} g per 1000 kcal "
-                f"vs a ~{nm.FIBER_REF_PER_1000KCAL:.0f} g guideline). More whole "
-                "grains, legumes, fruit or vegetables would help."
-            ),
+            message=i18n.t(lang, "gap.fiber", value=fiber, ref=nm.FIBER_REF_PER_1000KCAL),
             confidence=confidence,
         )))
 
@@ -60,10 +58,7 @@ def detect_gaps(
             status=GapStatus.LOW,
             current_value=protein,
             reference_value=effective_protein_ref,
-            message=(
-                f"Protein is on the low side (~{protein:.0f} g per 1000 kcal). "
-                "Beans, dairy, eggs, fish or lean meat would round it out."
-            ),
+            message=i18n.t(lang, "gap.protein", value=protein, ref=effective_protein_ref),
             confidence=confidence,
         )))
 
@@ -75,11 +70,7 @@ def detect_gaps(
             status=GapStatus.HIGH,
             current_value=sugar,
             reference_value=nm.SUGAR_MAX_PCT_ENERGY,
-            message=(
-                f"Sugar makes up a high share of your basket's calories "
-                f"(~{sugar:.0f}% of energy). Cutting back on sweetened drinks "
-                "and snacks would lower it."
-            ),
+            message=i18n.t(lang, "gap.sugar", value=sugar, ref=nm.SUGAR_MAX_PCT_ENERGY),
             confidence=confidence,
         )))
 
@@ -91,11 +82,7 @@ def detect_gaps(
             status=GapStatus.HIGH,
             current_value=processed,
             reference_value=nm.PROCESSED_MAX_AVG,
-            message=(
-                f"Your basket leans heavily processed (avg {processed:.1f} on a "
-                "1-4 scale). Swapping some ready-made items for whole foods "
-                "would help."
-            ),
+            message=i18n.t(lang, "gap.processed", value=processed, ref=nm.PROCESSED_MAX_AVG),
             confidence=confidence,
         )))
 

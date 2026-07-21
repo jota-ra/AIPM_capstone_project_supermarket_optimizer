@@ -1,0 +1,98 @@
+*** eBon ***
+NETTO
+Filiale 7761
+Kottbusser Damm 1
+10967 Berlin
+WWW.NETTO-ONLINE.DE
+EUR
+Favora Topa 3lg. 10x220BL
+3,85
+A
+Pri.Zugb.muellbtl.25x60L
+1,89
+A
+BesteErnte Himbeeren 500g
+4,99
+B
+Ostm.Paprika ger. gem.50g
+2,59
+B
+Taschentuecher Box 100ST
+1,39
+A
+SUMME [5]
+14,71
+----------
+SUMME
+14,71
+€
+Kartenzahlung EUR
+14,71
+-K-U-N-D-E-N-B-E-L-E-G-
+ 
+Terminal-ID :   65482706
+TA-Nr 686375    BNr 1664
+ 
+     Kartenzahlung
+       kontaktlos
+       Visa Debit
+ 
+  EUR 14,71
+PAN     ############9825
+Karte 0
+EMV-AID   A0000000031010
+VU-Nr         4556409584
+Genehmigungs-Nr   100275
+Datum 02.07.26 19:12 Uhr
+========================
+*** Zahlung erfolgt ***
+========================
+AS-Proc-Code = 00 075 00
+Capt.-Ref.= 0000
+APPROVED
+ 
+MWST
+BRUTTO
+NETTO
+A 19%
+1,14
+7,13
+5,99
+B
+7%
+0,50
+7,58
+7,08
+------------------------------------------
+Versäumte Ersparnis
+PAYBACK
+7 Punkte
+------------------------------------------
+Lassen Sie sich künftig keine
+Rabatte entgehen und nutzen Sie
+Netto plus App und PAYBACK
+TSE Transaktionsnummer.:1017928
+Seriennr. Kasse:NTO-000-07761-2
+Prüfwert:REV4upVjaaFEDwQQSmEBTkr5LgUSK7YR
+ShctXCGH+uySQQWcVw04visEycabaFrg0ZpBm8gjc
+8y1LBZW52NWqpRzNXbzI7PxEWINsQrF87LaBahIuQ
+JCzD2DaFFmFph+
+Signaturzähler:2039835
+TSE-Start:2026-07-02T17:11:36.000Z
+TSE-Stop : 2026-07-02T17:12:33.000Z
+TSE-Seriennr.:477562DEB8075AFD79E22B38ED7
+6C493539CC226CA954D6B5509E4CD20193307
+Steuer-Nr.DE133822409
+Montag-Samstag 7:00-22:00 Uhr
+Datum
+Uhrzeit
+Filiale
+Pos
+Bed
+Bon-Nr.
+02.07.26
+19:11
+0007761
+002
+5538333 0745
+(1/1) 

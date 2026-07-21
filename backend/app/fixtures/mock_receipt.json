@@ -1,0 +1,45 @@
+{
+  "store": "Rewe",
+  "date": "2026-07-13",
+  "scan_quality": "good",
+  "items": [
+    {
+      "name": "Vollmilch",
+      "original_text": "Vollmilch 3,5% 1L",
+      "quantity": 1,
+      "unit": "l",
+      "price": 1.29,
+      "category": "Milchprodukte",
+      "uncertain": false
+    },
+    {
+      "name": "Vollkornbrot",
+      "original_text": "Vollkornbrot 500g",
+      "quantity": 500,
+      "unit": "g",
+      "price": 1.99,
+      "category": "Backwaren",
+      "uncertain": false
+    },
+    {
+      "name": "Bananen",
+      "original_text": "Bananen 1,0 kg",
+      "quantity": 1,
+      "unit": "kg",
+      "price": 1.49,
+      "category": "Obst",
+      "uncertain": false
+    },
+    {
+      "name": "Bio Eier",
+      "original_text": "Bio Eier 10 Stk",
+      "quantity": 10,
+      "unit": "piece",
+      "price": 2.99,
+      "category": "Eier",
+      "uncertain": false
+    }
+  ],
+  "non_food_items_ignored": ["Pfand 0,25", "Tragetasche 0,20"],
+  "items_count": 4
+}

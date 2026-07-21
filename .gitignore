@@ -217,3 +217,20 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Epic 5 local verified-match dev-store (VERIFIED_STORE_LOCAL=1) — never commit
+backend/app/services/_verified_matches.json
+backend/app/services/_no_match_queue.json
+
+# OS / editor junk
+.DS_Store
+
+# Microsoft Office temporary lock files (e.g. ~$Foo.xlsx)
+~$*.xls*
+~$*.doc*
+~$*.ppt*
+
+# Regenerable on-disk lookup caches (rebuilt on first request:
+# _bls_cache.json from data/*.xlsx, _off_cache.json lazily from the OFF API)
+backend/app/services/_bls_cache.json
+backend/app/services/_off_cache.json

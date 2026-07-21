@@ -1,0 +1,27 @@
+-- =====================================================================
+-- Retire the orphaned `products` table (MATCH-3 registry).
+-- Run in the Supabase SQL editor. Idempotent.
+--
+-- `products` belonged to services/product_registry.py, meant to be a
+-- deduped, DB-backed registry of every OFF product seen in receipts,
+-- with receipt_items.matched_product_id pointing at its rows. At some
+-- point the DB helpers it depended on (get_product_by_off_id,
+-- create_product_row, set_receipt_item_match) were removed from
+-- db/supabase.py without this module being updated — it has thrown
+-- ImportError on load ever since, and nothing in the live app imports
+-- it (confirmed: no references in api/, services/, or main.py).
+--
+-- Epic 5's verified_matches table already fulfills the "remember
+-- corrections" role this registry was meant to provide, and it actually
+-- works (Tier-0 read side is wired into services/resolver.py). This
+-- migration removes the dead table; product_registry.py and its only
+-- caller (scripts/backfill_matches.py) have been deleted from the code.
+--
+-- Note: receipt_items.matched_product_id is NOT a real foreign key into
+-- this table (it was never declared as one, and its only live writer —
+-- api/receipts.py's manual-pick endpoint — stores the OFF/BLS source's
+-- own id, not a products.id) — dropping `products` does not orphan
+-- anything there.
+-- =====================================================================
+
+drop table if exists products;

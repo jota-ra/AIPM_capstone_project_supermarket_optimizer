@@ -13,7 +13,7 @@ from typing import Optional
 
 from backend.app.models.nutrition import MatchedProduct, MatchType, NutritionValues
 from backend.app.services import off_api
-from backend.app.services.text_similarity import token_similarity
+from backend.app.services.text_similarity import token_similarity, full_ratio
 
 # Similarity thresholds on a 0..1 scale.
 EXACT_THRESHOLD = 0.90   # >= this -> treat as an exact match
@@ -93,15 +93,26 @@ def match_product(
         scored.sort(key=lambda t: -t[0])
 
     best_score, best_product, best_nutrition = scored[0]
-    match_type = MatchType.EXACT if best_score >= EXACT_THRESHOLD else MatchType.FUZZY
+    best_name = off_api.product_display_name(best_product) or None
+
+    # E4-S2 / BR-MT1: acceptance uses token similarity (≥ FUZZY_THRESHOLD),
+    # but the "exact" LABEL is gated on the stricter whole-string ratio
+    # (≥ 0.90) — a containment-driven token score of 0.9 is not "exact".
+    is_exact = best_name is not None and full_ratio(name, best_name) >= EXACT_THRESHOLD
+    match_type = MatchType.EXACT if is_exact else MatchType.FUZZY
+
+    brand = (best_product.get("brands") or "").split(",")[0].strip() or None
 
     return MatchedProduct(
         parsed_item_name=name,
-        matched_name=off_api.product_display_name(best_product) or None,
+        matched_name=best_name,
         off_id=str(best_product.get("code")) if best_product.get("code") else None,
         fallback_category=None,
+        brand=brand,
         match_type=match_type,
         confidence=round(best_score, 3),
+        identity_conf=round(best_score, 3),
+        nutrition_conf=1.0,  # OFF hit passed the usable-nutrition filter
         data_source="OpenFoodFacts",
         nutrition=best_nutrition,
     )
