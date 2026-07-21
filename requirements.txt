@@ -53,7 +53,8 @@ pydantic-settings==2.14.2
 # extra pulls in `cryptography`, required for the ES256/RS256 asymmetric
 # signing keys Supabase issues to signed-in users (see services/auth.py).
 # ==========================
-PyJWT[crypto]==2.10.1
+# supabase-auth (via supabase) requires pyjwt>=2.12.0; keep this in sync.
+PyJWT[crypto]==2.13.0
 
 # ==========================
 # OpenFoodFacts nutrition lookups (Epic 2) are done via direct REST
